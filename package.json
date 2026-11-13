@@ -9,6 +9,8 @@
     "node": ">=22.20.0"
   },
   "scripts": {
+    "app": "node --disable-warning=ExperimentalWarning src/interface/cli.ts",
+    "test": "node --disable-warning=ExperimentalWarning --test \"tests/unidade/*.test.ts\"",
     "setup": "node scripts/configurar_ambiente.mjs",
     "gpu": "node scripts/detectar_gpu.mjs",
     "versoes": "node scripts/registrar_versoes.mjs",
@@ -36,6 +38,7 @@
     "remotion": "4.0.543"
   },
   "devDependencies": {
+    "@types/node": "22.20.5",
     "@types/react": "19.3.0",
     "typescript": "5.9.3"
   }

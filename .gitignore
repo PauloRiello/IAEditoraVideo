@@ -123,3 +123,6 @@ desktop.ini
 /tests/smoke/hyperframes/assets/
 /tests/smoke/hyperframes/renders/
 /tests/smoke/hyperframes/.hyperframes/
+
+# --- Dados locais da aplicação (banco, projetos, temporários) -
+/Dados/

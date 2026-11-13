@@ -1,0 +1,36 @@
+{
+  "id": "fivem",
+  "nome": "FiveM — divulgação de servidor",
+  "descricao": "Vídeos promocionais curtos de servidores FiveM (GTA V roleplay) para Instagram e TikTok.",
+  "formatoPadrao": "vertical-1080",
+  "formatos": [
+    {
+      "id": "vertical-1080",
+      "nome": "Vertical 9:16 (Instagram Reels, TikTok, Shorts)",
+      "largura": 1080,
+      "altura": 1920,
+      "fps": 30,
+      "duracaoMaximaSeg": 90
+    },
+    {
+      "id": "horizontal-1080",
+      "nome": "Horizontal 16:9 (YouTube, institucional)",
+      "largura": 1920,
+      "altura": 1080,
+      "fps": 30
+    },
+    {
+      "id": "quadrado-1080",
+      "nome": "Quadrado 1:1 (feed)",
+      "largura": 1080,
+      "altura": 1080,
+      "fps": 30
+    }
+  ],
+  "diretrizes": [
+    "Abrir com a cena de maior impacto nos primeiros 2 segundos.",
+    "Cortes rápidos sincronizados com a batida da música.",
+    "Mostrar diferenciais do servidor: veículos, mapas, facções, economia e eventos.",
+    "Encerrar com nome do servidor e chamada para entrar (Discord ou IP)."
+  ]
+}

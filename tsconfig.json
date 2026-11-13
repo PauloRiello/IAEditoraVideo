@@ -1,17 +1,31 @@
 {
   "compilerOptions": {
-    "target": "ES2018",
+    "target": "ES2022",
     "module": "Preserve",
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
     "strict": true,
     "noEmit": true,
-    "lib": ["es2015", "dom"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "noUnusedLocals": true
+    "noUnusedLocals": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true
   },
-  "include": ["src", "tests/smoke/remotion"],
-  "exclude": ["node_modules", "remotion.config.ts"]
+  "include": [
+    "src",
+    "Pipeline",
+    "tests/unidade",
+    "tests/smoke/remotion"
+  ],
+  "exclude": [
+    "node_modules",
+    "remotion.config.ts"
+  ]
 }

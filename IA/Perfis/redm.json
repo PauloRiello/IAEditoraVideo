@@ -1,0 +1,36 @@
+{
+  "id": "redm",
+  "nome": "RedM — divulgação de servidor",
+  "descricao": "Vídeos promocionais curtos de servidores RedM (Red Dead Redemption 2 roleplay) para Instagram e TikTok.",
+  "formatoPadrao": "vertical-1080",
+  "formatos": [
+    {
+      "id": "vertical-1080",
+      "nome": "Vertical 9:16 (Instagram Reels, TikTok, Shorts)",
+      "largura": 1080,
+      "altura": 1920,
+      "fps": 30,
+      "duracaoMaximaSeg": 90
+    },
+    {
+      "id": "horizontal-1080",
+      "nome": "Horizontal 16:9 (YouTube, institucional)",
+      "largura": 1920,
+      "altura": 1080,
+      "fps": 30
+    },
+    {
+      "id": "quadrado-1080",
+      "nome": "Quadrado 1:1 (feed)",
+      "largura": 1080,
+      "altura": 1080,
+      "fps": 30
+    }
+  ],
+  "diretrizes": [
+    "Abrir com paisagem ou cena de ação marcante nos primeiros 2 segundos.",
+    "Ritmo cinematográfico: planos um pouco mais longos e trilha de faroeste.",
+    "Mostrar diferenciais do servidor: cidades, profissões, cavalos, duelos e eventos.",
+    "Encerrar com nome do servidor e chamada para entrar (Discord ou IP)."
+  ]
+}
