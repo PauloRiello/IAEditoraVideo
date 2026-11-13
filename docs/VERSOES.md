@@ -26,6 +26,7 @@ A árvore completa, com dependências indiretas, está travada em `package-lock.
 | Pacote | Declarada | Instalada |
 |---|---|---|
 | @remotion/cli | 4.0.543 | 4.0.543 |
+| @types/node | 22.20.5 | 22.20.5 |
 | @types/react | 19.3.0 | 19.3.0 |
 | gsap | 3.15.1 | 3.15.1 |
 | hyperframes | 0.9.40 | 0.9.40 |

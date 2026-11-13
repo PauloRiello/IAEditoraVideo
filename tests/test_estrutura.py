@@ -51,6 +51,8 @@ DEVEM_SER_IGNORADOS = [
     "node_modules/pkg/index.js",
     ".venv/bin/python",
     "models/whisper.pt",
+    "Dados/banco/editora.db",
+    "Dados/config/configuracoes.json",
 ]
 
 NAO_DEVEM_SER_IGNORADOS = [
@@ -63,6 +65,8 @@ NAO_DEVEM_SER_IGNORADOS = [
     "Referências/.gitkeep",
     "Exportações/.gitkeep",
     "IA/Perfis/perfil.json",
+    "src/nucleo/aplicacao.ts",
+    "CLAUDE.md",
 ]
 
 

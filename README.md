@@ -3,8 +3,12 @@
 Editor de vídeo assistido por IA: recebe vídeos brutos, analisa e transcreve o
 conteúdo, decide a edição, renderiza e verifica a qualidade antes de exportar.
 
-> **Status:** estrutura e ambiente de desenvolvimento prontos e verificados.
-> O editor ainda não foi implementado.
+> **Status:** ambiente e estrutura central prontos e testados. As etapas de edição e a
+> interface gráfica ainda não foram implementadas. Andamento: [docs/PROGRESSO.md](docs/PROGRESSO.md).
+
+Roda no computador do usuário, sem depender de nenhum serviço de IA externo. O primeiro
+foco são vídeos promocionais de servidores FiveM e RedM para Instagram e TikTok, tratados
+como perfis configuráveis: o mesmo núcleo serve a qualquer tipo de vídeo.
 
 ## Estrutura
 
@@ -13,30 +17,20 @@ IAEditoraVideo/
 ├── Videos Brutos/        Material original (conteúdo fora do Git)
 ├── Referências/          Referências de estilo (conteúdo fora do Git)
 ├── Exportações/          Vídeos finais (conteúdo fora do Git)
-├── IA/
-│   ├── Memoria/          Histórico persistente entre projetos
-│   ├── Aprendizado/      Padrões aprendidos com histórico e feedback
-│   ├── Perfis/           Perfis de edição (estilo, ritmo, plataforma)
-│   ├── Feedback/         Avaliações humanas e de controle de qualidade
-│   ├── Analises/         Resultados de análise de vídeos
-│   └── Conhecimento/     Regras e boas práticas de edição
-├── Pipeline/
-│   ├── ingestion/        1. Entrada, validação e metadados
-│   ├── analysis/         2. Cenas, silêncios, qualidade
-│   ├── transcription/    3. Fala → texto temporizado
-│   ├── editing/          4. Decisões de corte e plano de edição
-│   ├── rendering/        5. Geração do vídeo
-│   └── quality-control/  6. Verificação antes de exportar
-├── src/                  Código-fonte central
+├── Dados/                Banco, configurações, projetos e temporários (fora do Git)
+├── src/
+│   ├── dominio/          Tipos e contratos
+│   ├── nucleo/           Aplicação e orquestrador do pipeline
+│   ├── servicos/         Projetos, memória, perfis, provedores de IA, recursos
+│   ├── infra/            Banco SQLite, caminhos, configurações
+│   └── interface/        Linha de comando (janela gráfica futura)
+├── Pipeline/             Etapas de processamento audiovisual
+├── IA/Perfis/            Perfis de especialização (geral, fivem, redm)
 ├── scripts/              Setup, detecção de GPU e verificadores
-├── config/               Configurações (sem segredos)
-├── tests/                Testes automatizados e composições de teste
+├── config/               Configurações das ferramentas (sem segredos)
+├── tests/                Testes de unidade e composições de teste
 ├── docs/                 Documentação
-├── .claude/skills/       Agent Skills do Remotion e do HyperFrames
-├── package.json          Dependências Node.js e comandos npm
-├── requirements.txt      Dependências Python
-├── tsconfig.json         Configuração do TypeScript
-└── remotion.config.ts    Configuração do Remotion
+└── .claude/skills/       Skills de desenvolvimento (não fazem parte do produto)
 ```
 
 A arquitetura está detalhada em [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
@@ -71,6 +65,17 @@ npm run setup
 ```bash
 npm run verificar
 ```
+
+```bash
+npm test
+```
+
+```bash
+npm run app -- situacao
+```
+
+Outros comandos da aplicação: `npm run app -- perfis`, `npm run app -- projeto criar "Nome" fivem`,
+`npm run app -- projeto listar` e `npm run app -- backup`.
 
 Instalação, verificação, aceleração por GPU e uso de cada ferramenta estão em
 [docs/AMBIENTE.md](docs/AMBIENTE.md).

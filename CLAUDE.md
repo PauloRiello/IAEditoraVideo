@@ -1,0 +1,65 @@
+# IA Editora de Vídeo — orientações de desenvolvimento
+
+Aplicação de edição inteligente de vídeo, independente e instalável no Windows.
+Leia [docs/ARQUITETURA.md](docs/ARQUITETURA.md) antes de alterar a estrutura e
+[docs/PROGRESSO.md](docs/PROGRESSO.md) para saber em que etapa o projeto está.
+
+## Regras obrigatórias
+
+- **O produto é independente do Claude.** Claude Code é só ferramenta de desenvolvimento.
+  O código em `src/` e `Pipeline/` não pode depender de Claude Code, Claude Desktop,
+  sessões de agentes, histórico de conversa nem da API da Anthropic. `npm test` falha
+  se `src/` mencionar Claude ou Anthropic.
+- **Nenhuma API de IA é obrigatória.** IA entra só pela camada de provedores
+  (`src/servicos/provedores.ts`). Sem provedor, a aplicação abre e as operações locais funcionam.
+- **Local primeiro.** Não presuma GPU: consulte `GerenciadorVram` e tenha caminho por CPU.
+- **Respeite as camadas.** Interface → núcleo → serviços → infraestrutura. Só
+  `src/infra/banco.ts` contém SQL de esquema. Ferramentas audiovisuais só em `Pipeline/`.
+- **Dados do usuário são sagrados.** Nunca altere mídias originais. Mudança de esquema
+  é sempre uma migração nova ao final de `MIGRACOES`, nunca a edição de uma existente.
+- **Nada pessoal no Git.** Vídeos, banco, `Dados/`, `.env` e chaves ficam fora.
+- **Trabalhe uma etapa por vez** e não avance para a seguinte sem autorização do usuário.
+
+## Comandos
+
+| Comando | Função |
+|---|---|
+| `npm run setup` | Instala o que falta (npm, `.venv`, GPU, navegador de render) |
+| `npm test` | Testes de unidade da aplicação |
+| `npm run typecheck` | Checagem de tipos |
+| `npm run verificar` | 12 verificações das ferramentas instaladas |
+| `npm run app -- situacao` | Executa a aplicação pela linha de comando |
+| `npm run versoes` | Regrava `docs/VERSOES.md` |
+
+Antes de concluir uma alteração: `npm run typecheck` e `npm test`.
+
+## Convenções de código
+
+- TypeScript executado direto pelo Node 22, sem compilação. Por isso: importações com
+  extensão `.ts`, `import type` para tipos, e nada de `enum`, `namespace` ou
+  propriedades declaradas nos parâmetros do construtor.
+- Nomes e comentários em português. Nomes das etapas do pipeline em inglês, iguais às pastas.
+- Sem dependências novas de produção sem justificativa registrada em `docs/ARQUITETURA.md`.
+- Scripts de ambiente em `scripts/` usam só módulos nativos do Node e devem rodar em
+  Windows, macOS e Linux.
+
+## Onde fica cada coisa
+
+| Pasta | Conteúdo |
+|---|---|
+| `src/dominio/` | Tipos e contratos, sem E/S |
+| `src/nucleo/` | `Aplicacao` (ciclo de vida) e `Orquestrador` (pipeline) |
+| `src/servicos/` | Projetos, memória, aprendizado, perfis, provedores de IA, recursos |
+| `src/infra/` | Banco SQLite, caminhos, configurações |
+| `src/interface/` | Linha de comando (janela gráfica futura) |
+| `Pipeline/<etapa>/` | Implementação de cada etapa audiovisual |
+| `IA/Perfis/` | Perfis de especialização em JSON (geral, fivem, redm) |
+| `tests/unidade/` | Testes da aplicação |
+| `tests/smoke/` | Composições mínimas usadas pelos verificadores |
+| `scripts/` | Setup, detecção de GPU e verificadores |
+| `Dados/` | Banco, configurações e temporários locais (fora do Git) |
+
+## Ao terminar uma etapa
+
+Atualize `README.md`, `docs/ARQUITETURA.md` se a estrutura mudou, e acrescente a etapa
+em `docs/PROGRESSO.md` com o que foi feito, os testes e as pendências.
