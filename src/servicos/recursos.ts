@@ -14,6 +14,8 @@ export interface Hardware {
   nucleos: number;
   memoriaTotalMB: number;
   gpu: Gpu | null;
+  /** A detecção confirmou, com um teste real, que a GPU codifica vídeo (NVENC ou VideoToolbox). */
+  codificacaoPorHardware: boolean;
 }
 
 /**
@@ -22,9 +24,13 @@ export interface Hardware {
  */
 export function detectarHardware(arquivoAceleracao?: string): Hardware {
   let gpu: Gpu | null = null;
+  let codificacaoPorHardware = false;
   if (arquivoAceleracao && existsSync(arquivoAceleracao)) {
     try {
-      gpu = (JSON.parse(readFileSync(arquivoAceleracao, "utf8")) as { gpu?: Gpu | null }).gpu ?? null;
+      const deteccao = JSON.parse(readFileSync(arquivoAceleracao, "utf8")) as { gpu?: Gpu | null; remotion?: { hardwareAcceleration?: string } };
+      gpu = deteccao.gpu ?? null;
+      // Ter GPU não basta: só conta se o teste de codificação da detecção passou.
+      codificacaoPorHardware = deteccao.remotion?.hardwareAcceleration === "if-possible";
     } catch {
       gpu = null; // arquivo ilegível: segue por CPU
     }
@@ -34,6 +40,7 @@ export function detectarHardware(arquivoAceleracao?: string): Hardware {
     nucleos: os.cpus().length,
     memoriaTotalMB: Math.round(os.totalmem() / 1024 / 1024),
     gpu,
+    codificacaoPorHardware,
   };
 }
 

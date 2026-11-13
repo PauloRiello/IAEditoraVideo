@@ -1,0 +1,26 @@
+{
+  "id": "padrao",
+  "nome": "Padrão",
+  "descricao": "Edição neutra: cortes secos, sem efeitos. Usado quando nenhum estilo é escolhido.",
+  "indicadoPara": [],
+  "duracaoDoPlanoSeg": 2.5,
+  "transicao": {
+    "tipo": "corte",
+    "duracaoSeg": 0
+  },
+  "efeitos": [],
+  "zoomLentoEmPlanosParados": false,
+  "legendas": {
+    "tamanho": 0.032,
+    "caixa": true
+  },
+  "texto": {
+    "tamanho": 0.045,
+    "posicao": "topo",
+    "animacao": "surgir"
+  },
+  "encerramento": "texto",
+  "fadeFinalSeg": 0,
+  "volumeDaTrilha": 0.6,
+  "volumeDaTrilhaNasFalas": 0.2
+}

@@ -1,0 +1,40 @@
+{
+  "id": "cinematografia",
+  "nome": "Cinematografia",
+  "descricao": "Cenas contemplativas: planos longos, transições graduais, zoom lento em planos parados e barras de cinema em formato horizontal.",
+  "indicadoPara": [
+    "fivem",
+    "redm"
+  ],
+  "duracaoDoPlanoSeg": 5,
+  "transicao": {
+    "tipo": "gradual",
+    "duracaoSeg": 0.6
+  },
+  "efeitos": [
+    {
+      "tipo": "cor",
+      "saturacao": 0.9,
+      "contraste": 1.1,
+      "brilho": 1
+    },
+    {
+      "tipo": "barras-de-cinema",
+      "proporcao": 2.39
+    }
+  ],
+  "zoomLentoEmPlanosParados": true,
+  "legendas": {
+    "tamanho": 0.03,
+    "caixa": false
+  },
+  "texto": {
+    "tamanho": 0.04,
+    "posicao": "base",
+    "animacao": "surgir"
+  },
+  "encerramento": "texto",
+  "fadeFinalSeg": 1.0,
+  "volumeDaTrilha": 0.8,
+  "volumeDaTrilhaNasFalas": 0.3
+}

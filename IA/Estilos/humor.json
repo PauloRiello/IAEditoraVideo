@@ -1,0 +1,36 @@
+{
+  "id": "humor",
+  "nome": "Humor",
+  "descricao": "Cenas engraçadas: tempo para a piada funcionar, legendas grandes e cor levemente viva.",
+  "indicadoPara": [
+    "fivem",
+    "redm"
+  ],
+  "duracaoDoPlanoSeg": 2.5,
+  "transicao": {
+    "tipo": "corte",
+    "duracaoSeg": 0
+  },
+  "efeitos": [
+    {
+      "tipo": "cor",
+      "saturacao": 1.1,
+      "contraste": 1.0,
+      "brilho": 1
+    }
+  ],
+  "zoomLentoEmPlanosParados": false,
+  "legendas": {
+    "tamanho": 0.042,
+    "caixa": true
+  },
+  "texto": {
+    "tamanho": 0.05,
+    "posicao": "topo",
+    "animacao": "surgir"
+  },
+  "encerramento": "texto",
+  "fadeFinalSeg": 0,
+  "volumeDaTrilha": 0.4,
+  "volumeDaTrilhaNasFalas": 0.15
+}

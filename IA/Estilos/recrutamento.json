@@ -1,0 +1,29 @@
+{
+  "id": "recrutamento",
+  "nome": "Recrutamento",
+  "descricao": "Convite para entrar em grupos e facções: ritmo médio, transições graduais e cartão final com a chamada.",
+  "indicadoPara": [
+    "fivem",
+    "redm"
+  ],
+  "duracaoDoPlanoSeg": 2.5,
+  "transicao": {
+    "tipo": "gradual",
+    "duracaoSeg": 0.3
+  },
+  "efeitos": [],
+  "zoomLentoEmPlanosParados": false,
+  "legendas": {
+    "tamanho": 0.034,
+    "caixa": true
+  },
+  "texto": {
+    "tamanho": 0.045,
+    "posicao": "centro",
+    "animacao": "surgir"
+  },
+  "encerramento": "cartao",
+  "fadeFinalSeg": 0.5,
+  "volumeDaTrilha": 0.6,
+  "volumeDaTrilhaNasFalas": 0.2
+}

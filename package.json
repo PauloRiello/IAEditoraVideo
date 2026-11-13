@@ -31,7 +31,9 @@
     "verificar:skills": "node scripts/verificar/skills.mjs"
   },
   "dependencies": {
+    "@remotion/bundler": "4.0.543",
     "@remotion/cli": "4.0.543",
+    "@remotion/renderer": "4.0.543",
     "gsap": "3.15.1",
     "hyperframes": "0.9.40",
     "react": "19.3.1",

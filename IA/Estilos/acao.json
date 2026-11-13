@@ -1,0 +1,36 @@
+{
+  "id": "acao",
+  "nome": "Ação",
+  "descricao": "Perseguições, tiroteios e confrontos: planos curtos, cortes secos e cor mais viva.",
+  "indicadoPara": [
+    "fivem",
+    "redm"
+  ],
+  "duracaoDoPlanoSeg": 1.5,
+  "transicao": {
+    "tipo": "corte",
+    "duracaoSeg": 0
+  },
+  "efeitos": [
+    {
+      "tipo": "cor",
+      "saturacao": 1.15,
+      "contraste": 1.1,
+      "brilho": 1
+    }
+  ],
+  "zoomLentoEmPlanosParados": false,
+  "legendas": {
+    "tamanho": 0.032,
+    "caixa": true
+  },
+  "texto": {
+    "tamanho": 0.05,
+    "posicao": "centro",
+    "animacao": "subir"
+  },
+  "encerramento": "texto",
+  "fadeFinalSeg": 0,
+  "volumeDaTrilha": 0.9,
+  "volumeDaTrilhaNasFalas": 0.3
+}

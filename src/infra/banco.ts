@@ -186,6 +186,38 @@ export const MIGRACOES: string[] = [
   CREATE INDEX indice_midia ON indice (midia_id);
   CREATE INDEX indice_projeto ON indice (projeto_id, tipo);
   `,
+  // v5 — timelines versionadas e histórico de exportações
+  `
+  CREATE TABLE timelines (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    projeto_id TEXT NOT NULL REFERENCES projetos(id) ON DELETE CASCADE,
+    versao INTEGER NOT NULL,
+    timeline TEXT NOT NULL,
+    autor TEXT NOT NULL CHECK (autor IN ('ia', 'usuario')),
+    nota TEXT NOT NULL DEFAULT '',
+    criado_em TEXT NOT NULL,
+    UNIQUE (projeto_id, versao)
+  );
+  CREATE TABLE exportacoes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    projeto_id TEXT NOT NULL REFERENCES projetos(id) ON DELETE CASCADE,
+    versao_da_timeline INTEGER NOT NULL,
+    tipo TEXT NOT NULL CHECK (tipo IN ('previa', 'final')),
+    estado TEXT NOT NULL CHECK (estado IN ('na-fila', 'renderizando', 'concluida', 'falhou', 'cancelada')),
+    progresso REAL NOT NULL DEFAULT 0,
+    arquivo TEXT,
+    largura INTEGER,
+    altura INTEGER,
+    fps REAL,
+    duracao_seg REAL,
+    tamanho_bytes INTEGER,
+    verificacao TEXT,
+    erro TEXT,
+    tentativas INTEGER NOT NULL DEFAULT 0,
+    criado_em TEXT NOT NULL,
+    concluido_em TEXT
+  );
+  `,
 ];
 
 export const VERSAO_ESQUEMA = MIGRACOES.length;
