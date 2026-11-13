@@ -75,7 +75,11 @@ processamento executa ferramentas audiovisuais.
 | Planejamento de edição | `Pipeline/editing/planejamento.ts` | Agente de Planejamento: plano com arquivos, intervalos, estrutura, áudio, legendas, trilha e CTA | Implementado |
 | Roteiro | `Pipeline/editing/roteiro.ts` | Agente de Roteiro: texto apoiado só em fatos do material | Implementado |
 | Coordenação e aprovação | `src/nucleo/producao.ts` | Agente Coordenador: aciona os agentes, guarda na memória e exige aprovação do plano antes da edição | Implementado |
-| Edição e renderização | `Pipeline/rendering/` | Executar o plano com um `MotorRender` | Contrato definido |
+| Montagem da timeline | `Pipeline/editing/montagem.ts` | Agente de Edição: do plano aprovado à timeline, escolhendo recursos pelo contexto | Implementado |
+| Timeline editável | `src/servicos/timeline.ts`, `src/dominio/timeline.ts` | Operações não destrutivas, versões e histórico de exportações | Implementado |
+| Estilos de edição | `src/servicos/estilos.ts`, `IA/Estilos/` | Carregar e combinar estilos (gameplay, ação, trailer...) | Implementado (10 estilos) |
+| Renderização | `Pipeline/rendering/` | Remotion compõe; FFmpeg prepara trechos; HyperFrames gera cartões | Implementado |
+| Tarefas de render | `src/nucleo/edicao.ts` | Fila, progresso, cancelamento, nova tentativa, conferência do arquivo e histórico | Implementado |
 | Memória persistente | `src/servicos/memoria.ts`, `acervo.ts` | Preferências, referências, análises, planos versionados e uso de IA | Implementado |
 | Aprendizado | `src/servicos/aprendizado.ts` | Feedback e aprendizados com evidências, confiança, escopo e revisão | Implementado; extração automática pendente |
 | Controle de qualidade | `Pipeline/quality-control/` | Conferir duração, sincronia, áudio e conformidade com o formato | Contrato definido |
@@ -84,7 +88,7 @@ processamento executa ferramentas audiovisuais.
 | Perfis de especialização | `src/servicos/perfis.ts`, `IA/Perfis/` | Carregar e combinar perfis e formatos de saída | Implementado (8 perfis) |
 | Cópias de segurança | `src/infra/backup.ts` | Criar, validar, restaurar e rotacionar cópias; isolar arquivos corrompidos | Implementado |
 | Arquivos e exportações | `src/infra/caminhos.ts` | Definir e criar a estrutura de pastas | Estrutura implementada; nomeação de exportações pendente |
-| Banco de dados | `src/infra/banco.ts` | Esquema, migrações, transações e verificação de integridade | Implementado (esquema v4) |
+| Banco de dados | `src/infra/banco.ts` | Esquema, migrações, transações e verificação de integridade | Implementado (esquema v5) |
 | Configurações | `src/infra/configuracoes.ts` | Ler e gravar preferências do usuário | Implementado |
 
 ## 5. Pipeline
@@ -129,6 +133,9 @@ e um teste de disponibilidade.
 O contrato tem duas operações opcionais: `gerarTexto` e `descreverImagens`. O Whisper não
 passa por essa camada: roda localmente, como processo Python, em `Pipeline/transcription/`.
 
+A edição e a renderização — timeline, estilos, prévia, exportação e papel de cada
+ferramenta — estão em [EDICAO.md](EDICAO.md).
+
 A preparação do vídeo — brutos, pesquisa, plano, aprovação e roteiro — é feita por cinco
 agentes internos, descritos em [PRODUCAO.md](PRODUCAO.md). "Agente" aqui é um componente
 da aplicação com uma única responsabilidade, não um serviço externo.
@@ -161,6 +168,8 @@ estimado ou não avaliado.
 | Backups | `Dados/backups/` | `%LOCALAPPDATA%\IAEditoraVideo\backups\` | Não |
 | Modelos de IA | `Dados/modelos/` | `%LOCALAPPDATA%\IAEditoraVideo\modelos\` | Não |
 | Relatórios de análise | `Dados/analises/` | `%LOCALAPPDATA%\IAEditoraVideo\analises\` | Não |
+| Trechos preparados, prévias e miniaturas | `Dados/projetos/<projeto>/` | `%LOCALAPPDATA%\IAEditoraVideo\projetos\` | Não |
+| Estilos do usuário | `Dados/estilos/` | `%LOCALAPPDATA%\IAEditoraVideo\estilos\` | Não |
 | Mídias originais | `Videos Brutos/`, `Referências/` | `Documentos\IA Editora de Vídeo\` | Não |
 | Exportações | `Exportações/` | `Documentos\IA Editora de Vídeo\Exportações\` | Não |
 
@@ -169,9 +178,9 @@ mídias. As demais pastas de `IA/` (Memoria, Aprendizado, Feedback, Analises,
 Conhecimento) ficam reservadas para conteúdo versionável dessas áreas; os dados de
 cada usuário vão para o banco.
 
-**Banco (SQLite, esquema v4):** `projetos`, `midias`, `execucoes`, `memoria`, `feedback`,
+**Banco (SQLite, esquema v5):** `projetos`, `midias`, `execucoes`, `memoria`, `feedback`,
 `referencias`, `projeto_referencias`, `analises`, `planos`, `aprendizados`, `evidencias`,
-`usos_ia`, `decisoes`, `indice`. O banco guarda caminhos, metadados e resultados, nunca vídeos.
+`usos_ia`, `decisoes`, `indice`, `timelines`, `exportacoes`. O banco guarda caminhos, metadados e resultados, nunca vídeos.
 
 - **Atualizações:** o esquema evolui por migrações numeradas; uma versão nova do
   programa aplica só as que faltam, depois de criar uma cópia do banco. Configurações
@@ -187,13 +196,17 @@ O funcionamento da memória, do aprendizado e das proteções está em [MEMORIA.
 |---|---|---|
 | Linguagem do núcleo | TypeScript sobre Node.js 22 | Remotion e HyperFrames são bibliotecas Node; um só ambiente para núcleo, render e interface |
 | Banco | SQLite nativo do Node (`node:sqlite`) | Sem módulo compilado para instalar ou empacotar no Windows |
-| Composição e render | Remotion (principal), HyperFrames (complementar) | Já instalados e verificados |
+| Composição e render | Remotion, único motor de composição | Acionado pelo código (`@remotion/renderer` e `@remotion/bundler`), para ter progresso e cancelamento |
+| Cartões animados | HyperFrames | HTML/CSS/GSAP renderizado como trecho de vídeo que entra na timeline |
 | Mídia | FFmpeg e FFprobe | Já instalados e verificados |
 | Transcrição | faster-whisper (Python) | Já instalado; a etapa o chama como processo separado |
 | Referências | yt-dlp (Python) | Já instalado; uso restrito a conteúdo autorizado |
 | Testes | Executor nativo do Node (`node --test`) | Sem dependência adicional |
 
-O núcleo não acrescentou nenhuma dependência de produção.
+Dependências de produção acrescentadas ao longo do projeto: apenas `@remotion/renderer` e
+`@remotion/bundler`, na etapa de renderização. Elas já vinham instaladas com o
+`@remotion/cli` e foram declaradas para poder acionar o render pelo código, o que dá
+progresso, cancelamento e controle de paralelismo.
 
 ## 10. Caminho para a aplicação instalável no Windows
 
@@ -217,7 +230,6 @@ FFmpeg, FFprobe, faster-whisper, yt-dlp, SQLite (nativo). Versões em [VERSOES.m
 | Dependência | Para quê |
 |---|---|
 | Electron e electron-builder | Janela gráfica e instalador para Windows |
-| `@remotion/renderer` e `@remotion/bundler` | Renderizar pelo código, sem a linha de comando |
 | Python embutido | Distribuir Whisper e yt-dlp sem exigir Python instalado |
 | Servidor de modelo local (por exemplo, Ollama) | Opcional: planejamento por IA sem serviço externo |
 

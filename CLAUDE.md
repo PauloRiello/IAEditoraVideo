@@ -35,6 +35,14 @@ Leia [docs/ARQUITETURA.md](docs/ARQUITETURA.md) antes de alterar a estrutura e
 - **"Agente" é componente do produto.** Os agentes de Arquivos, Conteúdo, Planejamento,
   Roteiro e Coordenador são classes da aplicação; não use agentes de programação nem
   serviços externos para cumprir o papel deles.
+- **Um só motor de composição.** O Remotion compõe e codifica. O FFmpeg só prepara trechos e
+  o HyperFrames só gera cartões que entram como trechos. Não crie outro caminho de render
+  ([docs/EDICAO.md](docs/EDICAO.md)).
+- **Edição não destrutiva.** A timeline muda só por `aplicarOperacao`, que devolve uma
+  timeline nova; cada alteração vira uma versão. Render grava em temporário e só move
+  para o destino ao terminar.
+- **Efeito precisa de motivo.** A montagem só aplica um recurso que o estilo, a memória ou
+  as referências pedem e que faz sentido no formato, e registra a origem da escolha.
 - **Nada pessoal no Git.** Vídeos, banco, `Dados/`, `.env` e chaves ficam fora.
 - **Trabalhe uma etapa por vez** e não avance para a seguinte sem autorização do usuário.
 
@@ -67,14 +75,15 @@ Antes de concluir uma alteração: `npm run typecheck` e `npm test`.
 | Pasta | Conteúdo |
 |---|---|
 | `src/dominio/` | Tipos e contratos, sem E/S |
-| `src/nucleo/` | `Aplicacao` (ciclo de vida), `Orquestrador` (pipeline), análise de referências, Agente Coordenador (`producao.ts`) |
-| `src/servicos/` | Projetos, memória, aprendizado, acervo, índice de pesquisa, perfis, provedores de IA, recursos |
+| `src/nucleo/` | `Aplicacao` (ciclo de vida), `Orquestrador` (pipeline), análise de referências, Agente Coordenador (`producao.ts`), edição e tarefas de render (`edicao.ts`) |
+| `src/servicos/` | Projetos, memória, aprendizado, acervo, índice de pesquisa, timeline, estilos, perfis, provedores de IA, recursos |
 | `src/infra/` | Banco SQLite, cópias de segurança, caminhos, configurações |
 | `src/interface/` | Linha de comando (janela gráfica futura) |
-| `Pipeline/<etapa>/` | Processamento audiovisual e agentes (`ingestion/`, `analysis/`, `transcription/`, `editing/` já têm código) |
+| `Pipeline/<etapa>/` | Processamento audiovisual e agentes (`ingestion/`, `analysis/`, `transcription/`, `editing/`, `rendering/` já têm código) |
 | `IA/Perfis/` | Perfis de especialização em JSON (8 perfis) |
+| `IA/Estilos/` | Estilos de edição em JSON (10 estilos) |
 | `exemplos/` | Exemplos executáveis de uso da aplicação |
-| `tests/unidade/` | Testes da aplicação (os de referências e de produção geram vídeos de exemplo com o FFmpeg) |
+| `tests/unidade/` | Testes da aplicação (referências, produção e edição geram vídeos com o FFmpeg; os de edição renderizam de verdade e levam cerca de 2 min) |
 | `tests/smoke/` | Composições mínimas usadas pelos verificadores |
 | `scripts/` | Setup, detecção de GPU e verificadores |
 | `Dados/` | Banco, configurações e temporários locais (fora do Git) |

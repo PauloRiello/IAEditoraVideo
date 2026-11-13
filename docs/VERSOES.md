@@ -25,7 +25,9 @@ A árvore completa, com dependências indiretas, está travada em `package-lock.
 
 | Pacote | Declarada | Instalada |
 |---|---|---|
+| @remotion/bundler | 4.0.543 | 4.0.543 |
 | @remotion/cli | 4.0.543 | 4.0.543 |
+| @remotion/renderer | 4.0.543 | 4.0.543 |
 | @types/node | 22.20.5 | 22.20.5 |
 | @types/react | 19.3.0 | 19.3.0 |
 | gsap | 3.15.1 | 3.15.1 |
