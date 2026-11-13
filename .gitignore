@@ -122,3 +122,4 @@ desktop.ini
 # --- Arquivos gerados pelos testes de instalação -------------
 /tests/smoke/hyperframes/assets/
 /tests/smoke/hyperframes/renders/
+/tests/smoke/hyperframes/.hyperframes/

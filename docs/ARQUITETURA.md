@@ -1,6 +1,6 @@
 # Arquitetura inicial — IA Editora de Vídeo
 
-> Status: **fundação do projeto**. Nenhuma etapa do editor está implementada.
+> Status: **estrutura e ambiente prontos**. Nenhuma etapa do editor está implementada.
 > Este documento descreve a organização pretendida e as responsabilidades de
 > cada parte; decisões marcadas como "em aberto" ainda não foram tomadas.
 
@@ -78,11 +78,21 @@ atualiza `Perfis` e `Memoria`, usados pela etapa de edição no projeto seguinte
 - **Etapas desacopladas.** Cada etapa do pipeline se comunica por arquivos de
   dados, não por chamadas diretas entre etapas.
 
-## 6. Decisões em aberto
+## 6. Tecnologias adotadas
 
-- Linguagem principal de cada camada (Python para IA/mídia e Node.js para
-  interface/orquestração é a divisão provável, ainda não confirmada).
-- Modelo de transcrição e se roda localmente ou via API.
+| Camada | Tecnologia | Observação |
+|---|---|---|
+| Composição e render | Remotion (React) e HyperFrames (HTML) | Dois motores disponíveis; a escolha por tipo de vídeo fica para a etapa de edição |
+| Animação | GSAP | Linha do tempo pausada, posicionada quadro a quadro |
+| Mídia | FFmpeg e FFprobe | Encoder escolhido pela detecção de GPU |
+| Transcrição | faster-whisper, local | Implementação do Whisper sem PyTorch; CPU ou GPU NVIDIA |
+| Download de referências | yt-dlp | Configurado em `config/yt-dlp.conf` |
+| Linguagens | TypeScript (composições) e Python (IA e mídia) | Scripts de ambiente em Node.js, para rodar em qualquer sistema |
+
+Detalhes de instalação e uso: [AMBIENTE.md](AMBIENTE.md). Versões: [VERSOES.md](VERSOES.md).
+
+## 7. Decisões em aberto
+
+- Qual motor de render usar em cada tipo de vídeo (Remotion, HyperFrames ou ambos).
+- Modelo do Whisper para produção (o teste usa o `tiny`; modelos maiores são mais precisos e mais lentos).
 - Formato do plano de edição (EDL, OpenTimelineIO ou JSON próprio).
-- Motor de renderização (FFmpeg direto ou biblioteca sobre ele).
-- Requisito de GPU: define quais modelos podem rodar localmente.

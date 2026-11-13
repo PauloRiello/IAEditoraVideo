@@ -3,8 +3,8 @@
 Editor de vídeo assistido por IA: recebe vídeos brutos, analisa e transcreve o
 conteúdo, decide a edição, renderiza e verifica a qualidade antes de exportar.
 
-> **Status:** fundação do projeto. A estrutura e a arquitetura estão definidas;
-> o editor ainda não foi implementado.
+> **Status:** estrutura e ambiente de desenvolvimento prontos e verificados.
+> O editor ainda não foi implementado.
 
 ## Estrutura
 
@@ -28,38 +28,52 @@ IAEditoraVideo/
 │   ├── rendering/        5. Geração do vídeo
 │   └── quality-control/  6. Verificação antes de exportar
 ├── src/                  Código-fonte central
-├── scripts/              Utilitários de linha de comando
+├── scripts/              Setup, detecção de GPU e verificadores
 ├── config/               Configurações (sem segredos)
-├── tests/                Testes automatizados
+├── tests/                Testes automatizados e composições de teste
 ├── docs/                 Documentação
-└── .claude/              Configuração do Claude Code
+├── .claude/skills/       Agent Skills do Remotion e do HyperFrames
+├── package.json          Dependências Node.js e comandos npm
+├── requirements.txt      Dependências Python
+├── tsconfig.json         Configuração do TypeScript
+└── remotion.config.ts    Configuração do Remotion
 ```
 
 A arquitetura está detalhada em [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
 
-## Requisitos
+## Ferramentas
 
-| Ferramenta | Versão mínima sugerida | Uso |
-|---|---|---|
-| Git | 2.40 | Versionamento |
-| Python | 3.11 | Pipeline de IA e mídia |
-| Node.js + npm | 20 LTS | Ferramentas e interface |
-| FFmpeg / ffprobe | 6 | Leitura, corte e renderização de vídeo |
-| GPU NVIDIA (opcional) | 8 GB de VRAM | Transcrição e análise locais mais rápidas |
+| Ferramenta | Função |
+|---|---|
+| Remotion | Composição e render de vídeo com React |
+| HyperFrames | Composição e render de vídeo com HTML |
+| GSAP | Animação, usada nos dois motores |
+| FFmpeg / FFprobe | Corte, codificação e leitura de dados de mídia |
+| Whisper (faster-whisper) | Transcrição de fala com marcação de tempo |
+| yt-dlp | Download de vídeos de referência |
+| TypeScript | Tipagem do código |
 
-## Uso
+Versões instaladas: [docs/VERSOES.md](docs/VERSOES.md).
 
-Diagnóstico do ambiente (somente leitura):
+## Como executar
+
+Requer Node.js 22.20+, Python 3.11+, FFmpeg e Git já instalados. Funciona em
+Windows, macOS e Linux.
 
 ```bash
-bash scripts/diagnostico_ambiente.sh
+npm install
 ```
-
-Testes da estrutura e do `.gitignore`:
 
 ```bash
-python3 -m unittest discover -s tests -v
+npm run setup
 ```
+
+```bash
+npm run verificar
+```
+
+Instalação, verificação, aceleração por GPU e uso de cada ferramenta estão em
+[docs/AMBIENTE.md](docs/AMBIENTE.md).
 
 ## Regras do repositório
 
