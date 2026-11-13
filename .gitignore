@@ -118,3 +118,7 @@ Thumbs.db
 desktop.ini
 .idea/
 .vscode/
+
+# --- Arquivos gerados pelos testes de instalação -------------
+/tests/smoke/hyperframes/assets/
+/tests/smoke/hyperframes/renders/

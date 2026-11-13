@@ -1,0 +1,42 @@
+{
+  "name": "ia-editora-video",
+  "version": "0.1.0",
+  "description": "Editor de vídeo assistido por IA",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "scripts": {
+    "setup": "node scripts/configurar_ambiente.mjs",
+    "gpu": "node scripts/detectar_gpu.mjs",
+    "versoes": "node scripts/registrar_versoes.mjs",
+    "typecheck": "tsc",
+    "verificar": "node scripts/verificar/todos.mjs",
+    "verificar:node": "node scripts/verificar/node.mjs",
+    "verificar:python": "node scripts/verificar/python.mjs",
+    "verificar:typescript": "node scripts/verificar/typescript.mjs",
+    "verificar:ffmpeg": "node scripts/verificar/ffmpeg.mjs",
+    "verificar:ffprobe": "node scripts/verificar/ffprobe.mjs",
+    "verificar:gpu": "node scripts/verificar/gpu.mjs",
+    "verificar:gsap": "node scripts/verificar/gsap.mjs",
+    "verificar:remotion": "node scripts/verificar/remotion.mjs",
+    "verificar:hyperframes": "node scripts/verificar/hyperframes.mjs",
+    "verificar:whisper": "node scripts/verificar/whisper.mjs",
+    "verificar:yt-dlp": "node scripts/verificar/yt-dlp.mjs",
+    "verificar:skills": "node scripts/verificar/skills.mjs"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.543",
+    "gsap": "3.15.1",
+    "hyperframes": "0.9.40",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "remotion": "4.0.543"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "typescript": "5.9.3"
+  }
+}
