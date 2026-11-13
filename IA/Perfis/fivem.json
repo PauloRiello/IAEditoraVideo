@@ -127,5 +127,13 @@
         ]
       }
     ]
-  }
+  },
+  "angulosDeRoteiro": [
+    "gameplay",
+    "humor",
+    "imersão",
+    "divulgação de funcionalidades",
+    "eventos",
+    "recrutamento"
+  ]
 }

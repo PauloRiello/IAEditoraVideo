@@ -149,6 +149,9 @@ test("o orquestrador executa em ordem, persiste resultados e refaz só o interva
 
     app.orquestrador.registrar(etapa("rendering", async () => { throw new Error("sem espaço em disco"); }));
     app.orquestrador.registrar(etapa("quality-control", async () => { chamadas.push("quality-control"); }));
+    assert.throws(() => app.executarPipeline(projeto.id, { de: "rendering" }), /plano atual for aprovado/, "sem plano aprovado, a renderização não começa");
+    app.acervo.salvarPlano(projeto.id, { clipes: [] }, "usuario");
+    app.acervo.decidirPlano(projeto.id, 1, "aprovado");
     const comFalha = await app.executarPipeline(projeto.id, { de: "rendering" });
     assert.deepEqual(comFalha, [{ etapa: "rendering", estado: "falhou", erro: "sem espaço em disco" }]);
     assert.ok(!chamadas.includes("quality-control"), "o pipeline para na primeira falha");

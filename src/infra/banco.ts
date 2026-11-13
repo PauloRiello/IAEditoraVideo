@@ -159,6 +159,33 @@ export const MIGRACOES: string[] = [
   ALTER TABLE evidencias ADD COLUMN referencia_id TEXT REFERENCES referencias(id) ON DELETE SET NULL;
   CREATE INDEX evidencias_referencia ON evidencias (referencia_id);
   `,
+  // v4 — aprovação de planos, registro de decisões e índice de pesquisa dos vídeos brutos
+  `
+  ALTER TABLE planos ADD COLUMN estado TEXT NOT NULL DEFAULT 'rascunho' CHECK (estado IN ('rascunho', 'aprovado', 'rejeitado'));
+  ALTER TABLE planos ADD COLUMN decidido_em TEXT;
+  CREATE TABLE decisoes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    projeto_id TEXT NOT NULL REFERENCES projetos(id) ON DELETE CASCADE,
+    versao_do_plano INTEGER,
+    tipo TEXT NOT NULL CHECK (tipo IN ('plano-gerado', 'alteracao', 'aprovacao', 'rejeicao', 'roteiro')),
+    descricao TEXT NOT NULL,
+    criado_em TEXT NOT NULL
+  );
+  CREATE TABLE indice (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    midia_id TEXT NOT NULL REFERENCES midias(id) ON DELETE CASCADE,
+    projeto_id TEXT NOT NULL REFERENCES projetos(id) ON DELETE CASCADE,
+    tipo TEXT NOT NULL,
+    inicio_seg REAL NOT NULL,
+    fim_seg REAL NOT NULL,
+    texto TEXT NOT NULL,
+    etiquetas TEXT NOT NULL,
+    busca TEXT NOT NULL,
+    pontuacao REAL NOT NULL DEFAULT 0
+  );
+  CREATE INDEX indice_midia ON indice (midia_id);
+  CREATE INDEX indice_projeto ON indice (projeto_id, tipo);
+  `,
 ];
 
 export const VERSAO_ESQUEMA = MIGRACOES.length;

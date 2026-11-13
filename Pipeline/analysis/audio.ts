@@ -13,7 +13,11 @@ const TOLERANCIA_SEG = 0.13; // um corte "cai na batida" se estiver a até 130 m
 export type MedicaoAudio = Pick<
   AnaliseAudio,
   "volume" | "silencios" | "mudancasDeIntensidade" | "curvaDeIntensidadeDb" | "batidas" | "pontosDeCorteMusical" | "sincroniaComCortes" | "trilhaSonora"
-> & { audivel: boolean };
+> & {
+  audivel: boolean;
+  /** Fração das amostras no volume máximo: indica áudio estourado. */
+  estouro: number;
+};
 
 export async function medirAudio(arquivo: string, cortesSeg: number[]): Promise<MedicaoAudio> {
   const bruto = await ffmpeg(["-i", arquivo, "-vn", "-ac", "1", "-ar", String(TAXA), "-f", "s16le", "-"]);
@@ -23,13 +27,14 @@ export async function medirAudio(arquivo: string, cortesSeg: number[]): Promise<
 
   // Volume de cada janela de 20 ms, em dB relativos ao máximo digital (dBFS).
   const db = new Float32Array(n);
-  let energiaTotal = 0, pico = 0;
+  let energiaTotal = 0, pico = 0, estouradas = 0;
   for (let i = 0; i < n; i += 1) {
     let energia = 0;
     for (let k = 0; k < SALTO; k += 1) {
       const v = amostras[i * SALTO + k] / 32768;
       energia += v * v;
       if (Math.abs(v) > pico) pico = Math.abs(v);
+      if (Math.abs(v) >= 0.99) estouradas += 1;
     }
     energiaTotal += energia;
     db[i] = 10 * Math.log10(energia / SALTO + 1e-10);
@@ -119,6 +124,7 @@ export async function medirAudio(arquivo: string, cortesSeg: number[]): Promise<
   const metodo = `medição do sinal de áudio em janelas de ${JANELA_SEG * 1000} ms`;
   return {
     audivel,
+    estouro: arredondar(estouradas / Math.max(1, n * SALTO), 4),
     volume: observado(
       {
         picoDb: arredondar(20 * Math.log10(pico + 1e-10), 1),

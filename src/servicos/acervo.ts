@@ -4,7 +4,7 @@
 
 import { randomUUID } from "node:crypto";
 import { NaoEncontrado } from "../dominio/erros.ts";
-import type { Analise, Referencia, UsoIA, VersaoPlano } from "../dominio/memoria.ts";
+import type { Analise, DecisaoRegistrada, Referencia, UsoIA, VersaoPlano } from "../dominio/memoria.ts";
 import { agora, transacao, type Banco } from "../infra/banco.ts";
 
 interface LinhaReferencia {
@@ -12,7 +12,10 @@ interface LinhaReferencia {
   autorizacao: string; notas: string; criado_em: string;
 }
 interface LinhaAnalise { id: number; midia_id: string | null; referencia_id: string | null; tipo: string; resultado: string; criado_em: string }
-interface LinhaPlano { id: number; projeto_id: string; versao: number; plano: string; autor: "ia" | "usuario"; nota: string; criado_em: string }
+interface LinhaPlano {
+  id: number; projeto_id: string; versao: number; plano: string; autor: "ia" | "usuario"; nota: string;
+  estado: VersaoPlano["estado"]; decidido_em: string | null; criado_em: string;
+}
 interface LinhaUso {
   id: number; projeto_id: string | null; provedor: string; modelo: string; origem: "local" | "externo"; capacidade: string;
   operacao: string; dispositivo: "gpu" | "cpu" | null; duracao_ms: number | null; sucesso: number; criado_em: string;
@@ -26,7 +29,8 @@ const paraAnalise = (l: LinhaAnalise): Analise => ({
   id: l.id, midiaId: l.midia_id, referenciaId: l.referencia_id, tipo: l.tipo, resultado: JSON.parse(l.resultado), criadoEm: l.criado_em,
 });
 const paraPlano = (l: LinhaPlano): VersaoPlano => ({
-  id: l.id, projetoId: l.projeto_id, versao: l.versao, plano: JSON.parse(l.plano), autor: l.autor, nota: l.nota, criadoEm: l.criado_em,
+  id: l.id, projetoId: l.projeto_id, versao: l.versao, plano: JSON.parse(l.plano), autor: l.autor, nota: l.nota,
+  estado: l.estado, decididoEm: l.decidido_em, criadoEm: l.criado_em,
 });
 
 export class ServicoAcervo {
@@ -127,6 +131,37 @@ export class ServicoAcervo {
   restaurarPlano(projetoId: string, versao: number): VersaoPlano {
     const antiga = this.plano(projetoId, versao);
     return this.salvarPlano(projetoId, antiga.plano, "usuario", `Restaurado da versão ${versao}`);
+  }
+
+  /** Marca uma versão como aprovada ou rejeitada. Aprovar uma versão tira a aprovação das demais. */
+  decidirPlano(projetoId: string, versao: number, estado: "aprovado" | "rejeitado"): VersaoPlano {
+    this.plano(projetoId, versao);
+    transacao(this.banco, () => {
+      if (estado === "aprovado") this.banco.prepare("UPDATE planos SET estado = 'rascunho' WHERE projeto_id = ? AND estado = 'aprovado'").run(projetoId);
+      this.banco.prepare("UPDATE planos SET estado = ?, decidido_em = ? WHERE projeto_id = ? AND versao = ?").run(estado, agora(), projetoId, versao);
+    });
+    return this.plano(projetoId, versao);
+  }
+
+  /** Versão aprovada do plano, se a mais recente estiver aprovada. Um plano alterado depois precisa de nova aprovação. */
+  planoAprovado(projetoId: string): VersaoPlano | null {
+    const linha = this.banco.prepare("SELECT * FROM planos WHERE projeto_id = ? ORDER BY versao DESC LIMIT 1").get(projetoId) as unknown as LinhaPlano | undefined;
+    return linha && linha.estado === "aprovado" ? paraPlano(linha) : null;
+  }
+
+  // --- Decisões e alterações ---------------------------------------------------
+
+  registrarDecisao(projetoId: string, tipo: DecisaoRegistrada["tipo"], descricao: string, versaoDoPlano: number | null = null): void {
+    this.banco
+      .prepare("INSERT INTO decisoes (projeto_id, versao_do_plano, tipo, descricao, criado_em) VALUES (?, ?, ?, ?, ?)")
+      .run(projetoId, versaoDoPlano, tipo, descricao, agora());
+  }
+
+  decisoes(projetoId: string): DecisaoRegistrada[] {
+    const linhas = this.banco.prepare("SELECT * FROM decisoes WHERE projeto_id = ? ORDER BY id").all(projetoId) as unknown as {
+      id: number; projeto_id: string; versao_do_plano: number | null; tipo: DecisaoRegistrada["tipo"]; descricao: string; criado_em: string;
+    }[];
+    return linhas.map((l) => ({ id: l.id, projetoId: l.projeto_id, versaoDoPlano: l.versao_do_plano, tipo: l.tipo, descricao: l.descricao, criadoEm: l.criado_em }));
   }
 
   // --- Modelos e provedores utilizados ----------------------------------------

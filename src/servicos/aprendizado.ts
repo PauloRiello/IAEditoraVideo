@@ -137,10 +137,19 @@ export class ServicoAprendizado {
 
   /** Registra que um aprendizado não se confirmou em uma situação. */
   contradizer(id: number, dados: { origem: Observacao["origem"]; projetoObservado?: string; detalhe?: string }): Aprendizado {
+    return this.avaliar(id, 0, dados);
+  }
+
+  /** Registra que um aprendizado se confirmou (por exemplo, o usuário aprovou um plano que o aplicava). */
+  confirmar(id: number, dados: { origem: Observacao["origem"]; projetoObservado?: string; detalhe?: string }): Aprendizado {
+    return this.avaliar(id, 1, dados);
+  }
+
+  private avaliar(id: number, confirma: 0 | 1, dados: { origem: Observacao["origem"]; projetoObservado?: string; detalhe?: string }): Aprendizado {
     this.obter(id);
     this.banco
-      .prepare("INSERT INTO evidencias (aprendizado_id, origem, projeto_id, detalhe, confirma, peso, criado_em) VALUES (?, ?, ?, ?, 0, ?, ?)")
-      .run(id, dados.origem, dados.projetoObservado ?? null, dados.detalhe ?? "", PESO[dados.origem], agora());
+      .prepare("INSERT INTO evidencias (aprendizado_id, origem, projeto_id, detalhe, confirma, peso, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      .run(id, dados.origem, dados.projetoObservado ?? null, dados.detalhe ?? "", confirma, PESO[dados.origem], agora());
     this.reavaliar(id);
     return this.obter(id);
   }

@@ -24,6 +24,8 @@ export interface Perfil {
   diretrizes: string[];
   /** Como analisar referências deste perfil. */
   analise?: ConfiguracaoDeAnalise;
+  /** Ângulos que um roteiro deste perfil pode explorar, se o material sustentar. */
+  angulosDeRoteiro?: string[];
 }
 
 /** Tipo de conteúdo reconhecível em um perfil (por exemplo trailer ou gameplay). */

@@ -53,7 +53,7 @@ export async function analisarReferencia(arquivo: string, contexto: ContextoDeAn
         limitacoes.push("A fala não foi transcrita: a execução do Whisper falhou.");
       }
     }
-    const { audivel: _audivel, ...medido } = medicaoAudio;
+    const { audivel: _audivel, estouro: _estouro, ...medido } = medicaoAudio;
     audio = {
       ...medido,
       fala,
@@ -79,7 +79,7 @@ export async function analisarReferencia(arquivo: string, contexto: ContextoDeAn
     leitura.legendas = { valor: `${tecnico.faixasDeLegenda} faixa(s) de legenda embutida(s) no arquivo`, base: "observado", confianca: 0.95, metodo: "faixas do arquivo lidas pelo FFprobe" };
   }
 
-  const { cortesSeg: _cortes, temposDosQuadrosChave: _tempos, ...medidoVisual } = visual;
+  const { cortesSeg: _cortes, temposDosQuadrosChave: _tempos, sinais: _sinais, ...medidoVisual } = visual;
   const parcial = { tecnico, visual: { ...medidoVisual, ...leitura }, audio, narrativa };
   const regras = derivarRegras(parcial);
 

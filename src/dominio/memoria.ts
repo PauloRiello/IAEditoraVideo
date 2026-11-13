@@ -149,6 +149,18 @@ export interface VersaoPlano {
   plano: unknown;
   autor: "ia" | "usuario";
   nota: string;
+  /** Só um plano aprovado pode seguir para a edição. */
+  estado: "rascunho" | "aprovado" | "rejeitado";
+  decididoEm: string | null;
+  criadoEm: string;
+}
+
+export interface DecisaoRegistrada {
+  id: number;
+  projetoId: string;
+  versaoDoPlano: number | null;
+  tipo: "plano-gerado" | "alteracao" | "aprovacao" | "rejeicao" | "roteiro";
+  descricao: string;
   criadoEm: string;
 }
 

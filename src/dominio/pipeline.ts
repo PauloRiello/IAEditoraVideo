@@ -1,6 +1,7 @@
 // Contratos do processamento audiovisual. As implementações ficam em Pipeline/<etapa>/.
 
-import type { FormatoSaida, Perfil, Projeto } from "./tipos.ts";
+import type { PlanoDeEdicao } from "./producao.ts";
+import type { Perfil, Projeto } from "./tipos.ts";
 
 /** Etapas do pipeline, na ordem de execução. Os nomes são os das pastas em Pipeline/. */
 export const ORDEM_ETAPAS = [
@@ -28,20 +29,7 @@ export interface EtapaPipeline {
   executar(contexto: ContextoEtapa): Promise<unknown>;
 }
 
-/** Trecho de uma mídia de origem posicionado na linha do tempo. */
-export interface Clipe {
-  midiaId: string;
-  inicioOrigemSeg: number;
-  fimOrigemSeg: number;
-  inicioLinhaDoTempoSeg: number;
-}
-
-/** Saída da etapa "editing" e entrada da etapa "rendering". */
-export interface PlanoDeEdicao {
-  versao: 1;
-  formato: FormatoSaida;
-  clipes: Clipe[];
-}
+// O plano de edição (saída de "editing", entrada de "rendering") está em producao.ts.
 
 /** Motor de renderização. Remotion é o principal; HyperFrames e FFmpeg são complementares. */
 export interface MotorRender {

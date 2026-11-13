@@ -1,7 +1,9 @@
 // Interface de linha de comando. Como toda interface, só conversa com a classe Aplicacao.
 // Uso: npm run app -- <comando>
 
+import path from "node:path";
 import { ErroAplicacao } from "../dominio/erros.ts";
+import type { PlanoDeEdicao } from "../dominio/producao.ts";
 import { Aplicacao } from "../nucleo/aplicacao.ts";
 
 const AJUDA = `IA Editora de Vídeo
@@ -11,6 +13,15 @@ Comandos:
   perfis                           Lista os perfis de especialização
   projeto criar <nome> [perfil]    Cria um projeto
   projeto listar                   Lista os projetos
+  agentes                          Lista os agentes da aplicação
+  brutos importar <projeto>        Registra no projeto os vídeos novos de Videos Brutos/
+  brutos analisar <projeto>        Examina, analisa e indexa os vídeos brutos do projeto
+  pesquisar <palavras>             Pesquisa nos vídeos brutos (falas, ação, características)
+  plano gerar <projeto> <objetivo> [--duracao s] [--publico p] [--plataforma p] [--cta texto] [--fato texto]
+  plano ver <projeto>              Mostra a versão atual do plano
+  plano aprovar <projeto>          Aprova o plano atual
+  plano rejeitar <projeto> <motivo>
+  roteiro <projeto>                Escreve o roteiro do plano atual
   referencias importar             Registra os vídeos novos da pasta Referências/
   referencias listar               Lista as referências registradas
   referencias analisar <id|todas>  Analisa referências e grava os relatórios
@@ -22,6 +33,20 @@ Comandos:
   backup listar                    Lista as cópias de segurança
   backup restaurar <nome>          Restaura uma cópia (o estado atual é guardado antes)
 `;
+
+function mostrarPlano(plano: PlanoDeEdicao, versao: number, estado: string): void {
+  console.log(`Plano v${versao} (${estado}) — ${plano.objetivo}`);
+  console.log(`Formato: ${plano.formato.nome} · ${plano.duracaoPlanejadaSeg} s planejados de ${plano.duracaoDesejadaSeg} s desejados`);
+  for (const c of plano.clipes) {
+    console.log(`  ${String(c.inicioLinhaDoTempoSeg).padStart(6)} s  [${c.bloco}] ${path.basename(c.arquivo)} ${c.inicioOrigemSeg}–${c.fimOrigemSeg} s — ${c.motivo}`);
+  }
+  console.log(`Transições: ${plano.transicoes.padrao}, encerramento em ${plano.transicoes.encerramento}`);
+  console.log(`Áudio: ${plano.audio.descricao}`);
+  console.log(`Legendas: ${plano.legendas.ativas ? `${plano.legendas.itens.length} fala(s)` : "não"} · Trilha: ${plano.trilhaSonora.observacao}`);
+  if (plano.efeitos.length) console.log(`Efeitos: ${plano.efeitos.join(" ")}`);
+  console.log(`CTA: ${plano.cta ? plano.cta.texto : "nenhum"}`);
+  for (const aviso of plano.avisos) console.log(`Aviso: ${aviso}`);
+}
 
 async function executar(app: Aplicacao, argumentos: string[]): Promise<number> {
   const [comando, acao, ...resto] = argumentos;
@@ -57,6 +82,67 @@ async function executar(app: Aplicacao, argumentos: string[]): Promise<number> {
     const projetos = app.projetos.listar();
     if (projetos.length === 0) console.log("Nenhum projeto.");
     for (const p of projetos) console.log(`${p.id}  ${p.nome}  [${p.perfil} / ${p.formato}]`);
+    return 0;
+  }
+
+  if (comando === "agentes") {
+    for (const a of app.producao.listarAgentes()) console.log(`${a.nome}: ${a.responsabilidade}`);
+    return 0;
+  }
+
+  if (comando === "brutos" && acao === "importar" && resto[0]) {
+    const novas = app.producao.importarBrutos(resto[0]);
+    console.log(novas.length ? `${novas.length} vídeo(s) registrado(s) no projeto.` : "Nenhum vídeo novo em Videos Brutos/.");
+    return 0;
+  }
+
+  if (comando === "brutos" && acao === "analisar" && resto[0]) {
+    for (const b of await app.producao.analisarBrutos(resto[0])) {
+      const t = b.arquivo.tecnico;
+      console.log(`${b.arquivo.nome}: ${t ? `${t.largura}x${t.altura}, ${t.fps} quadros/s, ${t.duracaoSeg.toFixed(1)} s, ${b.arquivo.formato}/${t.codecVideo}` : "não lido"} — ${b.arquivo.integridade}`);
+      if (b.conteudo) console.log(`  ${b.conteudo.cenas.length} cena(s), ${b.conteudo.momentosDeAcao.length} momento(s) de ação, ${b.conteudo.destaques.length} destaque(s), ${b.conteudo.transcricao?.segmentos.length ?? 0} fala(s)`);
+      for (const p of [...b.arquivo.problemas, ...(b.conteudo?.possiveisErros ?? [])]) console.log(`  ${p.gravidade}: ${p.descricao}${p.inicioSeg !== undefined ? ` (${p.inicioSeg}–${p.fimSeg} s)` : ""}`);
+    }
+    return 0;
+  }
+
+  if (comando === "pesquisar" && acao) {
+    const resultados = app.producao.pesquisar([acao, ...resto].join(" "), { limite: 20 });
+    if (resultados.length === 0) console.log("Nada encontrado.");
+    for (const r of resultados) console.log(`${r.arquivo}  ${r.inicioSeg}–${r.fimSeg} s  [${r.tipo}] ${r.texto} (${r.etiquetas.join(", ")})`);
+    return 0;
+  }
+
+  if (comando === "plano" && acao === "gerar" && resto[1]) {
+    const opcao = (nome: string) => resto.flatMap((valor, i) => (valor === `--${nome}` && resto[i + 1] ? [resto[i + 1]] : []));
+    const versao = app.producao.planejar(resto[0], {
+      objetivo: resto[1], publico: opcao("publico")[0], plataforma: opcao("plataforma")[0], cta: opcao("cta")[0], fatos: opcao("fato"),
+      duracaoDesejadaSeg: opcao("duracao")[0] ? Number(opcao("duracao")[0]) : undefined,
+    });
+    mostrarPlano(versao.plano as PlanoDeEdicao, versao.versao, versao.estado);
+    return 0;
+  }
+
+  if (comando === "plano" && acao === "ver" && resto[0]) {
+    const versao = app.acervo.plano(resto[0]);
+    mostrarPlano(versao.plano as PlanoDeEdicao, versao.versao, versao.estado);
+    return 0;
+  }
+
+  if (comando === "plano" && acao === "aprovar" && resto[0]) {
+    console.log(`Plano v${app.producao.aprovarPlano(resto[0]).versao} aprovado.`);
+    return 0;
+  }
+
+  if (comando === "plano" && acao === "rejeitar" && resto[1]) {
+    console.log(`Plano v${app.producao.rejeitarPlano(resto[0], resto.slice(1).join(" ")).versao} rejeitado.`);
+    return 0;
+  }
+
+  if (comando === "roteiro" && acao) {
+    const roteiro = await app.producao.escreverRoteiro(acao);
+    for (const linha of roteiro.linhas) console.log(`[${linha.bloco}] (${linha.tipo}) ${linha.texto}`);
+    for (const aviso of roteiro.avisos) console.log(`Aviso: ${aviso}`);
     return 0;
   }
 

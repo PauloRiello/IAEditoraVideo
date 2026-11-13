@@ -5,7 +5,6 @@ import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { analisarReferencia } from "../../Pipeline/analysis/analisador.ts";
 import { paraMarkdown } from "../../Pipeline/analysis/regras.ts";
-import { pythonDoPrograma, transcrever, VRAM_POR_MODELO } from "../../Pipeline/transcription/whisper.ts";
 import type { RelatorioReferencia } from "../dominio/analise.ts";
 import type { Aprendizado, Referencia } from "../dominio/memoria.ts";
 import type { Capacidade } from "../dominio/provedores.ts";
@@ -16,6 +15,7 @@ import type { ServicoAprendizado } from "../servicos/aprendizado.ts";
 import type { ServicoPerfis } from "../servicos/perfis.ts";
 import type { RegistroProvedores } from "../servicos/provedores.ts";
 import type { GerenciadorVram } from "../servicos/recursos.ts";
+import { criarTranscritor } from "./transcricao.ts";
 
 const EXTENSOES_DE_VIDEO = new Set([".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v"]);
 
@@ -92,10 +92,6 @@ export class AnaliseDeReferencias {
     const perfil = this.d.perfis.obter(opcoes.perfil ?? referencia.perfil ?? configuracoes.perfilPadrao);
     const pasta = path.join(caminhos.analises, referencia.id);
 
-    const registrarUso = (provedor: string, modelo: string, origem: "local" | "externo", capacidade: string, dispositivo: "gpu" | "cpu" | null, duracaoMs: number | null, sucesso: boolean) =>
-      acervo.registrarUsoIA({ projetoId: null, provedor, modelo, origem, capacidade, operacao: "analise-de-referencia", dispositivo, duracaoMs, sucesso });
-
-    const python = opcoes.transcrever === false ? null : pythonDoPrograma(caminhos.programa);
     const relatorio = await analisarReferencia(referencia.caminho, {
       titulo: referencia.titulo,
       referenciaId: referencia.id,
@@ -104,31 +100,14 @@ export class AnaliseDeReferencias {
       provedores: {
         selecionar: async (capacidade: Capacidade) => {
           const provedor = await this.d.provedores.selecionar(capacidade);
-          registrarUso(provedor.id, provedor.modelo ?? "", provedor.origem, capacidade, null, null, true);
+          acervo.registrarUsoIA({
+            projetoId: null, provedor: provedor.id, modelo: provedor.modelo ?? "", origem: provedor.origem, capacidade,
+            operacao: "analise-de-referencia", dispositivo: null, duracaoMs: null, sucesso: true,
+          });
           return provedor;
         },
       },
-      transcrever: python
-        ? async (arquivo) => {
-            const { modelo, idioma } = configuracoes.transcricao;
-            // O Whisper só vai para a GPU se couber na VRAM livre; senão roda na CPU.
-            const reserva = `whisper-${modelo}`;
-            const dispositivo = this.d.vram.reservar(reserva, VRAM_POR_MODELO[modelo] ?? 4000);
-            const inicio = Date.now();
-            try {
-              const resultado = await transcrever(arquivo, {
-                python, modelo, idioma, dispositivo: dispositivo === "gpu" ? "cuda" : "cpu", pastaDeModelos: path.join(caminhos.modelos, "whisper"),
-              });
-              registrarUso("whisper-local", modelo, "local", "transcricao", dispositivo, Date.now() - inicio, true);
-              return resultado;
-            } catch (erro) {
-              registrarUso("whisper-local", modelo, "local", "transcricao", dispositivo, Date.now() - inicio, false);
-              throw erro;
-            } finally {
-              this.d.vram.liberar(reserva);
-            }
-          }
-        : undefined,
+      transcrever: opcoes.transcrever === false ? undefined : criarTranscritor(this.d, "analise-de-referencia"),
     });
 
     // Relatórios em arquivo (para leitura) e no banco (para a aplicação).

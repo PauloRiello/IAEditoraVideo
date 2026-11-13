@@ -5,7 +5,7 @@
 // para medir cortes, transições, movimento, cor e luz, e custa uma fração de analisar
 // todos os quadros em resolução cheia.
 
-import { estimado, observado, type AnaliseVisual, type DadosTecnicos, type Movimento, type Plano, type Transicao } from "../../src/dominio/analise.ts";
+import { estimado, observado, type AnaliseVisual, type DadosTecnicos, type Intervalo, type Movimento, type Plano, type Transicao } from "../../src/dominio/analise.ts";
 import { arredondar, ffmpeg, mediana } from "./ferramentas.ts";
 
 const L = 64;
@@ -20,6 +20,14 @@ export type MedicaoVisual = Omit<AnaliseVisual, "enquadramentos" | "efeitos" | "
   cortesSeg: number[];
   /** Instante central dos planos escolhidos como quadros-chave. */
   temposDosQuadrosChave: number[];
+  /** Sinais por segundo e trechos com possível defeito, usados na análise de vídeos brutos. */
+  sinais: {
+    /** Diferença média entre quadros a cada segundo, sem contar os cortes (0 = imagem parada). */
+    atividadePorSegundo: number[];
+    pretos: Intervalo[];
+    congelados: Intervalo[];
+    escuros: Intervalo[];
+  };
 };
 
 export async function medirVisual(arquivo: string, tecnico: DadosTecnicos, quadrosChave = 8): Promise<MedicaoVisual> {
@@ -132,6 +140,31 @@ export async function medirVisual(arquivo: string, tecnico: DadosTecnicos, quadr
     if (naBorda(g)) bordas.add(tempoSeg);
   }
   transicoes.sort((x, y) => x.tempoSeg - y.tempoSeg);
+
+  // --- Sinais por segundo e trechos com possível defeito --------------------------
+  const atividadePorSegundo: number[] = [];
+  for (let s = 0; s * fps < n; s += 1) {
+    let soma = 0, quantos = 0;
+    for (let i = Math.max(1, Math.round(s * fps)); i < Math.min(n, Math.round((s + 1) * fps)); i += 1) if (!eCorte[i]) { soma += diferencas[i]; quantos += 1; }
+    atividadePorSegundo.push(quantos ? arredondar(soma / quantos) : 0);
+  }
+  const trechos = (condicao: (i: number) => boolean, minimoSeg: number): Intervalo[] => {
+    const lista: Intervalo[] = [];
+    for (let i = 0; i < n; ) {
+      if (!condicao(i)) { i += 1; continue; }
+      let j = i;
+      while (j < n && condicao(j)) j += 1;
+      if ((j - i) / fps >= minimoSeg) lista.push({ inicioSeg: arredondar(i / fps), fimSeg: arredondar(j / fps) });
+      i = j;
+    }
+    return lista;
+  };
+  const sinais = {
+    atividadePorSegundo,
+    pretos: trechos((i) => luma[i] < PRETO, 0.5),
+    congelados: trechos((i) => i > 0 && luma[i] >= PRETO && diferencas[i] < 0.12, 2),
+    escuros: trechos((i) => luma[i] >= PRETO && luma[i] < 38, 2),
+  };
 
   // --- Planos e movimento ------------------------------------------------------
   const duracao = tecnico.duracaoSeg || n / fps;
@@ -246,6 +279,7 @@ export async function medirVisual(arquivo: string, tecnico: DadosTecnicos, quadr
     composicao: observado({ barrasDeCinema: barras, proporcaoUtil }, `${metodo}; barras = faixas escuras fixas em cima e embaixo`, 0.8),
     cortesSeg: limites.slice(1, -1),
     temposDosQuadrosChave: escolhidos.map((p) => arredondar((p.inicioSeg + p.fimSeg) / 2)),
+    sinais,
   };
 }
 

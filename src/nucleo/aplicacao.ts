@@ -5,6 +5,7 @@ import { EventEmitter } from "node:events";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { NaoEncontrado } from "../dominio/erros.ts";
+import { ORDEM_ETAPAS } from "../dominio/pipeline.ts";
 import {
   copiaValida, criarCopia, isolarArquivo, listarCopias, restaurarArquivos, rotacionar, validarCopia,
   type Copia, type MotivoCopia,
@@ -14,12 +15,14 @@ import { caminhosPadrao, garantirPastas, type Caminhos } from "../infra/caminhos
 import { carregarConfiguracoes, CONFIGURACOES_PADRAO, salvarConfiguracoes, type Configuracoes } from "../infra/configuracoes.ts";
 import { ServicoAcervo } from "../servicos/acervo.ts";
 import { ServicoAprendizado } from "../servicos/aprendizado.ts";
+import { ServicoIndice } from "../servicos/indice.ts";
 import { ServicoMemoria } from "../servicos/memoria.ts";
 import { ServicoPerfis } from "../servicos/perfis.ts";
 import { ServicoProjetos } from "../servicos/projetos.ts";
 import { criarRegistroProvedores, type RegistroProvedores } from "../servicos/provedores.ts";
 import { detectarHardware, GerenciadorVram, type Hardware } from "../servicos/recursos.ts";
 import { Orquestrador } from "./orquestrador.ts";
+import { Producao } from "./producao.ts";
 import { AnaliseDeReferencias } from "./referencias.ts";
 
 export interface Situacao {
@@ -50,6 +53,8 @@ export class Aplicacao {
   provedores!: RegistroProvedores;
   /** Importação e análise de vídeos de referência. */
   referencias!: AnaliseDeReferencias;
+  /** Agente Coordenador: vídeos brutos, pesquisa, plano de edição, aprovação e roteiro. */
+  producao!: Producao;
   hardware: Hardware;
   vram: GerenciadorVram;
   orquestrador: Orquestrador;
@@ -124,6 +129,10 @@ export class Aplicacao {
     this.perfis = new ServicoPerfis([this.caminhos.perfis, path.join(this.caminhos.dados, "perfis")]);
     this.provedores = criarRegistroProvedores(this.configuracoes.ia, this.configuracoes.ia.provedores);
     this.orquestrador.usarBanco(this.banco);
+    this.producao = new Producao({
+      caminhos: this.caminhos, configuracoes: this.configuracoes, projetos: this.projetos, acervo: this.acervo, aprendizado: this.aprendizado,
+      memoria: this.memoria, perfis: this.perfis, indice: new ServicoIndice(this.banco), provedores: this.provedores, vram: this.vram,
+    });
     this.referencias = new AnaliseDeReferencias({
       caminhos: this.caminhos, configuracoes: this.configuracoes, acervo: this.acervo, aprendizado: this.aprendizado,
       perfis: this.perfis, provedores: this.provedores, vram: this.vram,
@@ -153,9 +162,17 @@ export class Aplicacao {
     return this.aprendizado.consultar({ projetoId, perfis: [projeto.perfil, ...perfisAdicionais], resolverPorOrdem });
   }
 
-  /** Executa o pipeline de um projeto (todas as etapas registradas ou um intervalo). */
+  /**
+   * Executa o pipeline de um projeto (todas as etapas registradas ou um intervalo).
+   * A renderização só roda com o plano atual aprovado pelo usuário.
+   */
   executarPipeline(projetoId: string, intervalo?: Parameters<Orquestrador["executar"]>[2]) {
     const projeto = this.projetos.obter(projetoId);
+    const alcancaRender =
+      this.orquestrador.registradas().includes("rendering") &&
+      ORDEM_ETAPAS.indexOf(intervalo?.de ?? "ingestion") <= ORDEM_ETAPAS.indexOf("rendering") &&
+      ORDEM_ETAPAS.indexOf(intervalo?.ate ?? "quality-control") >= ORDEM_ETAPAS.indexOf("rendering");
+    if (alcancaRender) this.producao.exigirPlanoAprovado(projetoId);
     return this.orquestrador.executar(projeto, this.perfis.obter(projeto.perfil), intervalo);
   }
 
