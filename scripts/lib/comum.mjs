@@ -21,7 +21,13 @@ export const AMBIENTE = {
 
 /** Executa um comando e devolve { ok, codigo, saida, erro } sem lançar exceção. */
 export function executar(comando, argumentos = [], opcoes = {}) {
+  // No Windows, arquivos .cmd só rodam pelo shell, que não protege espaços sozinho.
   const usaShell = WINDOWS && /\.(cmd|bat)$/i.test(comando);
+  if (usaShell) {
+    const proteger = (texto) => (/[\s&|<>^()"]/.test(texto) ? `"${String(texto).replace(/"/g, '\\"')}"` : texto);
+    comando = proteger(comando);
+    argumentos = argumentos.map(proteger);
+  }
   const resultado = spawnSync(comando, argumentos, {
     cwd: RAIZ,
     env: AMBIENTE,

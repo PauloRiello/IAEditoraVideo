@@ -1,7 +1,7 @@
 {
   "version": 1,
   "historyId": "6704d84f-b6de-4fe5-a66e-9d7627cfe588",
-  "currentRevision": null,
+  "currentRevision": "9c20502a-f02a-4789-ae0a-0d3f09b79049",
   "pendingChanges": false,
   "files": {
     "assets/gsap.min.js": {
@@ -17,11 +17,27 @@
       "content": "/root/.cache/hyperframes/history/6704d84f-b6de-4fe5-a66e-9d7627cfe588/blobs/39/39e0a7d91870f14054c290041b271f1a99cda1b97e74485afc423721176c314a"
     },
     "meta.json": {
-      "hash": "4eb130d41930b8705e6108cb45434de2a3d0f3e103610f56f04d2968a512b389",
-      "content": "/root/.cache/hyperframes/history/6704d84f-b6de-4fe5-a66e-9d7627cfe588/blobs/4e/4eb130d41930b8705e6108cb45434de2a3d0f3e103610f56f04d2968a512b389"
+      "hash": "9d07bf2154041840eb090d6ebedc4b6c553e5eade1137c57defdb1308d67ff7e",
+      "content": "/root/.cache/hyperframes/history/6704d84f-b6de-4fe5-a66e-9d7627cfe588/blobs/9d/9d07bf2154041840eb090d6ebedc4b6c553e5eade1137c57defdb1308d67ff7e"
     }
   },
-  "revisions": {},
+  "revisions": {
+    "9c20502a-f02a-4789-ae0a-0d3f09b79049": {
+      "actor": {
+        "kind": "outside",
+        "name": "Outside"
+      },
+      "label": "Changed outside the app",
+      "startedAt": 1794562119953,
+      "endedAt": 1794562119959,
+      "files": {
+        "meta.json": {
+          "before": "/root/.cache/hyperframes/history/6704d84f-b6de-4fe5-a66e-9d7627cfe588/blobs/4e/4eb130d41930b8705e6108cb45434de2a3d0f3e103610f56f04d2968a512b389",
+          "after": "/root/.cache/hyperframes/history/6704d84f-b6de-4fe5-a66e-9d7627cfe588/blobs/9d/9d07bf2154041840eb090d6ebedc4b6c553e5eade1137c57defdb1308d67ff7e"
+        }
+      }
+    }
+  },
   "checks": {
     "latest": null,
     "revisions": {},
@@ -34,13 +50,15 @@
   },
   "renders": {
     "latest": {
-      "id": "f533d4db-836d-4188-85b5-260f7f47a1be",
-      "completedAt": 1794539826837,
-      "output": "/tmp/claude-0/-home-user-IAEditoraVideo/0297c319-7949-5aa7-911a-8ac93d06e10e/scratchpad/hf.mp4",
+      "id": "a0c2c46b-0af1-4693-ae47-11cfc98d8ac5",
+      "completedAt": 1794562130317,
+      "output": "/tmp/iaev-MdRblB/hyperframes.mp4",
       "status": "completed",
-      "revision": null
+      "revision": "9c20502a-f02a-4789-ae0a-0d3f09b79049"
     },
-    "retainedRevisions": []
+    "retainedRevisions": [
+      "9c20502a-f02a-4789-ae0a-0d3f09b79049"
+    ]
   },
   "pendingArtifactCleanup": []
 }

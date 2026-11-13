@@ -6,7 +6,7 @@ const r = new Relatorio("GPU e aceleração");
 
 try {
   const a = await detectar();
-  gravar(a);
+  const gravado = gravar(a);
   for (const linha of descrever(a)) r.ok(linha);
 
   for (const [encoder, funciona] of Object.entries(a.ffmpeg.encodersTestados)) {
@@ -16,7 +16,7 @@ try {
   if (a.whisper.bibliotecasCudaPendentes) {
     r.aviso("GPU NVIDIA presente, mas o Whisper não a enxerga: rode `npm run setup` para instalar cuBLAS e cuDNN");
   }
-  r.ok("Configuração gravada em config/local.aceleracao.json");
+  r.ok(gravado ? "Configuração gravada em config/local.aceleracao.json" : "Configuração manual existente preservada");
 } catch (erro) {
   r.falha(`Detecção falhou: ${erro.message}`);
 }

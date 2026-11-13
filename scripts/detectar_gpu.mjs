@@ -5,7 +5,9 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ARQUIVO_ACELERACAO, WINDOWS, binVenv, comPastaTemporaria, executar, existeComando } from "./lib/comum.mjs";
+import {
+  ARQUIVO_ACELERACAO, WINDOWS, binVenv, comPastaTemporaria, executar, existeComando, lerAceleracao,
+} from "./lib/comum.mjs";
 
 function detectarNvidia() {
   if (!existeComando("nvidia-smi")) return null;
@@ -124,9 +126,12 @@ export async function detectar() {
   };
 }
 
+/** Grava a configuração. Um arquivo marcado com "manual": true é preservado. */
 export function gravar(aceleracao) {
+  if (lerAceleracao()?.manual === true) return false;
   mkdirSync(path.dirname(ARQUIVO_ACELERACAO), { recursive: true });
   writeFileSync(ARQUIVO_ACELERACAO, `${JSON.stringify(aceleracao, null, 2)}\n`);
+  return true;
 }
 
 export function descrever(a) {
@@ -141,11 +146,15 @@ export function descrever(a) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const aceleracao = await detectar();
-  gravar(aceleracao);
+  const gravado = gravar(aceleracao);
   console.log("\n== Aceleração detectada ==");
   for (const linha of descrever(aceleracao)) console.log(`  ${linha}`);
   if (aceleracao.whisper.bibliotecasCudaPendentes) {
     console.log("  Atenção: GPU NVIDIA presente, mas o Whisper não a enxerga. Rode `npm run setup`.");
   }
-  console.log(`  Gravado em ${path.relative(process.cwd(), ARQUIVO_ACELERACAO)}`);
+  console.log(
+    gravado
+      ? `  Gravado em ${path.relative(process.cwd(), ARQUIVO_ACELERACAO)}`
+      : "  Arquivo existente marcado como manual: preservado, nada foi gravado",
+  );
 }
