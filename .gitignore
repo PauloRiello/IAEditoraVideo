@@ -1,0 +1,120 @@
+# ============================================================
+# IA Editora de Vídeo — .gitignore
+# ============================================================
+
+# --- Mídia pesada (em qualquer pasta) ------------------------
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.webm
+*.m4v
+*.mxf
+*.mts
+*.m2ts
+*.wmv
+*.flv
+*.braw
+*.r3d
+*.prores
+*.wav
+*.flac
+*.aiff
+*.aif
+*.psd
+*.exr
+*.dpx
+
+# --- Pastas de mídia: ignora o conteúdo, mantém a pasta ------
+/Videos Brutos/**
+/Referências/**
+/Exportações/**
+!/Videos Brutos/.gitkeep
+!/Referências/.gitkeep
+!/Exportações/.gitkeep
+
+# --- Renders e saídas intermediárias -------------------------
+renders/
+render/
+output/
+outputs/
+proxies/
+*.render
+*.part
+
+# --- Modelos de IA e pesos -----------------------------------
+models/
+weights/
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.gguf
+*.bin
+
+# --- Caches ---------------------------------------------------
+.cache/
+cache/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.npm/
+.eslintcache
+.parcel-cache/
+.turbo/
+huggingface/
+
+# --- Arquivos temporários ------------------------------------
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+*.log
+logs/
+
+# --- Credenciais e segredos ----------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+credentials*.json
+client_secret*.json
+service-account*.json
+token*.json
+secrets.*
+*.secret
+config/local.*
+config/secrets/
+.claude/settings.local.json
+
+# --- Ambientes e dependências --------------------------------
+.venv/
+venv/
+env/
+node_modules/
+dist/
+build/
+*.egg-info/
+.coverage
+htmlcov/
+coverage/
+
+# --- Sistema operacional e editores --------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
