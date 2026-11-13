@@ -221,10 +221,12 @@ test("independência: o código da aplicação não depende de Claude nem da Ant
   const pacote = JSON.parse(readFileSync(path.join(RAIZ, "package.json"), "utf8")) as { dependencies: Record<string, string> };
   assert.deepEqual(Object.keys(pacote.dependencies).filter((nome) => /anthropic|claude/i.test(nome)), []);
 
-  const arquivos = (readdirSync(path.join(RAIZ, "src"), { recursive: true }) as string[]).filter((nome) => nome.endsWith(".ts"));
-  assert.ok(arquivos.length > 0);
-  for (const arquivo of arquivos) {
-    const codigo = readFileSync(path.join(RAIZ, "src", arquivo), "utf8");
-    assert.doesNotMatch(codigo, /anthropic|claude/i, `src/${arquivo} menciona Claude/Anthropic`);
+  for (const pasta of ["src", "Pipeline"]) {
+    const arquivos = (readdirSync(path.join(RAIZ, pasta), { recursive: true }) as string[]).filter((nome) => /\.(ts|py)$/.test(nome));
+    assert.ok(arquivos.length > 0);
+    for (const arquivo of arquivos) {
+      const codigo = readFileSync(path.join(RAIZ, pasta, arquivo), "utf8");
+      assert.doesNotMatch(codigo, /anthropic|claude/i, `${pasta}/${arquivo} menciona Claude/Anthropic`);
+    }
   }
 });

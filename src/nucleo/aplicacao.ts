@@ -20,6 +20,7 @@ import { ServicoProjetos } from "../servicos/projetos.ts";
 import { criarRegistroProvedores, type RegistroProvedores } from "../servicos/provedores.ts";
 import { detectarHardware, GerenciadorVram, type Hardware } from "../servicos/recursos.ts";
 import { Orquestrador } from "./orquestrador.ts";
+import { AnaliseDeReferencias } from "./referencias.ts";
 
 export interface Situacao {
   versaoEsquema: number;
@@ -47,6 +48,8 @@ export class Aplicacao {
   acervo!: ServicoAcervo;
   perfis!: ServicoPerfis;
   provedores!: RegistroProvedores;
+  /** Importação e análise de vídeos de referência. */
+  referencias!: AnaliseDeReferencias;
   hardware: Hardware;
   vram: GerenciadorVram;
   orquestrador: Orquestrador;
@@ -61,10 +64,9 @@ export class Aplicacao {
     const bancoExistia = existsSync(caminhos.banco);
     this.banco = this.abrirComRecuperacao();
     this.orquestrador = new Orquestrador(this.banco, this.eventos);
-    this.montarServicos();
-
     this.hardware = detectarHardware(path.join(caminhos.programa, "config", "local.aceleracao.json"));
     this.vram = new GerenciadorVram(this.hardware.gpu, this.configuracoes.processamento.margemVramMB);
+    this.montarServicos();
 
     const interrompidas = this.orquestrador.recuperarInterrompidas();
     if (interrompidas > 0) this.avisos.push(`${interrompidas} etapa(s) interrompida(s) por fechamento inesperado foram marcadas como falhas.`);
@@ -122,6 +124,10 @@ export class Aplicacao {
     this.perfis = new ServicoPerfis([this.caminhos.perfis, path.join(this.caminhos.dados, "perfis")]);
     this.provedores = criarRegistroProvedores(this.configuracoes.ia, this.configuracoes.ia.provedores);
     this.orquestrador.usarBanco(this.banco);
+    this.referencias = new AnaliseDeReferencias({
+      caminhos: this.caminhos, configuracoes: this.configuracoes, acervo: this.acervo, aprendizado: this.aprendizado,
+      perfis: this.perfis, provedores: this.provedores, vram: this.vram,
+    });
   }
 
   private copiaAutomatica(): void {

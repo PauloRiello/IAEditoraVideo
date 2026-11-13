@@ -32,5 +32,25 @@
     "Legendas visíveis: boa parte do público assiste sem som.",
     "Manter elementos importantes longe das bordas ocupadas pela interface do aplicativo.",
     "Encerrar com uma chamada para ação clara."
-  ]
+  ],
+  "analise": {
+    "estrutura": "curta",
+    "palavrasDeCta": [
+      "discord",
+      "inscreva",
+      "siga",
+      "segue",
+      "link",
+      "acesse",
+      "entre",
+      "conecte",
+      "baixe",
+      "compre",
+      "garanta",
+      "subscribe",
+      "follow",
+      "join",
+      "connect"
+    ]
+  }
 }

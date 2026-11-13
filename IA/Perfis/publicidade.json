@@ -32,5 +32,25 @@
     "Uma mensagem principal por vídeo.",
     "Respeitar identidade visual da marca: cores, tipografia e logotipo.",
     "Chamada para ação explícita no final."
-  ]
+  ],
+  "analise": {
+    "estrutura": "curta",
+    "palavrasDeCta": [
+      "discord",
+      "inscreva",
+      "siga",
+      "segue",
+      "link",
+      "acesse",
+      "entre",
+      "conecte",
+      "baixe",
+      "compre",
+      "garanta",
+      "subscribe",
+      "follow",
+      "join",
+      "connect"
+    ]
+  }
 }

@@ -17,5 +17,25 @@
     "Estrutura em atos, com contexto, desenvolvimento e conclusão.",
     "Identificar fontes e material de arquivo.",
     "Trilha a serviço da narração, sem competir com as falas."
-  ]
+  ],
+  "analise": {
+    "estrutura": "livre",
+    "palavrasDeCta": [
+      "discord",
+      "inscreva",
+      "siga",
+      "segue",
+      "link",
+      "acesse",
+      "entre",
+      "conecte",
+      "baixe",
+      "compre",
+      "garanta",
+      "subscribe",
+      "follow",
+      "join",
+      "connect"
+    ]
+  }
 }

@@ -154,6 +154,11 @@ export const MIGRACOES: string[] = [
     criado_em TEXT NOT NULL
   );
   `,
+  // v3 — evidências vindas da análise de referências
+  `
+  ALTER TABLE evidencias ADD COLUMN referencia_id TEXT REFERENCES referencias(id) ON DELETE SET NULL;
+  CREATE INDEX evidencias_referencia ON evidencias (referencia_id);
+  `,
 ];
 
 export const VERSAO_ESQUEMA = MIGRACOES.length;

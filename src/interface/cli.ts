@@ -11,6 +11,9 @@ Comandos:
   perfis                           Lista os perfis de especialização
   projeto criar <nome> [perfil]    Cria um projeto
   projeto listar                   Lista os projetos
+  referencias importar             Registra os vídeos novos da pasta Referências/
+  referencias listar               Lista as referências registradas
+  referencias analisar <id|todas>  Analisa referências e grava os relatórios
   aprendizados [estado]            Lista os aprendizados (candidato, ativo ou desativado)
   aprendizado desativar <id>       Desativa um aprendizado
   aprendizado ativar <id>          Ativa um aprendizado por decisão do usuário
@@ -54,6 +57,33 @@ async function executar(app: Aplicacao, argumentos: string[]): Promise<number> {
     const projetos = app.projetos.listar();
     if (projetos.length === 0) console.log("Nenhum projeto.");
     for (const p of projetos) console.log(`${p.id}  ${p.nome}  [${p.perfil} / ${p.formato}]`);
+    return 0;
+  }
+
+  if (comando === "referencias" && acao === "importar") {
+    const novas = app.referencias.importarPasta();
+    console.log(novas.length ? `${novas.length} referência(s) registrada(s):` : "Nenhum vídeo novo na pasta Referências/.");
+    for (const r of novas) console.log(`  ${r.id}  ${r.titulo}  [${r.perfil ?? "sem perfil"}]`);
+    return 0;
+  }
+
+  if (comando === "referencias" && acao === "listar") {
+    const todas = app.acervo.referencias();
+    if (todas.length === 0) console.log("Nenhuma referência registrada.");
+    for (const r of todas) console.log(`${r.id}  ${r.titulo}  [${r.perfil ?? "sem perfil"}]  ${app.referencias.relatorio(r.id) ? "analisada" : "não analisada"}`);
+    return 0;
+  }
+
+  if (comando === "referencias" && acao === "analisar" && resto[0]) {
+    const alvos = resto[0] === "todas" ? app.acervo.referencias().filter((r) => r.caminho) : [app.acervo.referencia(resto[0])];
+    for (const alvo of alvos) {
+      console.log(`Analisando "${alvo.titulo}"...`);
+      const { relatorio, arquivoMarkdown, aprendizados } = await app.referencias.analisar(alvo.id);
+      const ativos = aprendizados.filter((a) => a.estado === "ativo").length;
+      console.log(`  ${relatorio.regras.length} regra(s), confiança geral ${Math.round(relatorio.confiancaGeral * 100)}%; ${ativos} aprendizado(s) já ativo(s), ${aprendizados.length - ativos} candidato(s)`);
+      for (const limitacao of relatorio.limitacoes) console.log(`  Limitação: ${limitacao}`);
+      console.log(`  Relatório: ${arquivoMarkdown}`);
+    }
     return 0;
   }
 

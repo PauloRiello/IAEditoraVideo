@@ -1,8 +1,9 @@
 // Camada de provedores de IA. A aplicação abre e funciona sem nenhum provedor;
 // só as operações que precisam de uma capacidade ausente falham, com erro claro.
 
+import { readFileSync } from "node:fs";
 import { CapacidadeIndisponivel } from "../dominio/erros.ts";
-import type { Capacidade, ConfiguracaoProvedor, PedidoTexto, ProvedorIA } from "../dominio/provedores.ts";
+import type { Capacidade, ConfiguracaoProvedor, PedidoImagens, PedidoTexto, ProvedorIA } from "../dominio/provedores.ts";
 
 export interface PoliticaIA {
   preferirLocal: boolean;
@@ -60,6 +61,7 @@ export class ProvedorCompativelOpenAI implements ProvedorIA {
   nome: string;
   origem: ConfiguracaoProvedor["origem"];
   capacidades: Capacidade[];
+  modelo: string;
   private config: ConfiguracaoProvedor;
   private ambiente: NodeJS.ProcessEnv;
 
@@ -68,6 +70,7 @@ export class ProvedorCompativelOpenAI implements ProvedorIA {
     this.nome = config.nome;
     this.origem = config.origem;
     this.capacidades = config.capacidades;
+    this.modelo = config.modelo;
     this.config = config;
     this.ambiente = ambiente;
   }
@@ -91,18 +94,26 @@ export class ProvedorCompativelOpenAI implements ProvedorIA {
     }
   }
 
-  async gerarTexto(pedido: PedidoTexto): Promise<string> {
+  gerarTexto(pedido: PedidoTexto): Promise<string> {
+    return this.conversar(
+      [...(pedido.sistema ? [{ role: "system", content: pedido.sistema }] : []), { role: "user", content: pedido.mensagem }],
+      pedido.temperatura,
+    );
+  }
+
+  descreverImagens(pedido: PedidoImagens): Promise<string> {
+    const imagens = pedido.imagens.map((arquivo) => ({
+      type: "image_url",
+      image_url: { url: `data:image/${arquivo.toLowerCase().endsWith(".png") ? "png" : "jpeg"};base64,${readFileSync(arquivo).toString("base64")}` },
+    }));
+    return this.conversar([{ role: "user", content: [{ type: "text", text: pedido.instrucao }, ...imagens] }]);
+  }
+
+  private async conversar(mensagens: unknown[], temperatura = 0.2): Promise<string> {
     const resposta = await fetch(this.url("/chat/completions"), {
       method: "POST",
       headers: this.cabecalhos(),
-      body: JSON.stringify({
-        model: this.config.modelo,
-        temperature: pedido.temperatura ?? 0.2,
-        messages: [
-          ...(pedido.sistema ? [{ role: "system", content: pedido.sistema }] : []),
-          { role: "user", content: pedido.mensagem },
-        ],
-      }),
+      body: JSON.stringify({ model: this.config.modelo, temperature: temperatura, messages: mensagens }),
     });
     if (!resposta.ok) throw new Error(`Provedor "${this.id}" respondeu ${resposta.status}.`);
     const corpo = (await resposta.json()) as { choices?: { message?: { content?: string } }[] };

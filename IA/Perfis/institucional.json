@@ -32,5 +32,25 @@
     "Priorizar depoimentos e imagens do ambiente real.",
     "Áudio de fala limpo e trilha em volume baixo.",
     "Identificar pessoas com nome e cargo."
-  ]
+  ],
+  "analise": {
+    "estrutura": "livre",
+    "palavrasDeCta": [
+      "discord",
+      "inscreva",
+      "siga",
+      "segue",
+      "link",
+      "acesse",
+      "entre",
+      "conecte",
+      "baixe",
+      "compre",
+      "garanta",
+      "subscribe",
+      "follow",
+      "join",
+      "connect"
+    ]
+  }
 }

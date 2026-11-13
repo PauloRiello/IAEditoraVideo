@@ -30,5 +30,25 @@
   "diretrizes": [
     "Priorizar clareza da mensagem e boa qualidade de áudio.",
     "Manter ritmo coerente com o objetivo do vídeo."
-  ]
+  ],
+  "analise": {
+    "estrutura": "automatica",
+    "palavrasDeCta": [
+      "discord",
+      "inscreva",
+      "siga",
+      "segue",
+      "link",
+      "acesse",
+      "entre",
+      "conecte",
+      "baixe",
+      "compre",
+      "garanta",
+      "subscribe",
+      "follow",
+      "join",
+      "connect"
+    ]
+  }
 }

@@ -18,6 +18,12 @@ export interface Configuracoes {
     /** VRAM mantida livre para o sistema e outros programas. */
     margemVramMB: number;
   };
+  transcricao: {
+    /** Modelo do Whisper: tiny, base, small, medium ou large-v3. Maiores são mais precisos e mais lentos. */
+    modelo: string;
+    /** Código do idioma (por exemplo "pt"). Vazio para detectar automaticamente. */
+    idioma: string;
+  };
   backup: {
     /** Cria uma cópia ao abrir a aplicação quando a última for mais antiga que o intervalo. */
     automatico: boolean;
@@ -31,6 +37,7 @@ export const CONFIGURACOES_PADRAO: Configuracoes = {
   perfilPadrao: "geral",
   ia: { preferirLocal: true, permitirExternos: false, provedores: [] },
   processamento: { margemVramMB: 1024 },
+  transcricao: { modelo: "small", idioma: "" },
   backup: { automatico: true, intervaloHoras: 24, manter: 10 },
 };
 
@@ -45,6 +52,7 @@ export function carregarConfiguracoes(arquivo: string): Configuracoes {
     ...salvas,
     ia: { ...CONFIGURACOES_PADRAO.ia, ...salvas.ia },
     processamento: { ...CONFIGURACOES_PADRAO.processamento, ...salvas.processamento },
+    transcricao: { ...CONFIGURACOES_PADRAO.transcricao, ...salvas.transcricao },
     backup: { ...CONFIGURACOES_PADRAO.backup, ...salvas.backup },
   };
 }

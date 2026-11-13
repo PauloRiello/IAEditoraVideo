@@ -18,6 +18,8 @@ export interface Caminhos {
   temporarios: string;
   backups: string;
   modelos: string;
+  /** Relatórios e quadros gerados pela análise de referências. */
+  analises: string;
   registros: string;
   /** Mídias do usuário. */
   brutos: string;
@@ -39,6 +41,7 @@ export function montarCaminhos(dados: string, biblioteca: string, programa = PRO
     temporarios: path.join(dados, "temp"),
     backups: path.join(dados, "backups"),
     modelos: path.join(dados, "modelos"),
+    analises: path.join(dados, "analises"),
     registros: path.join(dados, "logs"),
     brutos: path.join(biblioteca, "Videos Brutos"),
     referencias: path.join(biblioteca, "Referências"),
@@ -65,7 +68,7 @@ export function caminhosPadrao(ambiente: NodeJS.ProcessEnv = process.env): Camin
 export function garantirPastas(c: Caminhos): void {
   const pastas = [
     path.dirname(c.banco), path.dirname(c.configuracoes), c.projetos, c.temporarios,
-    c.backups, c.modelos, c.registros, c.brutos, c.referencias, c.exportacoes,
+    c.backups, c.modelos, c.analises, c.registros, c.brutos, c.referencias, c.exportacoes,
   ];
   for (const pasta of pastas) mkdirSync(pasta, { recursive: true });
 }

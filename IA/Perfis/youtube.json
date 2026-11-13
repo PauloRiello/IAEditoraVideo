@@ -25,5 +25,25 @@
     "Variar enquadramento ou inserir elementos visuais com frequência para sustentar a atenção.",
     "Remover silêncios e hesitações.",
     "Dividir em capítulos quando o vídeo for longo."
-  ]
+  ],
+  "analise": {
+    "estrutura": "livre",
+    "palavrasDeCta": [
+      "discord",
+      "inscreva",
+      "siga",
+      "segue",
+      "link",
+      "acesse",
+      "entre",
+      "conecte",
+      "baixe",
+      "compre",
+      "garanta",
+      "subscribe",
+      "follow",
+      "join",
+      "connect"
+    ]
+  }
 }

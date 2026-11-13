@@ -32,5 +32,100 @@
     "Ritmo cinematográfico: planos um pouco mais longos e trilha de faroeste.",
     "Mostrar diferenciais do servidor: cidades, profissões, cavalos, duelos e eventos.",
     "Encerrar com nome do servidor e chamada para entrar (Discord ou IP)."
-  ]
+  ],
+  "analise": {
+    "estrutura": "curta",
+    "palavrasDeCta": [
+      "discord",
+      "inscreva",
+      "siga",
+      "segue",
+      "link",
+      "acesse",
+      "entre",
+      "conecte",
+      "baixe",
+      "compre",
+      "garanta",
+      "subscribe",
+      "follow",
+      "join",
+      "connect"
+    ],
+    "tiposDeConteudo": [
+      {
+        "id": "trailer",
+        "nome": "Trailer",
+        "sinais": [
+          "ritmo-rapido",
+          "musica",
+          "sincronia-musical",
+          "sem-fala"
+        ]
+      },
+      {
+        "id": "cena-cinematografica",
+        "nome": "Cena cinematográfica",
+        "sinais": [
+          "barras-de-cinema",
+          "planos-longos",
+          "musica",
+          "camera-em-movimento"
+        ]
+      },
+      {
+        "id": "gameplay",
+        "nome": "Gameplay",
+        "sinais": [
+          "ritmo-lento",
+          "planos-longos",
+          "sem-musica"
+        ]
+      },
+      {
+        "id": "demonstracao-de-funcionalidade",
+        "nome": "Demonstração de funcionalidade",
+        "sinais": [
+          "fala",
+          "ritmo-lento",
+          "palavras"
+        ],
+        "palavras": [
+          "sistema",
+          "script",
+          "garagem",
+          "inventário",
+          "emprego",
+          "profissão",
+          "loja",
+          "comando",
+          "menu",
+          "funciona",
+          "novidade",
+          "atualização"
+        ]
+      },
+      {
+        "id": "divulgacao-de-servidor",
+        "nome": "Divulgação de servidor",
+        "sinais": [
+          "ritmo-rapido",
+          "musica",
+          "palavras"
+        ],
+        "palavras": [
+          "servidor",
+          "cidade",
+          "roleplay",
+          "rp",
+          "whitelist",
+          "discord",
+          "venha",
+          "conheça",
+          "inauguração",
+          "redm"
+        ]
+      }
+    ]
+  }
 }

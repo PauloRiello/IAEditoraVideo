@@ -22,6 +22,29 @@ export interface Perfil {
   formatos: FormatoSaida[];
   /** Orientações de estilo usadas no planejamento da edição. */
   diretrizes: string[];
+  /** Como analisar referências deste perfil. */
+  analise?: ConfiguracaoDeAnalise;
+}
+
+/** Tipo de conteúdo reconhecível em um perfil (por exemplo trailer ou gameplay). */
+export interface TipoDeConteudo {
+  id: string;
+  nome: string;
+  /** Sinais medidos que indicam o tipo, por exemplo "ritmo-rapido" ou "barras-de-cinema". */
+  sinais: string[];
+  /** Palavras que, ditas no vídeo, indicam o tipo. */
+  palavras?: string[];
+}
+
+export interface ConfiguracaoDeAnalise {
+  /**
+   * "curta": espera gancho e chamada para ação. "livre": não espera.
+   * "automatica": decide pela duração e pela orientação do vídeo.
+   */
+  estrutura: "curta" | "livre" | "automatica";
+  /** Palavras que indicam chamada para ação. */
+  palavrasDeCta?: string[];
+  tiposDeConteudo?: TipoDeConteudo[];
 }
 
 export interface Projeto {

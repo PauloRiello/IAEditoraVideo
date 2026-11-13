@@ -100,14 +100,15 @@ export class ServicoAprendizado {
             .lastInsertRowid,
         );
 
+      const referencia = o.referenciaObservada ?? null;
       const evidencia = this.banco.prepare(
-        "INSERT INTO evidencias (aprendizado_id, origem, projeto_id, feedback_id, detalhe, confirma, peso, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO evidencias (aprendizado_id, origem, projeto_id, referencia_id, feedback_id, detalhe, confirma, peso, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       );
-      evidencia.run(alvo, o.origem, observadoEm, o.feedbackId ?? null, o.detalhe ?? "", 1, PESO[o.origem], instante);
+      evidencia.run(alvo, o.origem, observadoEm, referencia, o.feedbackId ?? null, o.detalhe ?? "", 1, PESO[o.origem], instante);
 
       const rivais = this.banco.prepare(`SELECT id FROM aprendizados WHERE ${DONO} AND valor <> ?`).all(...dono, valor) as unknown as { id: number }[];
       for (const rival of rivais) {
-        evidencia.run(rival.id, o.origem, observadoEm, o.feedbackId ?? null, `Observado valor diferente: ${o.descricao}`, 0, PESO[o.origem], instante);
+        evidencia.run(rival.id, o.origem, observadoEm, referencia, o.feedbackId ?? null, `Observado valor diferente: ${o.descricao}`, 0, PESO[o.origem], instante);
         this.reavaliar(rival.id);
       }
       this.reavaliar(alvo);
@@ -144,6 +145,22 @@ export class ServicoAprendizado {
     return this.obter(id);
   }
 
+  /**
+   * Remove tudo o que uma referência havia ensinado, para que analisá-la de novo não conte
+   * em dobro. Aprendizados que ficarem sem nenhuma evidência são excluídos.
+   */
+  esquecerReferencia(referenciaId: string): void {
+    transacao(this.banco, () => {
+      const afetados = this.banco.prepare("SELECT DISTINCT aprendizado_id AS id FROM evidencias WHERE referencia_id = ?").all(referenciaId) as unknown as { id: number }[];
+      this.banco.prepare("DELETE FROM evidencias WHERE referencia_id = ?").run(referenciaId);
+      for (const { id } of afetados) {
+        const restam = this.banco.prepare("SELECT COUNT(*) AS n FROM evidencias WHERE aprendizado_id = ?").get(id) as { n: number };
+        if (restam.n === 0) this.banco.prepare("DELETE FROM aprendizados WHERE id = ?").run(id);
+        else this.reavaliar(id);
+      }
+    });
+  }
+
   /** Recalcula evidências, confiança e estado a partir das evidências gravadas. */
   private reavaliar(id: number): void {
     const s = this.banco
@@ -152,7 +169,7 @@ export class ServicoAprendizado {
                 COALESCE(SUM(CASE WHEN confirma = 0 THEN peso END), 0) AS contra,
                 COALESCE(SUM(confirma), 0) AS confirmam,
                 COUNT(*) - COALESCE(SUM(confirma), 0) AS contradizem,
-                COUNT(DISTINCT CASE WHEN confirma = 1 THEN projeto_id END) AS projetos,
+                COUNT(DISTINCT CASE WHEN confirma = 1 THEN COALESCE(projeto_id, 'ref:' || referencia_id) END) AS projetos,
                 COALESCE(MAX(CASE WHEN confirma = 1 AND origem = 'usuario' THEN 1 ELSE 0 END), 0) AS explicito
          FROM evidencias WHERE aprendizado_id = ?`,
       )
@@ -188,11 +205,11 @@ export class ServicoAprendizado {
   /** Histórico de onde o aprendizado veio. */
   evidencias(id: number): Evidencia[] {
     const linhas = this.banco.prepare("SELECT * FROM evidencias WHERE aprendizado_id = ? ORDER BY id").all(id) as unknown as {
-      id: number; aprendizado_id: number; origem: Evidencia["origem"]; projeto_id: string | null; feedback_id: number | null;
+      id: number; aprendizado_id: number; origem: Evidencia["origem"]; projeto_id: string | null; referencia_id: string | null; feedback_id: number | null;
       detalhe: string; confirma: number; peso: number; criado_em: string;
     }[];
     return linhas.map((l) => ({
-      id: l.id, aprendizadoId: l.aprendizado_id, origem: l.origem, projetoId: l.projeto_id, feedbackId: l.feedback_id,
+      id: l.id, aprendizadoId: l.aprendizado_id, origem: l.origem, projetoId: l.projeto_id, referenciaId: l.referencia_id, feedbackId: l.feedback_id,
       detalhe: l.detalhe, confirma: l.confirma === 1, peso: l.peso, criadoEm: l.criado_em,
     }));
   }

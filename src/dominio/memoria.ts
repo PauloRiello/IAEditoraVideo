@@ -39,7 +39,7 @@ export type EstadoAprendizado = "candidato" | "ativo" | "desativado";
 /** De onde veio a evidência. "usuario" é uma instrução explícita. */
 export type OrigemEvidencia = "feedback" | "analise" | "correcao" | "usuario";
 
-/** Projetos distintos exigidos para um aprendizado valer automaticamente em cada escopo amplo. */
+/** Fontes distintas (projetos ou referências) exigidas para um aprendizado valer automaticamente em cada escopo amplo. */
 export const PROJETOS_PARA_ATIVAR = { especializacao: 2, geral: 3 } as const;
 
 export interface Aprendizado {
@@ -63,7 +63,7 @@ export interface Aprendizado {
   evidencias: number;
   /** Evidências que contradizem. */
   contrarias: number;
-  /** Projetos distintos em que foi observado. */
+  /** Fontes distintas (projetos ou referências) em que foi observado. */
   projetosObservados: number;
   expiraEm: string | null;
   criadoEm: string;
@@ -76,6 +76,8 @@ export interface Evidencia {
   origem: OrigemEvidencia;
   /** Projeto em que foi observada. */
   projetoId: string | null;
+  /** Referência em que foi observada. */
+  referenciaId: string | null;
   feedbackId: number | null;
   detalhe: string;
   confirma: boolean;
@@ -96,6 +98,8 @@ export interface Observacao {
   origem: OrigemEvidencia;
   /** Projeto em que foi observada (por padrão, o próprio projeto do escopo). */
   projetoObservado?: string;
+  /** Referência em que foi observada (análise de referências). */
+  referenciaObservada?: string;
   feedbackId?: number;
   detalhe?: string;
   /** Somente para orientações temporárias. */

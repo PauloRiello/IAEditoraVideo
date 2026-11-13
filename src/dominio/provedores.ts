@@ -12,6 +12,12 @@ export interface PedidoTexto {
   temperatura?: number;
 }
 
+export interface PedidoImagens {
+  instrucao: string;
+  /** Caminhos de arquivos de imagem (JPEG ou PNG). */
+  imagens: string[];
+}
+
 export interface ProvedorIA {
   id: string;
   nome: string;
@@ -20,6 +26,10 @@ export interface ProvedorIA {
   /** Verifica se o provedor pode ser usado agora. Nunca lança erro. */
   disponivel(): Promise<boolean>;
   gerarTexto?(pedido: PedidoTexto): Promise<string>;
+  /** Responde a uma instrução olhando para as imagens. Exige a capacidade "visao". */
+  descreverImagens?(pedido: PedidoImagens): Promise<string>;
+  /** Nome do modelo em uso, para registro. */
+  modelo?: string;
 }
 
 /** Como um provedor é descrito no arquivo de configurações. */
