@@ -3,8 +3,9 @@
 Editor de vídeo assistido por IA: recebe vídeos brutos, analisa e transcreve o
 conteúdo, decide a edição, renderiza e verifica a qualidade antes de exportar.
 
-> **Status:** ambiente, estrutura central, memória, análise de referências, análise de vídeos brutos e planejamento de edição prontos e testados. As etapas de edição e a
-> interface gráfica ainda não foram implementadas. Andamento: [docs/PROGRESSO.md](docs/PROGRESSO.md).
+> **Status:** do vídeo bruto ao MP4 exportado, pela linha de comando: análise, plano,
+> aprovação, timeline editável, prévia e renderização, tudo testado. Ainda não há interface
+> gráfica nem instalador. Andamento: [docs/PROGRESSO.md](docs/PROGRESSO.md).
 
 Roda no computador do usuário, sem depender de nenhum serviço de IA externo. O primeiro
 foco são vídeos promocionais de servidores FiveM e RedM para Instagram e TikTok, tratados
@@ -24,8 +25,9 @@ IAEditoraVideo/
 │   ├── servicos/         Projetos, memória, aprendizado, acervo, perfis, provedores de IA
 │   ├── infra/            Banco SQLite, cópias de segurança, caminhos, configurações
 │   └── interface/        Linha de comando (janela gráfica futura)
-├── Pipeline/             Processamento audiovisual e agentes (arquivos, conteúdo, planejamento, roteiro)
+├── Pipeline/             Processamento audiovisual, agentes e motor de render
 ├── IA/Perfis/            Perfis de especialização (geral, fivem, redm e mais cinco)
+├── IA/Estilos/           Estilos de edição (gameplay, ação, trailer e mais sete)
 ├── exemplos/             Exemplos executáveis
 ├── scripts/              Setup, detecção de GPU e verificadores
 ├── config/               Configurações das ferramentas (sem segredos)
@@ -92,6 +94,11 @@ Outros comandos da aplicação (lista completa com `npm run app`):
 | `npm run app -- plano gerar <projeto> "objetivo"` | Gera um plano de edição |
 | `npm run app -- plano aprovar <projeto>` | Aprova o plano atual |
 | `npm run app -- roteiro <projeto>` | Escreve o roteiro do plano |
+| `npm run app -- montar <projeto> --estilo acao` | Monta a timeline do plano aprovado |
+| `npm run app -- editar <projeto> '<operação>'` | Altera a timeline (nova versão) |
+| `npm run app -- previa <projeto>` | Renderiza uma prévia de baixa qualidade |
+| `npm run app -- exportar <projeto>` | Renderiza o vídeo final em MP4 |
+| `npm run app -- exportacoes <projeto>` | Histórico de exportações |
 | `npm run app -- referencias importar` | Registra os vídeos novos da pasta `Referências/` |
 | `npm run app -- referencias analisar todas` | Analisa as referências e grava os relatórios |
 | `npm run app -- aprendizados` | Lista o que a IA aprendeu |
@@ -101,7 +108,8 @@ Outros comandos da aplicação (lista completa com `npm run app`):
 
 Documentação por assunto: memória e aprendizado em [docs/MEMORIA.md](docs/MEMORIA.md);
 análise de referências em [docs/REFERENCIAS.md](docs/REFERENCIAS.md); vídeos brutos, plano
-de edição, aprovação e roteiro em [docs/PRODUCAO.md](docs/PRODUCAO.md).
+de edição, aprovação e roteiro em [docs/PRODUCAO.md](docs/PRODUCAO.md); timeline, estilos,
+prévia e renderização em [docs/EDICAO.md](docs/EDICAO.md).
 
 Instalação, verificação, aceleração por GPU e uso de cada ferramenta estão em
 [docs/AMBIENTE.md](docs/AMBIENTE.md).

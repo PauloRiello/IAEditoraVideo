@@ -104,7 +104,35 @@ Uma entrada por etapa concluída. A próxima etapa só começa com autorização
   - Recorte de horizontal para vertical, escolha de trilha e render ficam para a edição.
   - Revisão do plano só por código ou linha de comando; falta a tela.
 
+## Etapa 7 — Motor de edição e renderização ✅
+
+- Um único motor de composição: Remotion, acionado pelo código. FFmpeg prepara os trechos
+  (sem alterar os originais) e HyperFrames gera o cartão animado final.
+- Timeline editável com 11 operações (inserir, remover, cortar, dividir, ajustar duração,
+  reposicionar, mover, mudar camada, alterar, efeito global, formato), não destrutiva,
+  com versões e volta atrás.
+- Itens: vídeo, imagem, cartão, texto, legenda e áudio (trilha, efeito sonoro, narração);
+  velocidade, volume, enquadramento, transição gradual, fade, cor, zoom lento e barras de cinema.
+- Agente de Edição: monta a timeline do plano aprovado e só aplica o que o contexto pede,
+  registrando a origem de cada escolha.
+- Dez estilos de edição combináveis, independentes do perfil.
+- Formatos 9:16, 16:9 e 1:1 com resolução e taxa de quadros livres; MP4 H.264 + AAC.
+- Prévia em um terço da resolução, render final, fila de tarefas, progresso, cancelamento
+  seguro, segunda tentativa conservadora, recuperação na abertura, conferência do arquivo
+  e histórico de exportações.
+- Banco na versão 5 (timelines e exportações).
+- Documentação em [EDICAO.md](EDICAO.md).
+- **Testes:** 48 testes de unidade (`npm test`), todos passando — 9 novos, com renders
+  reais: prévia vertical, final 1080×1920, horizontal com barras, quadrado, cancelamento
+  e falha. O fluxo completo também foi executado pela linha de comando e os quadros do
+  vídeo exportado foram conferidos visualmente.
+- **Pendências:**
+  - Interface gráfica: hoje a timeline é editada por operações e a prévia é um arquivo.
+  - Codificação por GPU e execução em Windows não testadas (servidor Linux sem GPU).
+  - Poucos efeitos e transições, de propósito; HyperFrames só no cartão final.
+  - Sincronia dos cortes com a batida da trilha; legendas em frases curtas.
+  - Validação com vídeos reais.
+
 ## Próximas etapas (não iniciadas)
 
-Ordem sugerida, a confirmar: motor de edição e renderização (executa o plano aprovado)
-→ controle de qualidade → interface gráfica → instalador para Windows.
+Ordem sugerida, a confirmar: controle de qualidade → interface gráfica → instalador para Windows.
