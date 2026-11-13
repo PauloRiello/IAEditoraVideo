@@ -13,6 +13,7 @@ import type { Observacao, VersaoPlano } from "../dominio/memoria.ts";
 import type { Agente, AnaliseDeConteudo, ArquivoBruto, Briefing, EntradaDoIndice, PlanoDeEdicao, ResultadoDaPesquisa, Roteiro } from "../dominio/producao.ts";
 import type { Midia } from "../dominio/tipos.ts";
 import type { ServicoAprendizado } from "../servicos/aprendizado.ts";
+import type { ServicoEstilos } from "../servicos/estilos.ts";
 import type { ServicoIndice } from "../servicos/indice.ts";
 import type { ServicoMemoria } from "../servicos/memoria.ts";
 import type { ServicoPerfis } from "../servicos/perfis.ts";
@@ -26,6 +27,7 @@ export interface DependenciasDaProducao extends DependenciasDoTranscritor {
   memoria: ServicoMemoria;
   perfis: ServicoPerfis;
   indice: ServicoIndice;
+  estilos: ServicoEstilos;
   provedores: Pick<RegistroProvedores, "selecionar">;
 }
 
@@ -141,6 +143,7 @@ export class Producao implements Agente {
         .referencias(projetoId)
         .map((r) => this.d.acervo.analises({ referenciaId: r.id }, "perfil-de-estilo")[0]?.resultado as Record<string, string> | undefined)
         .filter((estilo): estilo is Record<string, string> => Boolean(estilo)),
+      duracaoDoPlanoDoEstilo: briefing.estilos?.length ? this.d.estilos.combinar(briefing.estilos).estilo.duracaoDoPlanoSeg : undefined,
     });
     this.d.memoria.lembrar(`projeto:${projetoId}`, "briefing", briefing);
     const versao = this.d.acervo.salvarPlano(projetoId, plano, "ia", `Plano gerado para: ${briefing.objetivo}`);

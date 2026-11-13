@@ -21,6 +21,8 @@ export interface EntradaDoPlanejamento {
   aprendizados: Aprendizado[];
   /** Perfis de estilo das referências vinculadas ao projeto ("categoria/chave" → faixa). */
   estilosDeReferencia: Record<string, string>[];
+  /** Duração de plano do estilo de edição escolhido no briefing, se houver. */
+  duracaoDoPlanoDoEstilo?: number;
 }
 
 interface Candidato {
@@ -64,8 +66,9 @@ export class AgenteDePlanejamento implements Agente {
     const duracaoDesejada = e.briefing.duracaoDesejadaSeg ?? (estrutura === "curta" ? Math.min(30, e.formato.duracaoMaximaSeg ?? 30) : 60);
     decisoes.push({ aspecto: "duracao", decisao: `${duracaoDesejada} s`, origem: e.briefing.duracaoDesejadaSeg ? "briefing" : "perfil" });
     const faixa = preferencia("duracao-planos", "duracao-tipica") ?? preferencia("ritmo", "cadencia-de-cortes");
-    const duracaoDoPlano = faixa && DURACAO_POR_FAIXA[faixa] ? DURACAO_POR_FAIXA[faixa] : estrutura === "curta" ? 2 : 4;
-    if (!faixa) decisoes.push({ aspecto: "duracao-dos-planos", decisao: `${duracaoDoPlano} s`, origem: "padrao" });
+    // Ordem de prioridade: o que a memória aprendeu, depois o estilo escolhido, depois o padrão do formato.
+    const duracaoDoPlano = faixa && DURACAO_POR_FAIXA[faixa] ? DURACAO_POR_FAIXA[faixa] : (e.duracaoDoPlanoDoEstilo ?? (estrutura === "curta" ? 2 : 4));
+    if (!faixa) decisoes.push({ aspecto: "duracao-dos-planos", decisao: `${duracaoDoPlano} s`, origem: e.duracaoDoPlanoDoEstilo ? "perfil" : "padrao" });
 
     // --- Candidatos: uma janela por cena aproveitável, e cada fala inteira ---------
     const candidatos: Candidato[] = [];

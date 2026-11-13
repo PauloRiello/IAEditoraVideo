@@ -102,6 +102,8 @@ export interface Briefing {
   cta?: string;
   /** Fatos verdadeiros que podem aparecer no vídeo (nome do servidor, novidades, datas). */
   fatos?: string[];
+  /** Estilos de edição desejados (por exemplo "acao", "trailer"). Orientam o ritmo do plano. */
+  estilos?: string[];
 }
 
 export type Bloco = "abertura" | "desenvolvimento" | "climax" | "encerramento";

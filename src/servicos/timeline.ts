@@ -71,6 +71,11 @@ function validar(timeline: Timeline): Timeline {
   return timeline;
 }
 
+/** Confere uma timeline e acerta posições e duração total. A timeline recebida não é modificada. */
+export function normalizarTimeline(timeline: Timeline): Timeline {
+  return validar(refluir(structuredClone(timeline)));
+}
+
 /** Aplica uma operação e devolve a timeline resultante. A timeline recebida não é modificada. */
 export function aplicarOperacao(original: Timeline, op: Operacao): Timeline {
   const t = structuredClone(original);

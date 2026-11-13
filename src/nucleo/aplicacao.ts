@@ -15,11 +15,14 @@ import { caminhosPadrao, garantirPastas, type Caminhos } from "../infra/caminhos
 import { carregarConfiguracoes, CONFIGURACOES_PADRAO, salvarConfiguracoes, type Configuracoes } from "../infra/configuracoes.ts";
 import { ServicoAcervo } from "../servicos/acervo.ts";
 import { ServicoAprendizado } from "../servicos/aprendizado.ts";
+import { ServicoEstilos } from "../servicos/estilos.ts";
 import { ServicoIndice } from "../servicos/indice.ts";
 import { ServicoMemoria } from "../servicos/memoria.ts";
 import { ServicoPerfis } from "../servicos/perfis.ts";
 import { ServicoProjetos } from "../servicos/projetos.ts";
 import { criarRegistroProvedores, type RegistroProvedores } from "../servicos/provedores.ts";
+import { ServicoTimeline } from "../servicos/timeline.ts";
+import { Edicao } from "./edicao.ts";
 import { detectarHardware, GerenciadorVram, type Hardware } from "../servicos/recursos.ts";
 import { Orquestrador } from "./orquestrador.ts";
 import { Producao } from "./producao.ts";
@@ -55,6 +58,10 @@ export class Aplicacao {
   referencias!: AnaliseDeReferencias;
   /** Agente Coordenador: vídeos brutos, pesquisa, plano de edição, aprovação e roteiro. */
   producao!: Producao;
+  /** Estilos de edição (gameplay, ação, trailer...). */
+  estilos!: ServicoEstilos;
+  /** Timeline editável, prévia, renderização e histórico de exportações. */
+  edicao!: Edicao;
   hardware: Hardware;
   vram: GerenciadorVram;
   orquestrador: Orquestrador;
@@ -75,6 +82,8 @@ export class Aplicacao {
 
     const interrompidas = this.orquestrador.recuperarInterrompidas();
     if (interrompidas > 0) this.avisos.push(`${interrompidas} etapa(s) interrompida(s) por fechamento inesperado foram marcadas como falhas.`);
+    const rendersInterrompidos = this.edicao.recuperar();
+    if (rendersInterrompidos > 0) this.avisos.push(`${rendersInterrompidos} exportação(ões) interrompida(s) pelo fechamento da aplicação; podem ser repetidas.`);
     this.aprendizado.limparExpirados();
     if (bancoExistia) this.copiaAutomatica();
   }
@@ -129,9 +138,15 @@ export class Aplicacao {
     this.perfis = new ServicoPerfis([this.caminhos.perfis, path.join(this.caminhos.dados, "perfis")]);
     this.provedores = criarRegistroProvedores(this.configuracoes.ia, this.configuracoes.ia.provedores);
     this.orquestrador.usarBanco(this.banco);
+    // Estilos do usuário (pasta de dados) prevalecem sobre os que acompanham o programa.
+    this.estilos = new ServicoEstilos([path.join(this.caminhos.programa, "IA", "Estilos"), path.join(this.caminhos.dados, "estilos")]);
     this.producao = new Producao({
       caminhos: this.caminhos, configuracoes: this.configuracoes, projetos: this.projetos, acervo: this.acervo, aprendizado: this.aprendizado,
-      memoria: this.memoria, perfis: this.perfis, indice: new ServicoIndice(this.banco), provedores: this.provedores, vram: this.vram,
+      memoria: this.memoria, perfis: this.perfis, indice: new ServicoIndice(this.banco), estilos: this.estilos, provedores: this.provedores, vram: this.vram,
+    });
+    this.edicao = new Edicao({
+      caminhos: this.caminhos, projetos: this.projetos, acervo: this.acervo, aprendizado: this.aprendizado, memoria: this.memoria, estilos: this.estilos,
+      timelines: new ServicoTimeline(this.banco), producao: this.producao, hardware: this.hardware, eventos: this.eventos,
     });
     this.referencias = new AnaliseDeReferencias({
       caminhos: this.caminhos, configuracoes: this.configuracoes, acervo: this.acervo, aprendizado: this.aprendizado,
@@ -225,10 +240,15 @@ export class Aplicacao {
     };
   }
 
-  /** Encerra a aplicação e fecha o banco. Pode ser chamado mais de uma vez. */
+  /**
+   * Encerra a aplicação e fecha o banco. Pode ser chamado mais de uma vez. Renders em
+   * andamento são interrompidos; para esperar que parem com calma, chame antes
+   * `await app.edicao.cancelarTudo()`.
+   */
   encerrar(): void {
     if (!this.aberta) return;
     this.aberta = false;
+    void this.edicao.cancelarTudo().catch(() => undefined);
     this.eventos.removeAllListeners();
     this.banco.close();
   }

@@ -4,6 +4,7 @@
 import path from "node:path";
 import { ErroAplicacao } from "../dominio/erros.ts";
 import type { PlanoDeEdicao } from "../dominio/producao.ts";
+import type { Exportacao, Operacao, VersaoDaTimeline } from "../dominio/timeline.ts";
 import { Aplicacao } from "../nucleo/aplicacao.ts";
 
 const AJUDA = `IA Editora de Vídeo
@@ -22,6 +23,15 @@ Comandos:
   plano aprovar <projeto>          Aprova o plano atual
   plano rejeitar <projeto> <motivo>
   roteiro <projeto>                Escreve o roteiro do plano atual
+  estilos                          Lista os estilos de edição
+  montar <projeto> [--estilo id]   Monta a timeline do plano aprovado (aceita vários --estilo)
+  timeline <projeto>               Mostra a timeline atual
+  editar <projeto> '<operação>'    Aplica uma operação em JSON, por exemplo {"tipo":"remover","id":"clipe-2"}
+  desfazer <projeto>               Volta à versão anterior da timeline
+  trilha <projeto> <arquivo>       Define a trilha sonora
+  previa <projeto>                 Renderiza uma prévia de baixa qualidade
+  exportar <projeto>               Renderiza o vídeo final (MP4, H.264 + AAC)
+  exportacoes <projeto>            Mostra o histórico de exportações
   referencias importar             Registra os vídeos novos da pasta Referências/
   referencias listar               Lista as referências registradas
   referencias analisar <id|todas>  Analisa referências e grava os relatórios
@@ -46,6 +56,27 @@ function mostrarPlano(plano: PlanoDeEdicao, versao: number, estado: string): voi
   if (plano.efeitos.length) console.log(`Efeitos: ${plano.efeitos.join(" ")}`);
   console.log(`CTA: ${plano.cta ? plano.cta.texto : "nenhum"}`);
   for (const aviso of plano.avisos) console.log(`Aviso: ${aviso}`);
+}
+
+function mostrarTimeline(v: VersaoDaTimeline): void {
+  const { formato, duracaoSeg, itens, efeitosGlobais } = v.timeline;
+  console.log(`Timeline v${v.versao} (${v.autor}) — ${v.nota}`);
+  console.log(`${formato.largura}x${formato.altura}, ${formato.fps} quadros/s, ${duracaoSeg} s${efeitosGlobais.length ? `, ${efeitosGlobais.map((e) => e.tipo).join(", ")}` : ""}`);
+  for (const i of [...itens].sort((a, b) => a.camada - b.camada || a.inicioSeg - b.inicioSeg)) {
+    const detalhe =
+      i.tipo === "video" ? `${path.basename(i.arquivo)} a partir de ${i.inicioOrigemSeg} s${i.entrada.tipo === "gradual" ? ", entrada gradual" : ""}${i.efeitos.length ? `, ${i.efeitos.map((e) => e.tipo).join("+")}` : ""}`
+      : i.tipo === "audio" ? `${i.papel}: ${path.basename(i.arquivo)}, volume ${i.volume}`
+      : i.tipo === "cartao" ? `"${i.titulo}"` : i.tipo === "imagem" ? path.basename(i.arquivo) : `"${i.texto}"`;
+    console.log(`  camada ${String(i.camada).padStart(2)}  ${String(i.inicioSeg).padStart(7)} s  +${i.duracaoSeg} s  ${i.id} [${i.tipo}] ${detalhe}`);
+  }
+}
+
+function mostrarExportacao(e: Exportacao): void {
+  const dados = e.arquivo ? ` — ${e.largura}x${e.altura}, ${e.fps} quadros/s, ${e.duracaoSeg?.toFixed(2)} s, ${Math.round((e.tamanhoBytes ?? 0) / 1024)} KB` : "";
+  console.log(`#${e.id} ${e.tipo} da timeline v${e.versaoDaTimeline}: ${e.estado}${dados}`);
+  if (e.arquivo) console.log(`  ${e.arquivo}`);
+  if (e.verificacao) console.log(`  Conferência: ${e.verificacao.aprovada ? "aprovada" : e.verificacao.problemas.join("; ")}`);
+  if (e.erro) console.log(`  Erro: ${e.erro}`);
 }
 
 async function executar(app: Aplicacao, argumentos: string[]): Promise<number> {
@@ -146,6 +177,60 @@ async function executar(app: Aplicacao, argumentos: string[]): Promise<number> {
     return 0;
   }
 
+  if (comando === "estilos") {
+    for (const e of app.estilos.listar()) console.log(`${e.id.padEnd(22)} ${e.nome} — ${e.descricao}`);
+    return 0;
+  }
+
+  if (comando === "montar" && acao) {
+    const estilos = resto.flatMap((valor, i) => (valor === "--estilo" && resto[i + 1] ? [resto[i + 1]] : []));
+    const versao = app.edicao.montar(acao, { estilos });
+    mostrarTimeline(versao);
+    for (const d of versao.decisoes) console.log(`Escolha: ${d.aspecto} → ${d.decisao} (${d.origem})`);
+    for (const aviso of versao.avisos) console.log(`Aviso: ${aviso}`);
+    return 0;
+  }
+
+  if (comando === "timeline" && acao) {
+    mostrarTimeline(app.edicao.timeline(acao));
+    return 0;
+  }
+
+  if (comando === "editar" && acao && resto[0]) {
+    mostrarTimeline(app.edicao.editar(acao, JSON.parse(resto.join(" ")) as Operacao));
+    return 0;
+  }
+
+  if (comando === "desfazer" && acao) {
+    mostrarTimeline(app.edicao.restaurar(acao));
+    return 0;
+  }
+
+  if (comando === "trilha" && acao && resto[0]) {
+    mostrarTimeline(app.edicao.definirTrilha(acao, resto[0]));
+    return 0;
+  }
+
+  if ((comando === "previa" || comando === "exportar") && acao) {
+    let ultimo = -1;
+    app.eventos.on("render:progresso", (p: { fase: string; progresso: number }) => {
+      const passo = Math.floor(p.progresso * 10);
+      if (passo !== ultimo) { ultimo = passo; console.log(`  ${p.fase}: ${passo * 10}%`); }
+    });
+    // Ctrl+C cancela o render com segurança, sem deixar arquivo pela metade.
+    const tarefa = comando === "previa" ? app.edicao.previa(acao) : app.edicao.exportar(acao);
+    process.once("SIGINT", () => app.edicao.cancelar(tarefa.exportacao.id));
+    mostrarExportacao(await tarefa.conclusao);
+    return 0;
+  }
+
+  if (comando === "exportacoes" && acao) {
+    const lista = app.edicao.exportacoes(acao);
+    if (lista.length === 0) console.log("Nenhuma exportação.");
+    for (const e of lista) mostrarExportacao(e);
+    return 0;
+  }
+
   if (comando === "referencias" && acao === "importar") {
     const novas = app.referencias.importarPasta();
     console.log(novas.length ? `${novas.length} referência(s) registrada(s):` : "Nenhum vídeo novo na pasta Referências/.");
@@ -221,5 +306,6 @@ try {
   console.error(erro instanceof ErroAplicacao ? `Erro: ${erro.message}` : erro);
   process.exitCode = 1;
 } finally {
+  await app.edicao.cancelarTudo();
   app.encerrar();
 }
