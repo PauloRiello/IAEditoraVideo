@@ -6,11 +6,14 @@ import type { Caracteristica, RegraDeEdicao, RelatorioReferencia } from "../../s
 
 type Parcial = Pick<RelatorioReferencia, "tecnico" | "visual" | "audio" | "narrativa">;
 
+/** As faixas são identificadores sem acento ("media", "rapido"); nos textos para leitura, voltam a ter acento. */
+const acentuar = (frase: string) => frase.replace(/\bmedia\b/g, "média").replace(/\bmedio\b/g, "médio").replace(/\bmedios\b/g, "médios").replace(/\brapido\b/g, "rápido");
+
 /** Regras deduzidas diretamente das medições. Cada uma traz um exemplo de aplicação. */
 export function derivarRegras({ tecnico, visual, audio, narrativa }: Parcial): RegraDeEdicao[] {
   const regras: RegraDeEdicao[] = [];
   const regra = (r: Omit<RegraDeEdicao, "base"> & { base?: RegraDeEdicao["base"] }) =>
-    regras.push({ base: "observado", ...r, confianca: Math.round(r.confianca * 100) / 100 });
+    regras.push({ base: "observado", ...r, descricao: acentuar(r.descricao), exemplo: acentuar(r.exemplo), confianca: Math.round(r.confianca * 100) / 100 });
 
   const ritmo = visual.ritmo.valor;
   if (ritmo && ritmo.planos >= 3) {
@@ -184,7 +187,7 @@ export function paraMarkdown(r: RelatorioReferencia): string {
       linha("Sincronia com os cortes", a.sincroniaComCortes, sinc ? `${sinc.cortesNaBatida} de ${sinc.cortesAvaliados} cortes sobre um ataque (acaso: ${porcento(sinc.fracaoEsperadaAoAcaso)})` : ""),
       linha("Trilha sonora", a.trilhaSonora, a.trilhaSonora.valor ?? ""),
       linha("Efeitos sonoros", a.efeitosSonoros, a.efeitosSonoros.valor ?? ""),
-      linha("Fala", a.fala, a.fala.valor ? `${a.fala.valor.tempoDeFalaSeg} s de fala (${a.fala.valor.idioma || "sem idioma"}): "${a.fala.valor.texto.slice(0, 200)}"` : ""),
+      linha("Fala", a.fala, a.fala.valor?.segmentos.length ? `${a.fala.valor.tempoDeFalaSeg} s de fala (${a.fala.valor.idioma}): "${a.fala.valor.texto.slice(0, 200)}"` : "nenhuma fala detectada"),
       linha("Diálogos e narração", a.dialogosENarracao, a.dialogosENarracao.valor ?? ""),
     );
   }
@@ -207,5 +210,6 @@ export function paraMarkdown(r: RelatorioReferencia): string {
     r.limitacoes.map((l) => `- ${l}`).join("\n") || "Nenhuma.",
   );
   if (r.modelosUsados.length) partes.push("## Modelos de IA usados", r.modelosUsados.map((m) => `- ${m}`).join("\n"));
-  return `${partes.join("\n\n").replace(/\|\n\n\|/g, "|\n|")}\n`;
+  const [titulo, ...resto] = partes;
+  return `${titulo}\n\n${acentuar(resto.join("\n\n").replace(/\|\n\n\|/g, "|\n|"))}\n`;
 }

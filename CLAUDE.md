@@ -22,6 +22,11 @@ Leia [docs/ARQUITETURA.md](docs/ARQUITETURA.md) antes de alterar a estrutura e
   As regras estão em [docs/MEMORIA.md](docs/MEMORIA.md).
 - **A memória do produto é o banco local.** Nada do que a aplicação precisa lembrar pode
   ficar em arquivos de sessão ou de memória do Claude.
+- **Observado não é estimado.** Em análises, tudo o que não for medição direta do arquivo
+  é marcado como `estimado`, e o que não puder ser avaliado como `nao-avaliado`, nunca
+  preenchido por suposição (`src/dominio/analise.ts`, [docs/REFERENCIAS.md](docs/REFERENCIAS.md)).
+- **Referência ensina princípio, não cópia.** Regras vindas de referências usam faixas
+  qualitativas e entram na memória como candidatas.
 - **Nada pessoal no Git.** Vídeos, banco, `Dados/`, `.env` e chaves ficam fora.
 - **Trabalhe uma etapa por vez** e não avance para a seguinte sem autorização do usuário.
 
@@ -54,14 +59,14 @@ Antes de concluir uma alteração: `npm run typecheck` e `npm test`.
 | Pasta | Conteúdo |
 |---|---|
 | `src/dominio/` | Tipos e contratos, sem E/S |
-| `src/nucleo/` | `Aplicacao` (ciclo de vida) e `Orquestrador` (pipeline) |
+| `src/nucleo/` | `Aplicacao` (ciclo de vida), `Orquestrador` (pipeline), análise de referências |
 | `src/servicos/` | Projetos, memória, aprendizado, acervo, perfis, provedores de IA, recursos |
 | `src/infra/` | Banco SQLite, cópias de segurança, caminhos, configurações |
 | `src/interface/` | Linha de comando (janela gráfica futura) |
-| `Pipeline/<etapa>/` | Implementação de cada etapa audiovisual |
+| `Pipeline/<etapa>/` | Processamento audiovisual (`analysis/` e `transcription/` já têm código) |
 | `IA/Perfis/` | Perfis de especialização em JSON (8 perfis) |
 | `exemplos/` | Exemplos executáveis de uso da aplicação |
-| `tests/unidade/` | Testes da aplicação |
+| `tests/unidade/` | Testes da aplicação (os de referências geram vídeos de exemplo com o FFmpeg) |
 | `tests/smoke/` | Composições mínimas usadas pelos verificadores |
 | `scripts/` | Setup, detecção de GPU e verificadores |
 | `Dados/` | Banco, configurações e temporários locais (fora do Git) |

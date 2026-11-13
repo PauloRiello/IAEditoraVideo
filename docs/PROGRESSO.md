@@ -54,8 +54,32 @@ Uma entrada por etapa concluída. A próxima etapa só começa com autorização
   - Cópia de segurança não inclui mídias nem perfis do usuário.
   - Telas de revisão de aprendizados e de restauração (dependem da interface gráfica).
 
+## Etapa 5 — Análise de referências ✅
+
+- Analisador em `Pipeline/analysis/`: medição de imagem (cortes, planos, ritmo,
+  transições, movimento de câmera, zoom, cor, luz, barras de cinema) e de áudio (volume,
+  silêncios, mudanças de intensidade, batidas, pontos de corte musical, sincronia com os
+  cortes), por amostragem em baixa resolução com uma única decodificação.
+- Transcrição pelo Whisper local (`Pipeline/transcription/`), com escolha de GPU ou CPU pela VRAM livre.
+- Narrativa por medição e, quando há provedor, por modelo; estrutura de redes sociais só
+  onde o perfil a espera. Tipos de conteúdo de FiveM e RedM definidos nos perfis.
+- Cada item marcado como observado, estimado, não avaliado ou não se aplica.
+- Saídas: relatório JSON e Markdown, perfil de estilo, regras com exemplo de aplicação e
+  confiança; tudo gravado na memória. Uma referência só gera aprendizados candidatos.
+- Banco na versão 3 (evidências ligadas a referências); provedores passam a aceitar imagens.
+- Importação pela pasta `Referências/` e comandos `referencias importar | listar | analisar`.
+- Documentação em [REFERENCIAS.md](REFERENCIAS.md).
+- **Testes:** 28 testes de unidade (`npm test`), todos passando — 7 novos, com vídeos de
+  exemplo gerados pelo FFmpeg e transcrição real pelo Whisper.
+- **Pendências:**
+  - Validação com vídeos reais (os testes usam vídeos sintéticos de resposta conhecida).
+  - Leitura por modelo visual e de linguagem testada só com provedores simulados.
+  - Importação de referências pela interface gráfica e download autorizado pelo yt-dlp.
+  - Efeitos sonoros e distinção entre diálogo e narração não são avaliados.
+  - Movimento de câmera é estimativa simples; ver limites em REFERENCIAS.md.
+
 ## Próximas etapas (não iniciadas)
 
-Ordem sugerida, a confirmar: ingestão e análise de vídeos brutos → transcrição →
-análise de referências → planejamento → renderização → controle de qualidade →
-interface gráfica → instalador para Windows.
+Ordem sugerida, a confirmar: ingestão e análise de vídeos brutos (reaproveitando o
+analisador) → planejamento → renderização → controle de qualidade → interface gráfica →
+instalador para Windows.

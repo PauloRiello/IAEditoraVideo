@@ -68,19 +68,20 @@ processamento executa ferramentas audiovisuais.
 | Núcleo de orquestração | `src/nucleo/` | Montar serviços, iniciar e encerrar, executar o pipeline por etapas e gravar cada resultado | Implementado |
 | Interface | `src/interface/` | Apresentar a aplicação ao usuário, sem lógica de negócio | Linha de comando implementada; janela gráfica pendente |
 | Projetos | `src/servicos/projetos.ts` | Criar, listar, abrir e remover projetos; registrar mídias | Implementado |
-| Análise de referências | `Pipeline/analysis/` | Extrair ritmo, cortes, estilo e estrutura de vídeos de referência | Contrato definido |
+| Análise de referências | `Pipeline/analysis/`, `src/nucleo/referencias.ts` | Medir imagem e áudio, interpretar narrativa, gerar regras de edição, relatórios e aprendizados | Implementado |
+| Transcrição | `Pipeline/transcription/` | Fala → texto pelo Whisper local, como processo separado | Implementado para referências; etapa do pipeline pendente |
 | Análise de vídeos brutos | `Pipeline/ingestion/`, `analysis/`, `transcription/` | Metadados, cenas, silêncios, qualidade e fala com marcação de tempo | Contrato definido |
 | Planejamento de edição | `Pipeline/editing/` | Produzir o `PlanoDeEdicao` a partir das análises, do perfil e da memória | Contrato e formato do plano definidos |
 | Edição e renderização | `Pipeline/rendering/` | Executar o plano com um `MotorRender` | Contrato definido |
 | Memória persistente | `src/servicos/memoria.ts`, `acervo.ts` | Preferências, referências, análises, planos versionados e uso de IA | Implementado |
 | Aprendizado | `src/servicos/aprendizado.ts` | Feedback e aprendizados com evidências, confiança, escopo e revisão | Implementado; extração automática pendente |
 | Controle de qualidade | `Pipeline/quality-control/` | Conferir duração, sincronia, áudio e conformidade com o formato | Contrato definido |
-| Provedores de IA | `src/servicos/provedores.ts` | Registrar provedores, aplicar a política local/externo e selecionar por capacidade | Implementado |
+| Provedores de IA | `src/servicos/provedores.ts` | Registrar provedores, aplicar a política local/externo e selecionar por capacidade; texto e leitura de imagens | Implementado |
 | Recursos do computador | `src/servicos/recursos.ts` | Ler CPU, RAM e GPU; decidir GPU ou CPU por modelo conforme a VRAM | Implementado |
 | Perfis de especialização | `src/servicos/perfis.ts`, `IA/Perfis/` | Carregar e combinar perfis e formatos de saída | Implementado (8 perfis) |
 | Cópias de segurança | `src/infra/backup.ts` | Criar, validar, restaurar e rotacionar cópias; isolar arquivos corrompidos | Implementado |
 | Arquivos e exportações | `src/infra/caminhos.ts` | Definir e criar a estrutura de pastas | Estrutura implementada; nomeação de exportações pendente |
-| Banco de dados | `src/infra/banco.ts` | Esquema, migrações, transações e verificação de integridade | Implementado (esquema v2) |
+| Banco de dados | `src/infra/banco.ts` | Esquema, migrações, transações e verificação de integridade | Implementado (esquema v3) |
 | Configurações | `src/infra/configuracoes.ts` | Ler e gravar preferências do usuário | Implementado |
 
 ## 5. Pipeline
@@ -121,8 +122,12 @@ e um teste de disponibilidade.
   locais (Ollama, LM Studio, llama.cpp) e diversas APIs externas. Outros protocolos
   entram como novas classes que implementam `ProvedorIA`.
 
-O Whisper não passa por essa camada como requisito: roda localmente na etapa
-`transcription`.
+O contrato tem duas operações opcionais: `gerarTexto` e `descreverImagens`. O Whisper não
+passa por essa camada: roda localmente, como processo Python, em `Pipeline/transcription/`.
+
+A análise de referências, descrita em [REFERENCIAS.md](REFERENCIAS.md), é o primeiro
+módulo a usar os provedores: funciona sem eles e marca cada resultado como observado,
+estimado ou não avaliado.
 
 ## 7. Processamento local e GPU
 
@@ -147,6 +152,7 @@ O Whisper não passa por essa camada como requisito: roda localmente na etapa
 | Temporários | `Dados/temp/` | `%LOCALAPPDATA%\IAEditoraVideo\temp\` | Não |
 | Backups | `Dados/backups/` | `%LOCALAPPDATA%\IAEditoraVideo\backups\` | Não |
 | Modelos de IA | `Dados/modelos/` | `%LOCALAPPDATA%\IAEditoraVideo\modelos\` | Não |
+| Relatórios de análise | `Dados/analises/` | `%LOCALAPPDATA%\IAEditoraVideo\analises\` | Não |
 | Mídias originais | `Videos Brutos/`, `Referências/` | `Documentos\IA Editora de Vídeo\` | Não |
 | Exportações | `Exportações/` | `Documentos\IA Editora de Vídeo\Exportações\` | Não |
 
@@ -155,7 +161,7 @@ mídias. As demais pastas de `IA/` (Memoria, Aprendizado, Feedback, Analises,
 Conhecimento) ficam reservadas para conteúdo versionável dessas áreas; os dados de
 cada usuário vão para o banco.
 
-**Banco (SQLite, esquema v2):** `projetos`, `midias`, `execucoes`, `memoria`, `feedback`,
+**Banco (SQLite, esquema v3):** `projetos`, `midias`, `execucoes`, `memoria`, `feedback`,
 `referencias`, `projeto_referencias`, `analises`, `planos`, `aprendizados`, `evidencias`,
 `usos_ia`. O banco guarda caminhos, metadados e resultados, nunca vídeos.
 
