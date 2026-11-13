@@ -1,0 +1,36 @@
+{
+  "id": "institucional",
+  "nome": "Institucional",
+  "descricao": "Apresentação de empresas, serviços e equipes, com tom sóbrio e ritmo moderado.",
+  "formatoPadrao": "horizontal-1080",
+  "formatos": [
+    {
+      "id": "horizontal-1080",
+      "nome": "Horizontal 16:9 (YouTube, institucional)",
+      "largura": 1920,
+      "altura": 1080,
+      "fps": 30
+    },
+    {
+      "id": "vertical-1080",
+      "nome": "Vertical 9:16 (Instagram Reels, TikTok, Shorts)",
+      "largura": 1080,
+      "altura": 1920,
+      "fps": 30,
+      "duracaoMaximaSeg": 90
+    },
+    {
+      "id": "quadrado-1080",
+      "nome": "Quadrado 1:1 (feed)",
+      "largura": 1080,
+      "altura": 1080,
+      "fps": 30
+    }
+  ],
+  "diretrizes": [
+    "Ritmo moderado e transições discretas.",
+    "Priorizar depoimentos e imagens do ambiente real.",
+    "Áudio de fala limpo e trilha em volume baixo.",
+    "Identificar pessoas com nome e cargo."
+  ]
+}

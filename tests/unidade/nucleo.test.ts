@@ -39,7 +39,7 @@ test("a aplicação abre sem nenhum provedor de IA e cria a estrutura de pastas"
     const s = await app.situacao();
     assert.equal(s.provedores.length, 0);
     assert.equal(s.versaoEsquema, VERSAO_ESQUEMA);
-    assert.deepEqual(s.perfis.sort(), ["fivem", "geral", "redm"]);
+    assert.deepEqual(s.perfis.sort(), ["documentario", "fivem", "geral", "institucional", "publicidade", "redes-sociais", "redm", "youtube"]);
     for (const nome of ["Videos Brutos", "Referências", "Exportações"]) {
       assert.ok(existsSync(path.join(pasta, "biblioteca", nome)), nome);
     }
@@ -89,7 +89,7 @@ test("a cópia de segurança é um banco íntegro e independente", () => {
     const copia = app.copiaDeSeguranca();
     app.criarProjeto("Projeto B");
 
-    const banco = abrirBanco(copia);
+    const banco = abrirBanco(path.join(copia.pasta, "editora.db"));
     const nomes = (banco.prepare("SELECT nome FROM projetos").all() as { nome: string }[]).map((l) => l.nome);
     banco.close();
     assert.deepEqual(nomes, ["Projeto A"]);

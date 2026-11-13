@@ -1,0 +1,21 @@
+{
+  "id": "documentario",
+  "nome": "Documentário",
+  "descricao": "Narrativas longas baseadas em fatos, entrevistas e material de arquivo.",
+  "formatoPadrao": "horizontal-1080",
+  "formatos": [
+    {
+      "id": "horizontal-1080",
+      "nome": "Horizontal 16:9 (YouTube, institucional)",
+      "largura": 1920,
+      "altura": 1080,
+      "fps": 30
+    }
+  ],
+  "diretrizes": [
+    "Planos mais longos e cortes motivados pela narrativa.",
+    "Estrutura em atos, com contexto, desenvolvimento e conclusão.",
+    "Identificar fontes e material de arquivo.",
+    "Trilha a serviço da narração, sem competir com as falas."
+  ]
+}

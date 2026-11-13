@@ -23,6 +23,23 @@ export class Orquestrador {
     this.eventos = eventos;
   }
 
+  /** Passa a usar outra conexão (depois de uma restauração). As etapas registradas são mantidas. */
+  usarBanco(banco: Banco): void {
+    this.banco = banco;
+  }
+
+  /**
+   * Marca como falhas as execuções que ficaram "executando" porque a aplicação foi
+   * fechada à força ou o computador desligou. Devolve quantas foram encontradas.
+   */
+  recuperarInterrompidas(): number {
+    return Number(
+      this.banco
+        .prepare("UPDATE execucoes SET estado = 'falhou', erro = 'Interrompida por fechamento inesperado', concluido_em = ? WHERE estado = 'executando'")
+        .run(agora()).changes,
+    );
+  }
+
   registrar(etapa: EtapaPipeline): void {
     this.etapas.set(etapa.id, etapa);
   }

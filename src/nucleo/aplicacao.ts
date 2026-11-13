@@ -2,11 +2,19 @@
 // de entrada para qualquer interface (linha de comando hoje, janela gráfica depois).
 
 import { EventEmitter } from "node:events";
+import { existsSync } from "node:fs";
 import path from "node:path";
-import { abrirBanco, copiarBanco, VERSAO_ESQUEMA, type Banco } from "../infra/banco.ts";
+import { NaoEncontrado } from "../dominio/erros.ts";
+import {
+  copiaValida, criarCopia, isolarArquivo, listarCopias, restaurarArquivos, rotacionar, validarCopia,
+  type Copia, type MotivoCopia,
+} from "../infra/backup.ts";
+import { abrirBanco, BancoCorrompido, VERSAO_ESQUEMA, type Banco } from "../infra/banco.ts";
 import { caminhosPadrao, garantirPastas, type Caminhos } from "../infra/caminhos.ts";
-import { carregarConfiguracoes, salvarConfiguracoes, type Configuracoes } from "../infra/configuracoes.ts";
-import { ServicoAprendizado, ServicoMemoria } from "../servicos/memoria.ts";
+import { carregarConfiguracoes, CONFIGURACOES_PADRAO, salvarConfiguracoes, type Configuracoes } from "../infra/configuracoes.ts";
+import { ServicoAcervo } from "../servicos/acervo.ts";
+import { ServicoAprendizado } from "../servicos/aprendizado.ts";
+import { ServicoMemoria } from "../servicos/memoria.ts";
 import { ServicoPerfis } from "../servicos/perfis.ts";
 import { ServicoProjetos } from "../servicos/projetos.ts";
 import { criarRegistroProvedores, type RegistroProvedores } from "../servicos/provedores.ts";
@@ -17,22 +25,28 @@ export interface Situacao {
   versaoEsquema: number;
   pastaDados: string;
   projetos: number;
+  aprendizadosAtivos: number;
+  copiasDeSeguranca: number;
   perfis: string[];
   etapasRegistradas: string[];
   hardware: Hardware;
   vramLivreMB: number;
   provedores: Awaited<ReturnType<RegistroProvedores["situacao"]>>;
+  avisos: string[];
 }
 
 export class Aplicacao {
   caminhos: Caminhos;
-  configuracoes: Configuracoes;
+  configuracoes!: Configuracoes;
   eventos = new EventEmitter();
-  projetos: ServicoProjetos;
-  memoria: ServicoMemoria;
-  aprendizado: ServicoAprendizado;
-  perfis: ServicoPerfis;
-  provedores: RegistroProvedores;
+  /** Ocorrências da abertura que o usuário deve ver (recuperações, cópias criadas). */
+  avisos: string[] = [];
+  projetos!: ServicoProjetos;
+  memoria!: ServicoMemoria;
+  aprendizado!: ServicoAprendizado;
+  acervo!: ServicoAcervo;
+  perfis!: ServicoPerfis;
+  provedores!: RegistroProvedores;
   hardware: Hardware;
   vram: GerenciadorVram;
   orquestrador: Orquestrador;
@@ -42,18 +56,82 @@ export class Aplicacao {
   constructor(caminhos: Caminhos = caminhosPadrao()) {
     this.caminhos = caminhos;
     garantirPastas(caminhos);
-    this.configuracoes = carregarConfiguracoes(caminhos.configuracoes);
-    this.banco = abrirBanco(caminhos.banco);
+    this.lerConfiguracoes();
 
+    const bancoExistia = existsSync(caminhos.banco);
+    this.banco = this.abrirComRecuperacao();
+    this.orquestrador = new Orquestrador(this.banco, this.eventos);
+    this.montarServicos();
+
+    this.hardware = detectarHardware(path.join(caminhos.programa, "config", "local.aceleracao.json"));
+    this.vram = new GerenciadorVram(this.hardware.gpu, this.configuracoes.processamento.margemVramMB);
+
+    const interrompidas = this.orquestrador.recuperarInterrompidas();
+    if (interrompidas > 0) this.avisos.push(`${interrompidas} etapa(s) interrompida(s) por fechamento inesperado foram marcadas como falhas.`);
+    this.aprendizado.limparExpirados();
+    if (bancoExistia) this.copiaAutomatica();
+  }
+
+  /** Lê as configurações; um arquivo ilegível é afastado (não apagado) e os padrões são usados. */
+  private lerConfiguracoes(): void {
+    try {
+      this.configuracoes = carregarConfiguracoes(this.caminhos.configuracoes);
+    } catch {
+      const isolado = isolarArquivo(this.caminhos.configuracoes);
+      this.configuracoes = structuredClone(CONFIGURACOES_PADRAO);
+      this.avisos.push(`Configurações ilegíveis: usados os valores padrão. Arquivo original preservado em ${isolado}.`);
+    }
+  }
+
+  private abrirBanco(): Banco {
+    return abrirBanco(this.caminhos.banco, {
+      antesDeMigrar: (banco, versao) => {
+        const copia = criarCopia(banco, this.caminhos, "pre-migracao");
+        this.avisos.push(`Banco atualizado da versão ${versao} para a ${VERSAO_ESQUEMA}. Cópia anterior em ${copia.pasta}.`);
+      },
+    });
+  }
+
+  /**
+   * Abre o banco. Se o arquivo estiver corrompido, ele é afastado (não apagado) e a cópia
+   * de segurança válida mais recente é restaurada; sem cópias, começa um banco novo.
+   */
+  private abrirComRecuperacao(): Banco {
+    try {
+      return this.abrirBanco();
+    } catch (erro) {
+      if (!(erro instanceof BancoCorrompido)) throw erro;
+      const isolado = isolarArquivo(this.caminhos.banco);
+      const copia = listarCopias(this.caminhos).find(copiaValida);
+      if (copia) {
+        restaurarArquivos(this.caminhos, copia, false);
+        this.avisos.push(`Banco corrompido: restaurada a cópia de ${copia.criadaEm}. Arquivo danificado preservado em ${isolado}.`);
+      } else {
+        this.avisos.push(`Banco corrompido e sem cópia de segurança: iniciado um banco novo. Arquivo danificado preservado em ${isolado}.`);
+      }
+      return this.abrirBanco();
+    }
+  }
+
+  private montarServicos(): void {
     this.projetos = new ServicoProjetos(this.banco);
     this.memoria = new ServicoMemoria(this.banco);
     this.aprendizado = new ServicoAprendizado(this.banco);
+    this.acervo = new ServicoAcervo(this.banco);
     // Perfis do usuário (pasta de dados) prevalecem sobre os que acompanham o programa.
-    this.perfis = new ServicoPerfis([caminhos.perfis, path.join(caminhos.dados, "perfis")]);
+    this.perfis = new ServicoPerfis([this.caminhos.perfis, path.join(this.caminhos.dados, "perfis")]);
     this.provedores = criarRegistroProvedores(this.configuracoes.ia, this.configuracoes.ia.provedores);
-    this.hardware = detectarHardware(path.join(caminhos.programa, "config", "local.aceleracao.json"));
-    this.vram = new GerenciadorVram(this.hardware.gpu, this.configuracoes.processamento.margemVramMB);
-    this.orquestrador = new Orquestrador(this.banco, this.eventos);
+    this.orquestrador.usarBanco(this.banco);
+  }
+
+  private copiaAutomatica(): void {
+    const { automatico, intervaloHoras, manter } = this.configuracoes.backup;
+    if (!automatico) return;
+    const ultima = listarCopias(this.caminhos)[0];
+    const idadeHoras = ultima ? (Date.now() - Date.parse(ultima.criadaEm)) / 3_600_000 : Infinity;
+    if (idadeHoras < intervaloHoras) return;
+    criarCopia(this.banco, this.caminhos, "automatica");
+    rotacionar(this.caminhos, manter);
   }
 
   /** Cria um projeto usando o perfil e o formato padrão quando não informados. */
@@ -61,6 +139,12 @@ export class Aplicacao {
     const perfil = this.perfis.obter(perfilId ?? this.configuracoes.perfilPadrao);
     const formato = this.perfis.formato(perfil.id, formatoId);
     return this.projetos.criar({ nome, perfil: perfil.id, formato: formato.id });
+  }
+
+  /** Aprendizados que valem para um projeto: os do perfil dele mais os perfis adicionais pedidos. */
+  aprendizadosDoProjeto(projetoId: string, perfisAdicionais: string[] = [], resolverPorOrdem = false) {
+    const projeto = this.projetos.obter(projetoId);
+    return this.aprendizado.consultar({ projetoId, perfis: [projeto.perfil, ...perfisAdicionais], resolverPorOrdem });
   }
 
   /** Executa o pipeline de um projeto (todas as etapas registradas ou um intervalo). */
@@ -73,12 +157,33 @@ export class Aplicacao {
     salvarConfiguracoes(this.caminhos.configuracoes, this.configuracoes);
   }
 
-  /** Grava uma cópia do banco na pasta de backups e devolve o caminho do arquivo. */
-  copiaDeSeguranca(): string {
-    const carimbo = new Date().toISOString().replace(/[:.]/g, "-");
-    const destino = path.join(this.caminhos.backups, `editora-${carimbo}.db`);
-    copiarBanco(this.banco, destino);
-    return destino;
+  // --- Cópias de segurança -----------------------------------------------------
+
+  /** Cria uma cópia do banco e das configurações na pasta de backups. */
+  copiaDeSeguranca(motivo: MotivoCopia = "manual"): Copia {
+    return criarCopia(this.banco, this.caminhos, motivo);
+  }
+
+  copias(): Copia[] {
+    return listarCopias(this.caminhos);
+  }
+
+  /**
+   * Volta o banco e as configurações ao estado de uma cópia. Antes de trocar, valida a
+   * cópia e guarda o estado atual em uma cópia "pre-restauracao", para que a operação
+   * possa ser desfeita.
+   */
+  restaurar(nome: string): Copia {
+    const copia = this.copias().find((c) => c.nome === nome || c.pasta === nome);
+    if (!copia) throw new NaoEncontrado("Cópia de segurança", nome);
+    validarCopia(copia);
+    const anterior = criarCopia(this.banco, this.caminhos, "pre-restauracao");
+    this.banco.close();
+    restaurarArquivos(this.caminhos, copia, true);
+    this.lerConfiguracoes();
+    this.banco = this.abrirBanco();
+    this.montarServicos();
+    return anterior;
   }
 
   async situacao(): Promise<Situacao> {
@@ -86,11 +191,14 @@ export class Aplicacao {
       versaoEsquema: VERSAO_ESQUEMA,
       pastaDados: this.caminhos.dados,
       projetos: this.projetos.listar().length,
+      aprendizadosAtivos: this.aprendizado.listar({ estado: "ativo" }).length,
+      copiasDeSeguranca: this.copias().length,
       perfis: this.perfis.listar().map((p) => p.id),
       etapasRegistradas: this.orquestrador.registradas(),
       hardware: this.hardware,
       vramLivreMB: this.vram.livreMB,
       provedores: await this.provedores.situacao(),
+      avisos: this.avisos,
     };
   }
 

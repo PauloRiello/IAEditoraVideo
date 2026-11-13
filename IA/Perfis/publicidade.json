@@ -1,0 +1,36 @@
+{
+  "id": "publicidade",
+  "nome": "Publicidade",
+  "descricao": "Anúncios e vídeos comerciais com foco em produto, benefício e chamada para ação.",
+  "formatoPadrao": "horizontal-1080",
+  "formatos": [
+    {
+      "id": "horizontal-1080",
+      "nome": "Horizontal 16:9 (YouTube, institucional)",
+      "largura": 1920,
+      "altura": 1080,
+      "fps": 30
+    },
+    {
+      "id": "vertical-1080",
+      "nome": "Vertical 9:16 (Instagram Reels, TikTok, Shorts)",
+      "largura": 1080,
+      "altura": 1920,
+      "fps": 30,
+      "duracaoMaximaSeg": 90
+    },
+    {
+      "id": "quadrado-1080",
+      "nome": "Quadrado 1:1 (feed)",
+      "largura": 1080,
+      "altura": 1080,
+      "fps": 30
+    }
+  ],
+  "diretrizes": [
+    "Apresentar a marca ou o produto nos primeiros segundos.",
+    "Uma mensagem principal por vídeo.",
+    "Respeitar identidade visual da marca: cores, tipografia e logotipo.",
+    "Chamada para ação explícita no final."
+  ]
+}

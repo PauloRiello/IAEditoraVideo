@@ -1,10 +1,10 @@
-// Memória persistente e aprendizado. Tudo fica no banco local: nada depende de
-// histórico de conversa nem de serviço externo.
+// Preferências e fatos duráveis, guardados no banco local por escopo e chave.
+// Nada depende de histórico de conversa nem de serviço externo.
+// O aprendizado com evidências fica em aprendizado.ts.
 
-import type { Feedback } from "../dominio/tipos.ts";
 import { agora, type Banco } from "../infra/banco.ts";
 
-/** Guarda fatos duráveis por escopo (por exemplo "preferencias" ou "perfil:fivem"). */
+/** Guarda valores por escopo (por exemplo "preferencias" ou "perfil:fivem"). */
 export class ServicoMemoria {
   private banco: Banco;
 
@@ -38,32 +38,5 @@ export class ServicoMemoria {
 
   esquecer(escopo: string, chave: string): void {
     this.banco.prepare("DELETE FROM memoria WHERE escopo = ? AND chave = ?").run(escopo, chave);
-  }
-}
-
-/**
- * Registra o feedback do usuário, matéria-prima do aprendizado.
- * A derivação de padrões a partir do feedback pertence a uma etapa futura.
- */
-export class ServicoAprendizado {
-  private banco: Banco;
-
-  constructor(banco: Banco) {
-    this.banco = banco;
-  }
-
-  registrarFeedback(projetoId: string, nota: number, comentario: string): Feedback {
-    const criadoEm = agora();
-    const r = this.banco
-      .prepare("INSERT INTO feedback (projeto_id, nota, comentario, criado_em) VALUES (?, ?, ?, ?)")
-      .run(projetoId, nota, comentario, criadoEm);
-    return { id: Number(r.lastInsertRowid), projetoId, nota, comentario, criadoEm };
-  }
-
-  feedbacks(projetoId?: string): Feedback[] {
-    const linhas = this.banco
-      .prepare("SELECT * FROM feedback WHERE (? IS NULL OR projeto_id = ?) ORDER BY id")
-      .all(projetoId ?? null, projetoId ?? null) as unknown as { id: number; projeto_id: string; nota: number; comentario: string; criado_em: string }[];
-    return linhas.map((l) => ({ id: l.id, projetoId: l.projeto_id, nota: l.nota, comentario: l.comentario, criadoEm: l.criado_em }));
   }
 }
