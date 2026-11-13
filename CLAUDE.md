@@ -27,6 +27,14 @@ Leia [docs/ARQUITETURA.md](docs/ARQUITETURA.md) antes de alterar a estrutura e
   preenchido por suposição (`src/dominio/analise.ts`, [docs/REFERENCIAS.md](docs/REFERENCIAS.md)).
 - **Referência ensina princípio, não cópia.** Regras vindas de referências usam faixas
   qualitativas e entram na memória como candidatas.
+- **Nada inventado.** Plano e roteiro só usam o que está no briefing ou no material: sem
+  CTA informado não há CTA; linha de roteiro sem fato de apoio é descartada
+  ([docs/PRODUCAO.md](docs/PRODUCAO.md)).
+- **A edição espera a aprovação.** Nenhuma etapa de render roda sem o plano atual aprovado
+  (`producao.exigirPlanoAprovado`).
+- **"Agente" é componente do produto.** Os agentes de Arquivos, Conteúdo, Planejamento,
+  Roteiro e Coordenador são classes da aplicação; não use agentes de programação nem
+  serviços externos para cumprir o papel deles.
 - **Nada pessoal no Git.** Vídeos, banco, `Dados/`, `.env` e chaves ficam fora.
 - **Trabalhe uma etapa por vez** e não avance para a seguinte sem autorização do usuário.
 
@@ -59,14 +67,14 @@ Antes de concluir uma alteração: `npm run typecheck` e `npm test`.
 | Pasta | Conteúdo |
 |---|---|
 | `src/dominio/` | Tipos e contratos, sem E/S |
-| `src/nucleo/` | `Aplicacao` (ciclo de vida), `Orquestrador` (pipeline), análise de referências |
-| `src/servicos/` | Projetos, memória, aprendizado, acervo, perfis, provedores de IA, recursos |
+| `src/nucleo/` | `Aplicacao` (ciclo de vida), `Orquestrador` (pipeline), análise de referências, Agente Coordenador (`producao.ts`) |
+| `src/servicos/` | Projetos, memória, aprendizado, acervo, índice de pesquisa, perfis, provedores de IA, recursos |
 | `src/infra/` | Banco SQLite, cópias de segurança, caminhos, configurações |
 | `src/interface/` | Linha de comando (janela gráfica futura) |
-| `Pipeline/<etapa>/` | Processamento audiovisual (`analysis/` e `transcription/` já têm código) |
+| `Pipeline/<etapa>/` | Processamento audiovisual e agentes (`ingestion/`, `analysis/`, `transcription/`, `editing/` já têm código) |
 | `IA/Perfis/` | Perfis de especialização em JSON (8 perfis) |
 | `exemplos/` | Exemplos executáveis de uso da aplicação |
-| `tests/unidade/` | Testes da aplicação (os de referências geram vídeos de exemplo com o FFmpeg) |
+| `tests/unidade/` | Testes da aplicação (os de referências e de produção geram vídeos de exemplo com o FFmpeg) |
 | `tests/smoke/` | Composições mínimas usadas pelos verificadores |
 | `scripts/` | Setup, detecção de GPU e verificadores |
 | `Dados/` | Banco, configurações e temporários locais (fora do Git) |

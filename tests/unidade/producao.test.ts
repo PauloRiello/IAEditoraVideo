@@ -177,7 +177,7 @@ test("Agente de Planejamento: plano com arquivos, intervalos, estrutura, áudio,
   assert.deepEqual([plano.objetivo, plano.publico, plano.plataforma, plano.formato.id, plano.duracaoDesejadaSeg], [briefing.objetivo, briefing.publico, briefing.plataforma, "vertical-1080", 8]);
 
   // Cada clipe aponta um arquivo existente e um intervalo válido, fora dos trechos com defeito.
-  assert.ok(plano.clipes.length >= 3);
+  assert.ok(plano.clipes.length >= 2);
   let tempo = 0;
   for (const clipe of plano.clipes) {
     const { arquivo, conteudo } = analisado(path.basename(clipe.arquivo));
@@ -187,9 +187,10 @@ test("Agente de Planejamento: plano com arquivos, intervalos, estrutura, áudio,
     tempo += clipe.fimOrigemSeg - clipe.inicioOrigemSeg;
     assert.ok(clipe.motivo.length > 0);
   }
-  assert.ok(!plano.clipes.some((c) => c.arquivo.endsWith("04-quebrado.mp4")), "arquivo ilegível não é usado");
+  assert.ok(!plano.clipes.some((c) => /04-quebrado|05-defeito/.test(c.arquivo)), "arquivos ilegíveis ou com erros não são usados");
+  assert.ok(plano.avisos.some((a) => a.includes("05-defeito.ts") && a.includes("fora do plano")));
   assert.ok(Math.abs(plano.duracaoPlanejadaSeg - tempo) < 0.02);
-  assert.ok(plano.duracaoPlanejadaSeg >= 6 && plano.duracaoPlanejadaSeg <= 14, `duração planejada ${plano.duracaoPlanejadaSeg}`);
+  assert.ok(plano.duracaoPlanejadaSeg >= 4 && plano.duracaoPlanejadaSeg <= 14, `duração planejada ${plano.duracaoPlanejadaSeg}`);
 
   // Vídeo curto de divulgação: abre com o trecho mais forte (a cena de ação).
   assert.deepEqual([plano.clipes[0].bloco, path.basename(plano.clipes[0].arquivo), plano.clipes[0].transicaoDeEntrada], ["abertura", "01-acao.mp4", "nenhuma"]);

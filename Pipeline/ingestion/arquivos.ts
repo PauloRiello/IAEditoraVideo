@@ -36,8 +36,8 @@ export class AgenteDeArquivos implements Agente {
     let sonda;
     try {
       sonda = await sondarCompleto(caminho);
-    } catch (erro) {
-      return ilegivel(`O arquivo não pôde ser lido como vídeo: ${erro instanceof Error ? erro.message : erro}`);
+    } catch {
+      return ilegivel("O arquivo não pôde ser lido como vídeo: está incompleto, corrompido ou não é um vídeo.");
     }
     const { tecnico } = sonda;
     const problemas: Problema[] = [];
@@ -49,7 +49,7 @@ export class AgenteDeArquivos implements Agente {
     const trechos = inteiro ? [undefined] : [0, tecnico.duracaoSeg / 2, Math.max(0, tecnico.duracaoSeg - 6)].map((inicioSeg) => ({ inicioSeg, duracaoSeg: 5 }));
     const erros = (await Promise.all(trechos.map((trecho) => errosDeDecodificacao(caminho, trecho)))).filter(Boolean);
     if (erros.length) {
-      problemas.push({ codigo: "erros-de-decodificacao", descricao: `Erros ao decodificar: ${erros[0].split("\n")[0].slice(0, 160)}`, gravidade: "erro" });
+      problemas.push({ codigo: "erros-de-decodificacao", descricao: `Erros ao decodificar: ${erros[0].split("\n")[0].replace(/ @ 0x[0-9a-f]+/i, "").slice(0, 160)}`, gravidade: "erro" });
     }
 
     if (!tecnico.temAudio) aviso("sem-audio", "O arquivo não tem áudio.");

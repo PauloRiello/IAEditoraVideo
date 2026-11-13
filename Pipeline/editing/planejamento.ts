@@ -69,8 +69,11 @@ export class AgenteDePlanejamento implements Agente {
 
     // --- Candidatos: uma janela por cena aproveitável, e cada fala inteira ---------
     const candidatos: Candidato[] = [];
+    // Arquivos com erros de decodificação ficam de fora: um trecho danificado estragaria o vídeo final.
+    const danificados = e.materiais.filter((m) => m.arquivo.integridade !== "integro").map((m) => m.arquivo.nome);
+    if (danificados.length) avisos.push(`Arquivos com erros ficaram fora do plano: ${danificados.join(", ")}.`);
     for (const { midiaId, arquivo, conteudo } of e.materiais) {
-      if (arquivo.integridade === "ilegivel") continue;
+      if (arquivo.integridade !== "integro") continue;
       for (const cena of conteudo.cenas) {
         if (cena.etiquetas.some((etiqueta) => ["tela-preta", "imagem-parada", "imagem-escura"].includes(etiqueta))) continue;
         const duracao = Math.min(cena.duracaoSeg, duracaoDoPlano);

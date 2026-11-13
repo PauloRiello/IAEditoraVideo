@@ -8,17 +8,21 @@ registrada no `Orquestrador`, que cuida da ordem, da gravação do resultado e d
 
 | Pasta | Etapa | Situação |
 |---|---|---|
-| `ingestion/` | Entrada, validação e metadados | Não implementada |
-| `analysis/` | Medição de imagem e áudio, interpretação e regras de edição | Implementada para vídeos de referência; etapa para vídeos brutos pendente |
-| `transcription/` | Fala → texto com tempo (Whisper local) | Função implementada; etapa do pipeline pendente |
-| `editing/` | Plano de edição | Não implementada |
+| `ingestion/` | Agente de Arquivos: dados técnicos, integridade e problemas | Implementada |
+| `analysis/` | Medição de imagem e áudio; análise de referências; Agente de Conteúdo para vídeos brutos | Implementada |
+| `transcription/` | Fala → texto com tempo (Whisper local) | Implementada |
+| `editing/` | Agentes de Planejamento e de Roteiro: plano de edição e roteiro | Implementada (o plano; a edição em si, não) |
 | `rendering/` | Geração do vídeo | Não implementada |
 | `quality-control/` | Verificação antes de exportar | Não implementada |
 
 Arquivos de `analysis/`: `ferramentas.ts` (FFmpeg e FFprobe), `visual.ts` e `audio.ts`
 (medição), `interpretacao.ts` (narrativa, tipos de conteúdo e leitura por modelos),
 `regras.ts` (regras de edição, perfil de estilo e relatório Markdown) e `analisador.ts`
-(ponto de entrada). Detalhes em [docs/REFERENCIAS.md](../docs/REFERENCIAS.md).
+(ponto de entrada das referências) e `conteudo.ts` (vídeos brutos). Detalhes em
+[docs/REFERENCIAS.md](../docs/REFERENCIAS.md) e [docs/PRODUCAO.md](../docs/PRODUCAO.md).
+
+Os agentes são acionados pelo Coordenador (`src/nucleo/producao.ts`), não diretamente pelo
+`Orquestrador`; `rendering` e `quality-control` serão etapas do pipeline.
 
 Regras: o resultado de uma etapa deve ser serializável em JSON; a etapa não acessa o
 banco diretamente; mídias originais não são alteradas.

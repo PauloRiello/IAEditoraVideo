@@ -70,8 +70,11 @@ processamento executa ferramentas audiovisuais.
 | Projetos | `src/servicos/projetos.ts` | Criar, listar, abrir e remover projetos; registrar mídias | Implementado |
 | Análise de referências | `Pipeline/analysis/`, `src/nucleo/referencias.ts` | Medir imagem e áudio, interpretar narrativa, gerar regras de edição, relatórios e aprendizados | Implementado |
 | Transcrição | `Pipeline/transcription/` | Fala → texto pelo Whisper local, como processo separado | Implementado para referências; etapa do pipeline pendente |
-| Análise de vídeos brutos | `Pipeline/ingestion/`, `analysis/`, `transcription/` | Metadados, cenas, silêncios, qualidade e fala com marcação de tempo | Contrato definido |
-| Planejamento de edição | `Pipeline/editing/` | Produzir o `PlanoDeEdicao` a partir das análises, do perfil e da memória | Contrato e formato do plano definidos |
+| Análise de vídeos brutos | `Pipeline/ingestion/arquivos.ts`, `Pipeline/analysis/conteudo.ts` | Agentes de Arquivos e de Conteúdo: dados técnicos, integridade, cenas, ação, falas, erros, miniaturas e índice | Implementado |
+| Pesquisa nos brutos | `src/servicos/indice.ts` | Índice por trecho, pesquisável por palavras, acontecimentos e características | Implementado |
+| Planejamento de edição | `Pipeline/editing/planejamento.ts` | Agente de Planejamento: plano com arquivos, intervalos, estrutura, áudio, legendas, trilha e CTA | Implementado |
+| Roteiro | `Pipeline/editing/roteiro.ts` | Agente de Roteiro: texto apoiado só em fatos do material | Implementado |
+| Coordenação e aprovação | `src/nucleo/producao.ts` | Agente Coordenador: aciona os agentes, guarda na memória e exige aprovação do plano antes da edição | Implementado |
 | Edição e renderização | `Pipeline/rendering/` | Executar o plano com um `MotorRender` | Contrato definido |
 | Memória persistente | `src/servicos/memoria.ts`, `acervo.ts` | Preferências, referências, análises, planos versionados e uso de IA | Implementado |
 | Aprendizado | `src/servicos/aprendizado.ts` | Feedback e aprendizados com evidências, confiança, escopo e revisão | Implementado; extração automática pendente |
@@ -81,7 +84,7 @@ processamento executa ferramentas audiovisuais.
 | Perfis de especialização | `src/servicos/perfis.ts`, `IA/Perfis/` | Carregar e combinar perfis e formatos de saída | Implementado (8 perfis) |
 | Cópias de segurança | `src/infra/backup.ts` | Criar, validar, restaurar e rotacionar cópias; isolar arquivos corrompidos | Implementado |
 | Arquivos e exportações | `src/infra/caminhos.ts` | Definir e criar a estrutura de pastas | Estrutura implementada; nomeação de exportações pendente |
-| Banco de dados | `src/infra/banco.ts` | Esquema, migrações, transações e verificação de integridade | Implementado (esquema v3) |
+| Banco de dados | `src/infra/banco.ts` | Esquema, migrações, transações e verificação de integridade | Implementado (esquema v4) |
 | Configurações | `src/infra/configuracoes.ts` | Ler e gravar preferências do usuário | Implementado |
 
 ## 5. Pipeline
@@ -99,6 +102,7 @@ devolve o seu em JSON, gravado na tabela `execucoes`.
 | `rendering` | `PlanoDeEdicao` → vídeo em `Exportações/` |
 | `quality-control` | Vídeo → aprovação ou lista de problemas |
 
+- **Aprovação:** a etapa `rendering` só roda se a versão atual do plano estiver aprovada.
 - **Reexecução parcial:** é possível refazer um intervalo de etapas (por exemplo, só
   `editing`); as anteriores não rodam de novo, seus resultados vêm do banco.
 - **Falha:** o pipeline para na primeira etapa que falhar e registra o erro.
@@ -125,7 +129,11 @@ e um teste de disponibilidade.
 O contrato tem duas operações opcionais: `gerarTexto` e `descreverImagens`. O Whisper não
 passa por essa camada: roda localmente, como processo Python, em `Pipeline/transcription/`.
 
-A análise de referências, descrita em [REFERENCIAS.md](REFERENCIAS.md), é o primeiro
+A preparação do vídeo — brutos, pesquisa, plano, aprovação e roteiro — é feita por cinco
+agentes internos, descritos em [PRODUCAO.md](PRODUCAO.md). "Agente" aqui é um componente
+da aplicação com uma única responsabilidade, não um serviço externo.
+
+A análise de referências, descrita em [REFERENCIAS.md](REFERENCIAS.md), foi o primeiro
 módulo a usar os provedores: funciona sem eles e marca cada resultado como observado,
 estimado ou não avaliado.
 
@@ -161,9 +169,9 @@ mídias. As demais pastas de `IA/` (Memoria, Aprendizado, Feedback, Analises,
 Conhecimento) ficam reservadas para conteúdo versionável dessas áreas; os dados de
 cada usuário vão para o banco.
 
-**Banco (SQLite, esquema v3):** `projetos`, `midias`, `execucoes`, `memoria`, `feedback`,
+**Banco (SQLite, esquema v4):** `projetos`, `midias`, `execucoes`, `memoria`, `feedback`,
 `referencias`, `projeto_referencias`, `analises`, `planos`, `aprendizados`, `evidencias`,
-`usos_ia`. O banco guarda caminhos, metadados e resultados, nunca vídeos.
+`usos_ia`, `decisoes`, `indice`. O banco guarda caminhos, metadados e resultados, nunca vídeos.
 
 - **Atualizações:** o esquema evolui por migrações numeradas; uma versão nova do
   programa aplica só as que faltam, depois de criar uma cópia do banco. Configurações

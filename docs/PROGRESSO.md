@@ -78,8 +78,33 @@ Uma entrada por etapa concluída. A próxima etapa só começa com autorização
   - Efeitos sonoros e distinção entre diálogo e narração não são avaliados.
   - Movimento de câmera é estimativa simples; ver limites em REFERENCIAS.md.
 
+## Etapa 6 — Vídeos brutos e planejamento de edição ✅
+
+- Cinco agentes internos do produto: Arquivos, Conteúdo, Planejamento, Roteiro e
+  Coordenador (`app.producao`).
+- Arquivos: formato, resolução, taxa de quadros, duração, codecs, áudio, tamanho,
+  integridade (íntegro, com erros, ilegível) e problemas técnicos.
+- Conteúdo: cenas, momentos de ação, silêncios, transcrição, destaques, possíveis erros de
+  gravação e miniaturas; personagens e humor quando há modelo.
+- Índice pesquisável por palavras ditas, acontecimentos e características.
+- Plano de edição com arquivos e intervalos, estrutura narrativa, transições, áudio,
+  legendas, efeitos, trilha e CTA; usa aprendizados e referências e registra a origem de
+  cada escolha.
+- Aprovação: revisar, aprovar e rejeitar, com histórico de versões e de decisões; a
+  renderização fica bloqueada sem plano aprovado; correções viram aprendizado.
+- Roteiro apoiado só em fatos, com conferência do texto de modelos.
+- Banco na versão 4 (aprovação de planos, decisões, índice).
+- Documentação em [PRODUCAO.md](PRODUCAO.md).
+- **Testes:** 39 testes de unidade (`npm test`), todos passando — 11 novos, com vídeos em
+  1080p MP4, 720×1280 MOV a 60 quadros/s, 360p WebM, MPEG-TS danificado e MP4 truncado.
+- **Pendências:**
+  - Validação com vídeos reais; os limiares de ação e de relevância são iniciais.
+  - Modelos visual e de linguagem testados só com provedores simulados.
+  - O planejamento não usa modelo de IA; a escolha dos trechos não entende o conteúdo.
+  - Recorte de horizontal para vertical, escolha de trilha e render ficam para a edição.
+  - Revisão do plano só por código ou linha de comando; falta a tela.
+
 ## Próximas etapas (não iniciadas)
 
-Ordem sugerida, a confirmar: ingestão e análise de vídeos brutos (reaproveitando o
-analisador) → planejamento → renderização → controle de qualidade → interface gráfica →
-instalador para Windows.
+Ordem sugerida, a confirmar: motor de edição e renderização (executa o plano aprovado)
+→ controle de qualidade → interface gráfica → instalador para Windows.
