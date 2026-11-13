@@ -82,10 +82,12 @@ export class AgenteDeConteudo implements Agente {
         const silencioso = (audio?.silencios.valor ?? []).some((s) => s.inicioSeg <= inicioSeg && s.fimSeg >= fimSeg);
         // Relevância: ação na imagem, volume e presença de fala; trechos com defeito perdem quase tudo.
         const volume = volumeDb === null ? 0 : Math.max(0, Math.min(1, (volumeDb + 50) / 40));
-        const pontuacao = arredondar((0.45 * acao + 0.25 * volume + 0.3 * (fala ? 1 : 0)) * (defeitos.length ? 0.2 : 1));
+        // Imagem parada com alguém falando não é defeito (apresentação, tela fixa, entrevista).
+        const graves = defeitos.filter((d) => d.codigo !== "imagem-parada" || !fala);
+        const pontuacao = arredondar((0.45 * acao + 0.25 * volume + 0.3 * (fala ? 1 : 0)) * (graves.length ? 0.2 : 1));
         const etiquetas = [
           plano.movimento ?? "", acao >= LIMIAR_DE_ACAO ? "acao" : "calmo", fala ? "fala" : "", silencioso ? "silencio" : "",
-          ...defeitos.map((d) => d.codigo),
+          ...graves.map((d) => d.codigo),
         ].filter(Boolean);
         cenas.push({ indice: cenas.length, inicioSeg, fimSeg, duracaoSeg: arredondar(fimSeg - inicioSeg), movimento: plano.movimento, acao, volumeDb, fala, elementos: [], miniatura: null, pontuacao, etiquetas });
       }
