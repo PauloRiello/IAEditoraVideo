@@ -3,7 +3,7 @@
 Editor de vídeo assistido por IA: recebe vídeos brutos, analisa e transcreve o
 conteúdo, decide a edição, renderiza e verifica a qualidade antes de exportar.
 
-> **Status:** ambiente e estrutura central prontos e testados. As etapas de edição e a
+> **Status:** ambiente, estrutura central e memória persistente prontos e testados. As etapas de edição e a
 > interface gráfica ainda não foram implementadas. Andamento: [docs/PROGRESSO.md](docs/PROGRESSO.md).
 
 Roda no computador do usuário, sem depender de nenhum serviço de IA externo. O primeiro
@@ -21,11 +21,12 @@ IAEditoraVideo/
 ├── src/
 │   ├── dominio/          Tipos e contratos
 │   ├── nucleo/           Aplicação e orquestrador do pipeline
-│   ├── servicos/         Projetos, memória, perfis, provedores de IA, recursos
-│   ├── infra/            Banco SQLite, caminhos, configurações
+│   ├── servicos/         Projetos, memória, aprendizado, acervo, perfis, provedores de IA
+│   ├── infra/            Banco SQLite, cópias de segurança, caminhos, configurações
 │   └── interface/        Linha de comando (janela gráfica futura)
 ├── Pipeline/             Etapas de processamento audiovisual
-├── IA/Perfis/            Perfis de especialização (geral, fivem, redm)
+├── IA/Perfis/            Perfis de especialização (geral, fivem, redm e mais cinco)
+├── exemplos/             Exemplos executáveis
 ├── scripts/              Setup, detecção de GPU e verificadores
 ├── config/               Configurações das ferramentas (sem segredos)
 ├── tests/                Testes de unidade e composições de teste
@@ -74,8 +75,23 @@ npm test
 npm run app -- situacao
 ```
 
-Outros comandos da aplicação: `npm run app -- perfis`, `npm run app -- projeto criar "Nome" fivem`,
-`npm run app -- projeto listar` e `npm run app -- backup`.
+```bash
+npm run exemplo:memoria
+```
+
+Outros comandos da aplicação (lista completa com `npm run app`):
+
+| Comando | Função |
+|---|---|
+| `npm run app -- perfis` | Lista os perfis de especialização |
+| `npm run app -- projeto criar "Nome" fivem` | Cria um projeto |
+| `npm run app -- projeto listar` | Lista os projetos |
+| `npm run app -- aprendizados` | Lista o que a IA aprendeu |
+| `npm run app -- backup` | Grava uma cópia de segurança |
+| `npm run app -- backup listar` | Lista as cópias |
+| `npm run app -- backup restaurar <nome>` | Restaura uma cópia |
+
+A memória e o aprendizado estão descritos em [docs/MEMORIA.md](docs/MEMORIA.md).
 
 Instalação, verificação, aceleração por GPU e uso de cada ferramenta estão em
 [docs/AMBIENTE.md](docs/AMBIENTE.md).

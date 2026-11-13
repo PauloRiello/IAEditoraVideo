@@ -21,6 +21,7 @@
   "include": [
     "src",
     "Pipeline",
+    "exemplos",
     "tests/unidade",
     "tests/smoke/remotion"
   ],

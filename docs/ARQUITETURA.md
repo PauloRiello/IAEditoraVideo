@@ -72,14 +72,15 @@ processamento executa ferramentas audiovisuais.
 | Análise de vídeos brutos | `Pipeline/ingestion/`, `analysis/`, `transcription/` | Metadados, cenas, silêncios, qualidade e fala com marcação de tempo | Contrato definido |
 | Planejamento de edição | `Pipeline/editing/` | Produzir o `PlanoDeEdicao` a partir das análises, do perfil e da memória | Contrato e formato do plano definidos |
 | Edição e renderização | `Pipeline/rendering/` | Executar o plano com um `MotorRender` | Contrato definido |
-| Memória persistente | `src/servicos/memoria.ts` | Guardar fatos duráveis por escopo | Implementado |
-| Aprendizado | `src/servicos/memoria.ts` | Registrar feedback; derivar padrões | Registro implementado; derivação pendente |
+| Memória persistente | `src/servicos/memoria.ts`, `acervo.ts` | Preferências, referências, análises, planos versionados e uso de IA | Implementado |
+| Aprendizado | `src/servicos/aprendizado.ts` | Feedback e aprendizados com evidências, confiança, escopo e revisão | Implementado; extração automática pendente |
 | Controle de qualidade | `Pipeline/quality-control/` | Conferir duração, sincronia, áudio e conformidade com o formato | Contrato definido |
 | Provedores de IA | `src/servicos/provedores.ts` | Registrar provedores, aplicar a política local/externo e selecionar por capacidade | Implementado |
 | Recursos do computador | `src/servicos/recursos.ts` | Ler CPU, RAM e GPU; decidir GPU ou CPU por modelo conforme a VRAM | Implementado |
-| Perfis de especialização | `src/servicos/perfis.ts`, `IA/Perfis/` | Carregar perfis e formatos de saída | Implementado (geral, fivem, redm) |
+| Perfis de especialização | `src/servicos/perfis.ts`, `IA/Perfis/` | Carregar e combinar perfis e formatos de saída | Implementado (8 perfis) |
+| Cópias de segurança | `src/infra/backup.ts` | Criar, validar, restaurar e rotacionar cópias; isolar arquivos corrompidos | Implementado |
 | Arquivos e exportações | `src/infra/caminhos.ts` | Definir e criar a estrutura de pastas | Estrutura implementada; nomeação de exportações pendente |
-| Banco de dados | `src/infra/banco.ts` | Esquema, migrações e cópia de segurança | Implementado |
+| Banco de dados | `src/infra/banco.ts` | Esquema, migrações, transações e verificação de integridade | Implementado (esquema v2) |
 | Configurações | `src/infra/configuracoes.ts` | Ler e gravar preferências do usuário | Implementado |
 
 ## 5. Pipeline
@@ -154,12 +155,17 @@ mídias. As demais pastas de `IA/` (Memoria, Aprendizado, Feedback, Analises,
 Conhecimento) ficam reservadas para conteúdo versionável dessas áreas; os dados de
 cada usuário vão para o banco.
 
-**Banco (SQLite, esquema v1):** `projetos`, `midias`, `execucoes`, `memoria`, `feedback`.
+**Banco (SQLite, esquema v2):** `projetos`, `midias`, `execucoes`, `memoria`, `feedback`,
+`referencias`, `projeto_referencias`, `analises`, `planos`, `aprendizados`, `evidencias`,
+`usos_ia`. O banco guarda caminhos, metadados e resultados, nunca vídeos.
 
 - **Atualizações:** o esquema evolui por migrações numeradas; uma versão nova do
-  programa aplica só as que faltam e preserva os dados. Configurações antigas recebem
-  valores padrão nas chaves ausentes.
-- **Backup:** `copiaDeSeguranca()` grava uma cópia íntegra do banco, mesmo em uso.
+  programa aplica só as que faltam, depois de criar uma cópia do banco. Configurações
+  antigas recebem valores padrão nas chaves ausentes.
+- **Proteção:** gravação imediata em disco, cópias manuais e automáticas, restauração
+  reversível e recuperação de banco corrompido.
+
+O funcionamento da memória, do aprendizado e das proteções está em [MEMORIA.md](MEMORIA.md).
 
 ## 9. Tecnologias
 
@@ -185,7 +191,7 @@ Planejado, ainda não implementado:
 | Instalador | electron-builder (NSIS), com Node, FFmpeg e um Python embutido para Whisper e yt-dlp |
 | Inicialização e encerramento | `new Aplicacao()` e `encerrar()`, já implementados |
 | Atualização | Atualizador do Electron; os dados ficam fora da pasta do programa e o banco migra sozinho |
-| Backup | `copiaDeSeguranca()` já implementado; faltam agendamento e restauração |
+| Backup | Cópia manual, cópia automática ao abrir e restauração já implementadas; falta a tela |
 
 ## 11. Dependências
 

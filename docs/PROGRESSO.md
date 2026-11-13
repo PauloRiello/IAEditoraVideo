@@ -30,10 +30,29 @@ Uma entrada por etapa concluída. A próxima etapa só começa com autorização
   decisão GPU/CPU por VRAM e independência do Claude.
 - **Pendências:**
   - Etapas do pipeline: só os contratos existem.
-  - Interface gráfica, instalador, atualização automática e restauração de backup.
+  - Interface gráfica, instalador e atualização automática.
   - Provedor de transcrição local (ligação do Whisper à aplicação).
   - Detecção de GPU ainda depende de `npm run gpu`; falta trazê-la para dentro da aplicação.
   - Modo instalado (`%LOCALAPPDATA%` e Documentos) testado só quanto aos caminhos, não em Windows real.
+
+## Etapa 4 — Memória persistente e aprendizado ✅
+
+- Banco na versão 2: referências, análises, planos de edição versionados, aprendizados
+  com evidências e registro de modelos e provedores usados.
+- Aprendizado controlado: 18 categorias de edição, quatro escopos (geral, especialização,
+  projeto, temporária), confiança por evidências, promoção só após repetição em projetos
+  distintos, e revisão (corrigir, desativar, ativar, excluir).
+- Perfis novos: redes-sociais, publicidade, institucional, documentario, youtube.
+  Combinação de perfis sem mistura automática do que é incompatível.
+- Proteção de dados: gravação imediata, cópia manual e automática com rotação,
+  restauração reversível, cópia antes de migrar e recuperação de banco corrompido.
+- Exemplo executável (`npm run exemplo:memoria`) e [MEMORIA.md](MEMORIA.md).
+- **Testes:** 21 testes de unidade (`npm test`), todos passando — 11 novos nesta etapa.
+- **Pendências:**
+  - Nenhuma etapa aplica os aprendizados ainda (não há motor de edição).
+  - Extração automática de aprendizados a partir de feedback em texto e de análises.
+  - Cópia de segurança não inclui mídias nem perfis do usuário.
+  - Telas de revisão de aprendizados e de restauração (dependem da interface gráfica).
 
 ## Próximas etapas (não iniciadas)
 

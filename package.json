@@ -11,6 +11,7 @@
   "scripts": {
     "app": "node --disable-warning=ExperimentalWarning src/interface/cli.ts",
     "test": "node --disable-warning=ExperimentalWarning --test \"tests/unidade/*.test.ts\"",
+    "exemplo:memoria": "node --disable-warning=ExperimentalWarning exemplos/memoria.ts",
     "setup": "node scripts/configurar_ambiente.mjs",
     "gpu": "node scripts/detectar_gpu.mjs",
     "versoes": "node scripts/registrar_versoes.mjs",

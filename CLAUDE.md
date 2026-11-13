@@ -17,6 +17,11 @@ Leia [docs/ARQUITETURA.md](docs/ARQUITETURA.md) antes de alterar a estrutura e
   `src/infra/banco.ts` contém SQL de esquema. Ferramentas audiovisuais só em `Pipeline/`.
 - **Dados do usuário são sagrados.** Nunca altere mídias originais. Mudança de esquema
   é sempre uma migração nova ao final de `MIGRACOES`, nunca a edição de uma existente.
+- **Aprendizado é controlado.** Registre aprendizados por `observar` ou `registrarCorrecao`
+  (`src/servicos/aprendizado.ts`); nunca grave uma regra geral a partir de um único caso.
+  As regras estão em [docs/MEMORIA.md](docs/MEMORIA.md).
+- **A memória do produto é o banco local.** Nada do que a aplicação precisa lembrar pode
+  ficar em arquivos de sessão ou de memória do Claude.
 - **Nada pessoal no Git.** Vídeos, banco, `Dados/`, `.env` e chaves ficam fora.
 - **Trabalhe uma etapa por vez** e não avance para a seguinte sem autorização do usuário.
 
@@ -29,6 +34,7 @@ Leia [docs/ARQUITETURA.md](docs/ARQUITETURA.md) antes de alterar a estrutura e
 | `npm run typecheck` | Checagem de tipos |
 | `npm run verificar` | 12 verificações das ferramentas instaladas |
 | `npm run app -- situacao` | Executa a aplicação pela linha de comando |
+| `npm run exemplo:memoria` | Demonstra memória e aprendizado em pasta temporária |
 | `npm run versoes` | Regrava `docs/VERSOES.md` |
 
 Antes de concluir uma alteração: `npm run typecheck` e `npm test`.
@@ -49,11 +55,12 @@ Antes de concluir uma alteração: `npm run typecheck` e `npm test`.
 |---|---|
 | `src/dominio/` | Tipos e contratos, sem E/S |
 | `src/nucleo/` | `Aplicacao` (ciclo de vida) e `Orquestrador` (pipeline) |
-| `src/servicos/` | Projetos, memória, aprendizado, perfis, provedores de IA, recursos |
-| `src/infra/` | Banco SQLite, caminhos, configurações |
+| `src/servicos/` | Projetos, memória, aprendizado, acervo, perfis, provedores de IA, recursos |
+| `src/infra/` | Banco SQLite, cópias de segurança, caminhos, configurações |
 | `src/interface/` | Linha de comando (janela gráfica futura) |
 | `Pipeline/<etapa>/` | Implementação de cada etapa audiovisual |
-| `IA/Perfis/` | Perfis de especialização em JSON (geral, fivem, redm) |
+| `IA/Perfis/` | Perfis de especialização em JSON (8 perfis) |
+| `exemplos/` | Exemplos executáveis de uso da aplicação |
 | `tests/unidade/` | Testes da aplicação |
 | `tests/smoke/` | Composições mínimas usadas pelos verificadores |
 | `scripts/` | Setup, detecção de GPU e verificadores |
