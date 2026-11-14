@@ -21,9 +21,11 @@ import { ServicoMemoria } from "../servicos/memoria.ts";
 import { ServicoPerfis } from "../servicos/perfis.ts";
 import { ServicoProjetos } from "../servicos/projetos.ts";
 import { criarRegistroProvedores, type RegistroProvedores } from "../servicos/provedores.ts";
+import { ServicoDeQualidade } from "../servicos/qualidade.ts";
 import { ServicoTimeline } from "../servicos/timeline.ts";
 import { Edicao } from "./edicao.ts";
 import { Feedback } from "./feedback.ts";
+import { Qualidade } from "./qualidade.ts";
 import { detectarHardware, GerenciadorVram, type Hardware } from "../servicos/recursos.ts";
 import { Orquestrador } from "./orquestrador.ts";
 import { Producao } from "./producao.ts";
@@ -65,6 +67,10 @@ export class Aplicacao {
   edicao!: Edicao;
   /** Avaliação de edições, comparação de versões, métricas de resultado e controle do que foi aprendido. */
   feedback!: Feedback;
+  /** Perfis de qualidade por destino e presets de exportação. */
+  catalogoDeQualidade!: ServicoDeQualidade;
+  /** Controle de qualidade: verificação da timeline e dos arquivos exportados, relatórios e exceções. */
+  qualidade!: Qualidade;
   hardware: Hardware;
   vram: GerenciadorVram;
   orquestrador: Orquestrador;
@@ -148,9 +154,15 @@ export class Aplicacao {
       memoria: this.memoria, perfis: this.perfis, indice: new ServicoIndice(this.banco), estilos: this.estilos, provedores: this.provedores, vram: this.vram,
     });
     const timelines = new ServicoTimeline(this.banco);
+    // Perfis de qualidade e presets do usuário (pasta de dados) prevalecem sobre os do programa.
+    this.catalogoDeQualidade = new ServicoDeQualidade(
+      [path.join(this.caminhos.programa, "IA", "Qualidade"), path.join(this.caminhos.dados, "qualidade")],
+      [path.join(this.caminhos.programa, "IA", "Exportacao"), path.join(this.caminhos.dados, "presets")],
+    );
+    this.qualidade = new Qualidade({ banco: this.banco, projetos: this.projetos, acervo: this.acervo, timelines, catalogo: this.catalogoDeQualidade });
     this.edicao = new Edicao({
       caminhos: this.caminhos, projetos: this.projetos, acervo: this.acervo, aprendizado: this.aprendizado, memoria: this.memoria, estilos: this.estilos,
-      timelines, producao: this.producao, hardware: this.hardware, eventos: this.eventos,
+      timelines, producao: this.producao, hardware: this.hardware, eventos: this.eventos, qualidade: this.qualidade, catalogo: this.catalogoDeQualidade,
     });
     this.feedback = new Feedback({ banco: this.banco, projetos: this.projetos, aprendizado: this.aprendizado, timelines });
     this.referencias = new AnaliseDeReferencias({

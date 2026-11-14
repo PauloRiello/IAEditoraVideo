@@ -4,6 +4,7 @@
 import path from "node:path";
 import { ErroAplicacao } from "../dominio/erros.ts";
 import type { PlanoDeEdicao } from "../dominio/producao.ts";
+import type { RelatorioDeQualidade } from "../dominio/qualidade.ts";
 import type { Exportacao, Operacao, VersaoDaTimeline } from "../dominio/timeline.ts";
 import { Aplicacao } from "../nucleo/aplicacao.ts";
 
@@ -30,7 +31,12 @@ Comandos:
   desfazer <projeto>               Volta à versão anterior da timeline
   trilha <projeto> <arquivo>       Define a trilha sonora
   previa <projeto>                 Renderiza uma prévia de baixa qualidade
-  exportar <projeto>               Renderiza o vídeo final (MP4, H.264 + AAC)
+  exportar <projeto> [--preset id] [--destino perfil]   Renderiza o vídeo final (MP4, H.264 + AAC), com controle de qualidade
+  presets                          Lista os presets de exportação e os perfis de qualidade
+  qualidade <projeto> [--destino perfil]   Confere a timeline antes de exportar
+  relatorio <exportação>           Mostra o relatório de qualidade de uma exportação
+  aceitar <relatório> <verificação> <justificativa>   Aceita um problema não crítico
+  repetir <exportação>             Repete uma exportação
   exportacoes <projeto>            Mostra o histórico de exportações
   avaliar <projeto> <aprovar|rejeitar|alterar> [motivo] [--nota aspecto=1..5] [--trecho inicio-fim:comentário]
   avaliacoes <projeto>             Mostra as avaliações e os trechos pendentes de revisão
@@ -76,6 +82,16 @@ function mostrarTimeline(v: VersaoDaTimeline): void {
       : i.tipo === "audio" ? `${i.papel}: ${path.basename(i.arquivo)}, volume ${i.volume}`
       : i.tipo === "cartao" ? `"${i.titulo}"` : i.tipo === "imagem" ? path.basename(i.arquivo) : `"${i.texto}"`;
     console.log(`  camada ${String(i.camada).padStart(2)}  ${String(i.inicioSeg).padStart(7)} s  +${i.duracaoSeg} s  ${i.id} [${i.tipo}] ${detalhe}`);
+  }
+}
+
+function mostrarRelatorio(r: RelatorioDeQualidade): void {
+  const reprovadas = r.verificacoes.filter((v) => v.situacao === "reprovada");
+  console.log(`Relatório de qualidade #${r.id} (destino ${r.perfilDeQualidade}): ${r.situacao} — ${r.verificacoes.filter((v) => v.situacao === "aprovada").length} aprovadas, ${reprovadas.length} com problema`);
+  for (const v of reprovadas) {
+    const aceita = r.excecoes.find((e) => e.verificacaoId === v.id);
+    console.log(`  [${v.gravidade}] ${v.id}: ${v.detalhe}${aceita ? ` (exceção aceita: ${aceita.justificativa})` : ""}`);
+    if (!aceita) console.log(`      Sugestão: ${v.sugestao}`);
   }
 }
 
@@ -224,11 +240,48 @@ async function executar(app: Aplicacao, argumentos: string[]): Promise<number> {
     app.eventos.on("render:progresso", (p: { fase: string; progresso: number }) => {
       const passo = Math.floor(p.progresso * 10);
       if (passo !== ultimo) { ultimo = passo; console.log(`  ${p.fase}: ${passo * 10}%`); }
+      if (p.fase === "conferindo") console.log("  conferindo o arquivo exportado...");
     });
     // Ctrl+C cancela o render com segurança, sem deixar arquivo pela metade.
-    const tarefa = comando === "previa" ? app.edicao.previa(acao) : app.edicao.exportar(acao);
+    const opcao = (nome: string) => resto.flatMap((valor, i) => (valor === `--${nome}` && resto[i + 1] ? [resto[i + 1]] : []))[0];
+    const tarefa = comando === "previa" ? app.edicao.previa(acao) : app.edicao.exportar(acao, { preset: opcao("preset"), perfilDeQualidade: opcao("destino") });
     process.once("SIGINT", () => app.edicao.cancelar(tarefa.exportacao.id));
-    mostrarExportacao(await tarefa.conclusao);
+    const exportacao = await tarefa.conclusao;
+    mostrarExportacao(exportacao);
+    const relatorio = comando === "exportar" ? app.qualidade.relatorioDaExportacao(exportacao.id) : null;
+    if (relatorio) mostrarRelatorio(relatorio);
+    return exportacao.estado === "concluida" ? 0 : 1;
+  }
+
+  if (comando === "repetir" && acao) {
+    const exportacao = await app.edicao.repetir(Number(acao)).conclusao;
+    mostrarExportacao(exportacao);
+    return exportacao.estado === "concluida" ? 0 : 1;
+  }
+
+  if (comando === "presets") {
+    console.log("Presets de exportação:");
+    for (const p of app.catalogoDeQualidade.listarPresets()) console.log(`  ${p.id.padEnd(16)} ${p.nome}`);
+    console.log("Perfis de qualidade (destinos):");
+    for (const p of app.catalogoDeQualidade.listarPerfis()) console.log(`  ${p.id.padEnd(16)} ${p.nome}`);
+    return 0;
+  }
+
+  if (comando === "qualidade" && acao) {
+    const destino = resto.flatMap((valor, i) => (valor === "--destino" && resto[i + 1] ? [resto[i + 1]] : []))[0];
+    mostrarRelatorio(await app.qualidade.verificarTimeline(acao, { perfil: destino }));
+    return 0;
+  }
+
+  if (comando === "relatorio" && acao) {
+    const relatorio = app.qualidade.relatorioDaExportacao(Number(acao));
+    if (!relatorio) throw new ErroAplicacao("sem-relatorio", "Esta exportação não tem relatório de qualidade.");
+    console.log(app.qualidade.markdown(relatorio.id));
+    return 0;
+  }
+
+  if (comando === "aceitar" && acao && resto[1]) {
+    mostrarRelatorio(app.qualidade.aceitarExcecao(Number(acao), resto[0], resto.slice(1).join(" ")));
     return 0;
   }
 

@@ -46,6 +46,20 @@ export interface PedidoDeRender {
   codificarPorHardware: boolean;
   cancelamento: Cancelamento;
   aoProgredir?: (fase: "preparando" | "renderizando", fracao: number) => void;
+  /** Ajustes de um preset de exportação. Sem eles, valem os padrões da qualidade escolhida. */
+  ajustes?: { escala: number; crf: number; velocidadeDeCodificacao: "veryfast" | "medium" | "slow"; taxaDeBitsDoAudioKbps: number };
+}
+
+/** Move um arquivo. Entre discos diferentes (por exemplo, dados em C: e exportações em D:), copia e apaga a origem. */
+export function moverArquivo(origem: string, destino: string): void {
+  mkdirSync(path.dirname(destino), { recursive: true });
+  try {
+    renameSync(origem, destino);
+  } catch (erro) {
+    if ((erro as NodeJS.ErrnoException).code !== "EXDEV") throw erro;
+    copyFileSync(origem, destino);
+    rmSync(origem, { force: true });
+  }
 }
 
 const par = (n: number) => Math.max(2, Math.round(n / 2) * 2);
@@ -156,7 +170,7 @@ function chromeDoSistema(): string | undefined {
 
 /** Renderiza a timeline no arquivo de destino. Em caso de erro ou cancelamento, nenhum arquivo parcial fica no destino. */
 export async function renderizarTimeline(p: PedidoDeRender): Promise<{ largura: number; altura: number }> {
-  const escala = escalaDaQualidade(p.timeline, p.qualidade);
+  const escala = p.ajustes?.escala ?? escalaDaQualidade(p.timeline, p.qualidade);
   const parcial = path.join(p.pastaTemporaria, `render-${p.id}.mp4`);
   let pastaPublica = "";
   try {
@@ -199,14 +213,14 @@ export async function renderizarTimeline(p: PedidoDeRender): Promise<{ largura: 
       concurrency: p.concorrencia,
       imageFormat: "jpeg",
       jpegQuality: final ? 90 : 60,
-      x264Preset: final ? "medium" : "veryfast",
+      x264Preset: p.ajustes?.velocidadeDeCodificacao ?? (final ? "medium" : "veryfast"),
+      audioBitrate: `${p.ajustes?.taxaDeBitsDoAudioKbps ?? 192}k`,
       // A codificação por hardware não aceita CRF: usa taxa de bits. Sem hardware, CRF.
-      ...(p.codificarPorHardware && final ? { hardwareAcceleration: "if-possible" as const, videoBitrate: "10M" } : { crf: final ? 18 : 30 }),
+      ...(p.codificarPorHardware && final ? { hardwareAcceleration: "if-possible" as const, videoBitrate: "10M" } : { crf: p.ajustes?.crf ?? (final ? 18 : 30) }),
       cancelSignal,
       onProgress: ({ progress }) => p.aoProgredir?.("renderizando", progress),
     });
-    mkdirSync(path.dirname(p.destino), { recursive: true });
-    renameSync(parcial, p.destino);
+    moverArquivo(parcial, p.destino);
     return { largura: par(p.timeline.formato.largura * escala), altura: par(p.timeline.formato.altura * escala) };
   } catch (erro) {
     if (p.cancelamento.cancelado) throw new RenderCancelado();
