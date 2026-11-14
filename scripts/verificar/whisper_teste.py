@@ -5,13 +5,18 @@ Imprime uma linha JSON com o resultado.
 """
 
 import json
+import os
 import sys
 import time
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "Pipeline", "transcription"))
+import gpu  # noqa: E402  (mesmo módulo que a aplicação usa)
 
 
 def main() -> int:
     audio, device, compute_type, modelo = sys.argv[1:5]
     resultado = {"etapa": "importacao"}
+    gpu.preparar()
     try:
         import ctranslate2
         import faster_whisper
@@ -22,13 +27,24 @@ def main() -> int:
             dispositivos_cuda=ctranslate2.get_cuda_device_count(),
             etapa="modelo",
         )
-        inicio = time.time()
-        whisper = faster_whisper.WhisperModel(modelo, device=device, compute_type=compute_type)
-        resultado.update(etapa="transcricao", carga_s=round(time.time() - inicio, 1))
+
+        def executar(dispositivo, calculo):
+            inicio = time.time()
+            whisper = faster_whisper.WhisperModel(modelo, device=dispositivo, compute_type=calculo)
+            resultado.update(etapa="transcricao", carga_s=round(time.time() - inicio, 1), dispositivo_usado=dispositivo)
+            segmentos, info = whisper.transcribe(audio, word_timestamps=True)
+            return list(segmentos), info
 
         inicio = time.time()
-        segmentos, info = whisper.transcribe(audio, word_timestamps=True)
-        segmentos = list(segmentos)
+        try:
+            segmentos, info = executar(device, compute_type)
+        except Exception as erro:
+            if device != "cuda":
+                raise
+            # A aplicação faz o mesmo: sem GPU utilizável, transcreve pelo processador.
+            resultado.update(gpu_falhou=f"{type(erro).__name__}: {erro}"[:300], etapa="modelo")
+            inicio = time.time()
+            segmentos, info = executar("cpu", "int8")
         resultado.update(
             etapa="concluido",
             texto=" ".join(s.text.strip() for s in segmentos),

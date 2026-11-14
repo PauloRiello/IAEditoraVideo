@@ -2,7 +2,7 @@
 // Usa apenas módulos nativos do Node.js: funciona antes de `npm install`.
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,9 +24,10 @@ export function executar(comando, argumentos = [], opcoes = {}) {
   // No Windows, arquivos .cmd só rodam pelo shell, que não protege espaços sozinho.
   const usaShell = WINDOWS && /\.(cmd|bat)$/i.test(comando);
   if (usaShell) {
+    // A linha vai pronta para o shell: passar argumentos separados com shell ligado é desaconselhado pelo Node.
     const proteger = (texto) => (/[\s&|<>^()"]/.test(texto) ? `"${String(texto).replace(/"/g, '\\"')}"` : texto);
-    comando = proteger(comando);
-    argumentos = argumentos.map(proteger);
+    comando = [comando, ...argumentos].map(proteger).join(" ");
+    argumentos = [];
   }
   const resultado = spawnSync(comando, argumentos, {
     cwd: RAIZ,
@@ -117,11 +118,26 @@ export function chromeDoSistema() {
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
   ].filter(Boolean);
   for (const caminho of fixos) if (existsSync(caminho)) return caminho;
   for (const nome of ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"]) {
     const caminho = existeComando(nome);
     if (caminho) return caminho;
+  }
+  return null;
+}
+
+/** Chrome Headless Shell baixado pelo Remotion para esta instalação, se houver. */
+export function navegadorDoRemotion() {
+  const base = path.join(RAIZ, "node_modules", ".remotion", "chrome-headless-shell");
+  if (!existsSync(base)) return null;
+  for (const plataforma of readdirSync(base)) {
+    for (const pasta of existsSync(path.join(base, plataforma)) && statSync(path.join(base, plataforma)).isDirectory() ? readdirSync(path.join(base, plataforma)) : []) {
+      const executavel = path.join(base, plataforma, pasta, WINDOWS ? "chrome-headless-shell.exe" : "chrome-headless-shell");
+      if (existsSync(executavel)) return executavel;
+    }
   }
   return null;
 }

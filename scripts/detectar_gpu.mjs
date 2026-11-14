@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  ARQUIVO_ACELERACAO, WINDOWS, binVenv, comPastaTemporaria, executar, existeComando, lerAceleracao,
+  ARQUIVO_ACELERACAO, RAIZ, WINDOWS, binVenv, comPastaTemporaria, executar, existeComando, lerAceleracao,
 } from "./lib/comum.mjs";
 
 function detectarNvidia() {
@@ -84,11 +84,21 @@ function testarEncoders(pasta) {
   return { disponivel: true, testados };
 }
 
+/**
+ * Situação da GPU para o Whisper. Ter a placa e o driver não basta: as bibliotecas cuBLAS
+ * e cuDNN precisam carregar. A conferência é feita pelo mesmo módulo que a aplicação usa.
+ */
 function cudaNoWhisper() {
   const python = binVenv("python");
-  if (!existsSync(python)) return { instalado: false, dispositivosCuda: 0 };
-  const r = executar(python, ["-c", "import ctranslate2; print(ctranslate2.get_cuda_device_count())"]);
-  return { instalado: r.ok, dispositivosCuda: r.ok ? Number(r.saida) || 0 : 0 };
+  const vazio = { instalado: false, dispositivosCuda: 0, bibliotecas: false, motivo: "" };
+  if (!existsSync(python)) return vazio;
+  const r = executar(python, [path.join(RAIZ, "Pipeline", "transcription", "gpu.py")]);
+  try {
+    const dados = JSON.parse(r.saida.split(/\r?\n/).pop());
+    return { instalado: Boolean(dados.instalado), dispositivosCuda: Number(dados.dispositivos) || 0, bibliotecas: Boolean(dados.bibliotecas), motivo: String(dados.motivo ?? "") };
+  } catch {
+    return vazio;
+  }
 }
 
 export async function detectar() {
@@ -97,7 +107,7 @@ export async function detectar() {
   const funcionais = Object.keys(encoders.testados).filter((nome) => encoders.testados[nome]);
   const encoderH264 = funcionais[0] ?? "libx264";
   const whisper = cudaNoWhisper();
-  const usaCuda = whisper.dispositivosCuda > 0;
+  const usaCuda = whisper.dispositivosCuda > 0 && whisper.bibliotecas;
 
   // Remotion: aceleração de codificação existe só para VideoToolbox (macOS) e NVENC (Linux/Windows).
   const remotionAcelera = funcionais.includes("h264_videotoolbox") || funcionais.includes("h264_nvenc");
@@ -115,6 +125,7 @@ export async function detectar() {
       device: usaCuda ? "cuda" : "cpu",
       computeType: usaCuda ? "float16" : "int8",
       bibliotecasCudaPendentes: gpu?.fabricante === "nvidia" && whisper.instalado && !usaCuda,
+      ...(gpu?.fabricante === "nvidia" && !usaCuda && whisper.motivo ? { motivo: whisper.motivo } : {}),
     },
     remotion: {
       hardwareAcceleration: remotionAcelera ? "if-possible" : "disable",
@@ -138,7 +149,7 @@ export function descrever(a) {
   return [
     `GPU: ${a.gpu ? `${a.gpu.nome} (${a.gpu.fabricante}${a.gpu.vramMB ? `, ${a.gpu.vramMB} MB` : ""})` : "nenhuma detectada"}`,
     `FFmpeg: encoder H.264 = ${a.ffmpeg.encoderH264}${a.ffmpeg.aceleradoPorHardware ? " (hardware)" : " (CPU)"}`,
-    `Whisper: device = ${a.whisper.device}, compute_type = ${a.whisper.computeType}`,
+    `Whisper: device = ${a.whisper.device}, compute_type = ${a.whisper.computeType}${a.whisper.motivo ? ` (placa não utilizável: ${a.whisper.motivo})` : ""}`,
     `Remotion: hardwareAcceleration = ${a.remotion.hardwareAcceleration}`,
     `HyperFrames: --gpu ${a.hyperframes.gpuEncoding ? "ativado" : "desativado"}`,
   ];

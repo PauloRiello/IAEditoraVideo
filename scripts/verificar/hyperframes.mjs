@@ -1,8 +1,8 @@
 // Verifica o HyperFrames: versão, lint e um render real de 1 segundo com GSAP local.
-import { copyFileSync, existsSync, mkdirSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
 import {
-  RAIZ, Relatorio, binLocal, comPastaTemporaria, executar, lerAceleracao, resumo, sondar, versaoPacote,
+  AMBIENTE, RAIZ, Relatorio, binLocal, chromeDoSistema, comPastaTemporaria, executar, lerAceleracao, navegadorDoRemotion, resumo, sondar, versaoPacote,
 } from "../lib/comum.mjs";
 
 const r = new Relatorio("HyperFrames");
@@ -20,9 +20,35 @@ if (r.conferir(existsSync(hyperframes), `hyperframes ${versaoPacote("hyperframes
 
   await comPastaTemporaria((pasta) => {
     const saida = path.join(pasta, "hyperframes.mp4");
-    const gpu = lerAceleracao()?.hyperframes?.gpuEncoding ? ["--gpu"] : [];
-    const render = executar(hyperframes, ["render", projeto, "-o", saida, "--fps", "30", "--workers", "1", ...gpu]);
-    if (!r.conferir(render.ok && existsSync(saida), "Render concluído", `Render falhou: ${resumo(render.erro || render.saida)}`)) return;
+    let gpu = lerAceleracao()?.hyperframes?.gpuEncoding ? ["--gpu"] : [];
+    const renderizar = (opcoesDeGpu, navegador) => {
+      rmSync(saida, { force: true });
+      const resultado = executar(hyperframes, ["render", projeto, "-o", saida, "--fps", "30", "--workers", "1", ...opcoesDeGpu], navegador ? { env: { ...AMBIENTE, HYPERFRAMES_BROWSER_PATH: navegador } } : {});
+      return { ...resultado, ok: resultado.ok && existsSync(saida) };
+    };
+    let render = renderizar(gpu);
+    if (!render.ok) {
+      // O navegador próprio do HyperFrames não abriu ou a GPU atrapalhou: tenta as alternativas
+      // que a aplicação também usa, e diz qual funcionou.
+      const primeiraFalha = resumo(render.erro || render.saida);
+      const alternativas = [
+        ...(gpu.length ? [["sem a opção --gpu", [], null]] : []),
+        ...[["o navegador do Remotion", navegadorDoRemotion()], ["o Chrome ou o Edge do sistema", chromeDoSistema()]].filter(([, caminho]) => caminho).map(([nome, caminho]) => [`${nome} (${caminho})`, [], caminho]),
+      ];
+      for (const [nome, opcoesDeGpu, navegador] of alternativas) {
+        render = renderizar(opcoesDeGpu, navegador);
+        if (render.ok) {
+          gpu = opcoesDeGpu;
+          r.aviso(`O render padrão falhou (${primeiraFalha}), mas funcionou com ${nome}. A aplicação faz essa troca sozinha; se nenhum navegador servir, o cartão final é desenhado pelo Remotion`);
+          break;
+        }
+      }
+      if (!render.ok) {
+        r.aviso(`O HyperFrames não conseguiu renderizar (${primeiraFalha}), nem com as alternativas (${alternativas.map(([nome]) => nome).join("; ") || "nenhuma disponível"}). A aplicação continua funcionando: o cartão final é desenhado pelo Remotion. Para tentar corrigir: npx hyperframes browser ensure --force`);
+        return;
+      }
+    }
+    r.ok("Render concluído");
 
     const video = sondar(saida)?.streams.find((s) => s.codec_type === "video");
     r.conferir(

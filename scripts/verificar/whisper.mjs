@@ -37,7 +37,10 @@ if (r.conferir(existsSync(python), "Ambiente virtual .venv presente", "Ambiente 
     }
 
     if (!r.conferir(dados.faster_whisper, `faster-whisper ${dados.faster_whisper} (ctranslate2 ${dados.ctranslate2})`, `Importação falhou: ${dados.erro}`)) return;
-    r.ok(`Dispositivo: ${aceleracao.device} / ${aceleracao.computeType} (GPUs CUDA visíveis: ${dados.dispositivos_cuda})`);
+    r.ok(`Dispositivo configurado: ${aceleracao.device} / ${aceleracao.computeType} (GPUs CUDA visíveis: ${dados.dispositivos_cuda})`);
+    if (dados.gpu_falhou) {
+      r.aviso(`A placa de vídeo não pôde ser usada (${dados.gpu_falhou}). A transcrição funciona pelo processador, mais devagar. Para usar a placa, execute a instalação de novo (npm run setup): ela instala as bibliotecas CUDA`);
+    }
 
     if (dados.etapa === "modelo") {
       r.falha(`Modelo "${MODELO}" não pôde ser carregado (o primeiro uso baixa de huggingface.co): ${dados.erro}`);

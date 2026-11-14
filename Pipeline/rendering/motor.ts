@@ -133,7 +133,15 @@ async function prepararMidias(p: PedidoDeRender, escala: number): Promise<Record
     } else {
       const tamanho = { largura: par(alvo.largura), altura: par(alvo.altura), fps: formato.fps };
       destino = path.join(p.pastaDeCache, `${chave(null, "cartao", item.titulo, item.subtitulo, item.corDeFundo, item.corDoTexto, item.duracaoSeg, tamanho)}.mp4`);
-      if (!existsSync(destino)) await renderizarCartao(item, tamanho, destino, PROGRAMA);
+      if (!existsSync(destino)) {
+        try {
+          await renderizarCartao(item, tamanho, destino, PROGRAMA);
+        } catch (erro) {
+          // Sem HyperFrames utilizável neste computador, o cartão não vira trecho: a composição o desenha.
+          console.error(`${new Date().toISOString()} Cartão "${item.titulo}" desenhado pela composição: ${erro instanceof Error ? erro.message : String(erro)}`);
+          continue;
+        }
+      }
     }
     preparados[item.id] = destino;
   }

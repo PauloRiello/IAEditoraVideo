@@ -26,12 +26,16 @@ export function pythonDoPrograma(programa: string): string | null {
   return existsSync(caminho) ? caminho : null;
 }
 
-/** Transcreve a fala de um arquivo. Lança erro se o Whisper não puder ser executado. */
-export async function transcrever(arquivo: string, opcoes: OpcoesWhisper): Promise<Transcricao> {
+/**
+ * Transcreve a fala de um arquivo. Lança erro se o Whisper não puder ser executado.
+ * Se a placa de vídeo foi pedida e não pôde ser usada, a transcrição vem do processador e
+ * o motivo vem em `aviso`.
+ */
+export async function transcrever(arquivo: string, opcoes: OpcoesWhisper): Promise<Transcricao & { aviso?: string }> {
   const roteiro = path.join(path.dirname(fileURLToPath(import.meta.url)), "transcrever.py");
   const saida = await executar(opcoes.python, [
     roteiro, arquivo, opcoes.modelo, opcoes.dispositivo,
     opcoes.dispositivo === "cuda" ? "float16" : "int8", opcoes.idioma, opcoes.pastaDeModelos,
   ]);
-  return JSON.parse(saida.toString("utf8").trim().split(/\r?\n/).pop() as string) as Transcricao;
+  return JSON.parse(saida.toString("utf8").trim().split(/\r?\n/).pop() as string) as Transcricao & { aviso?: string };
 }

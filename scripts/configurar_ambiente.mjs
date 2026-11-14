@@ -76,12 +76,12 @@ if (!falhaEssencial) {
 
   // GPU NVIDIA: o faster-whisper precisa de cuBLAS e cuDNN para usar CUDA.
   if (aceleracao.whisper.bibliotecasCudaPendentes) {
-    console.log("   GPU NVIDIA detectada: instalando cuBLAS e cuDNN para o Whisper");
+    console.log("   GPU NVIDIA detectada: instalando cuBLAS e cuDNN para o Whisper (download de cerca de 1 GB; pode levar vários minutos)");
     const cuda = executar(python, ["-m", "pip", "install", "--quiet", "--disable-pip-version-check", "-r", "requirements-gpu-nvidia.txt"]);
     if (!cuda.ok) pendente(`Bibliotecas CUDA não instaladas: ${resumo(cuda.erro || cuda.saida)}`);
     aceleracao = await detectar();
     if (aceleracao.whisper.bibliotecasCudaPendentes) {
-      pendente("Whisper ainda sem acesso à GPU: confira o driver NVIDIA e o caminho das bibliotecas (veja docs/AMBIENTE.md)");
+      pendente(`Whisper ainda sem acesso à GPU${aceleracao.whisper.motivo ? ` (${aceleracao.whisper.motivo})` : ""}: a transcrição funciona pelo processador, mais devagar. Confira o driver NVIDIA (veja docs/AMBIENTE.md)`);
     }
   }
 

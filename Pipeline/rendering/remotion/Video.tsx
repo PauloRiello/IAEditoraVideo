@@ -51,6 +51,35 @@ const Visual: React.FC<{ item: ItemVideo | ItemImagem | ItemCartao; arquivo: str
   );
 };
 
+/**
+ * Cartão desenhado pela própria composição, com o mesmo conteúdo e a mesma entrada do
+ * cartão do HyperFrames. Usado quando o HyperFrames não pôde gerar o trecho neste computador.
+ */
+const CartaoDesenhado: React.FC<{ item: ItemCartao }> = ({ item }) => {
+  const quadro = useCurrentFrame();
+  const { fps, width, height } = useVideoConfig();
+  const base = Math.min(width, height);
+  const total = quadros(item.duracaoSeg, fps);
+  const surgir = (inicioSeg: number, duracaoSeg: number) => interpolate(quadro, [inicioSeg * fps, (inicioSeg + duracaoSeg) * fps], [0, 1], LIMITE);
+  const entrada = item.entrada.tipo === "gradual" ? interpolate(quadro, [0, quadros(item.entrada.duracaoSeg, fps)], [0, 1], LIMITE) : 1;
+  const saida = item.saida.tipo === "fade" ? interpolate(quadro, [total - quadros(item.saida.duracaoSeg, fps), total], [1, 0], LIMITE) : 1;
+  const titulo = surgir(0.05, 0.4), linha = surgir(0.3, 0.3), subtitulo = surgir(0.45, 0.35);
+  return (
+    <AbsoluteFill style={{ backgroundColor: "black" }}>
+      <AbsoluteFill
+        style={{
+          opacity: Math.min(entrada, saida), backgroundColor: item.corDeFundo, color: item.corDoTexto, alignItems: "center", justifyContent: "center", textAlign: "center",
+          fontFamily: "Arial, Helvetica, sans-serif", padding: "0 8%", gap: base * 0.035,
+        }}
+      >
+        <div style={{ opacity: titulo, transform: `translateY(${(1 - titulo) * base * 0.05}px)`, fontSize: base * 0.085, fontWeight: 800, lineHeight: 1.1 }}>{item.titulo}</div>
+        <div style={{ width: base * 0.3, height: Math.max(2, base * 0.006), backgroundColor: item.corDoTexto, transform: `scaleX(${linha})` }} />
+        <div style={{ opacity: subtitulo, transform: `translateY(${(1 - subtitulo) * base * 0.03}px)`, fontSize: base * 0.045, fontWeight: 600 }}>{item.subtitulo}</div>
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
 const Texto: React.FC<{ item: ItemTexto; margens: AreaSegura }> = ({ item, margens }) => {
   const quadro = useCurrentFrame();
   const { fps, height } = useVideoConfig();
@@ -136,7 +165,9 @@ export const VideoDaTimeline: React.FC<PropriedadesDoVideo> = ({ timeline, arqui
   );
   return (
     <AbsoluteFill style={{ backgroundColor: "black" }}>
-      {ordenados.filter(eVisual).map((item) => (arquivos[item.id] ? sequencia(item, <Visual item={item} arquivo={arquivos[item.id]} />) : null))}
+      {ordenados.filter(eVisual).map((item) =>
+        arquivos[item.id] ? sequencia(item, <Visual item={item} arquivo={arquivos[item.id]} />) : item.tipo === "cartao" ? sequencia(item, <CartaoDesenhado item={item} />) : null,
+      )}
       {barras ? <BarrasDeCinema proporcao={barras.proporcao} /> : null}
       {ordenados.map((item) =>
         item.tipo === "legenda"

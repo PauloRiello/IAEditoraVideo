@@ -25,13 +25,15 @@ export function criarTranscritor(d: DependenciasDoTranscritor, operacao: string,
     const reserva = `whisper-${modelo}`;
     const dispositivo = d.vram.reservar(reserva, VRAM_POR_MODELO[modelo] ?? 4000);
     const inicio = Date.now();
-    const registrar = (sucesso: boolean) =>
-      d.acervo.registrarUsoIA({ projetoId, provedor: "whisper-local", modelo, origem: "local", capacidade: "transcricao", operacao, dispositivo, duracaoMs: Date.now() - inicio, sucesso });
+    const registrar = (sucesso: boolean, usado = dispositivo) =>
+      d.acervo.registrarUsoIA({ projetoId, provedor: "whisper-local", modelo, origem: "local", capacidade: "transcricao", operacao, dispositivo: usado, duracaoMs: Date.now() - inicio, sucesso });
     try {
-      const resultado = await transcrever(arquivo, {
+      const { aviso, ...resultado } = await transcrever(arquivo, {
         python, modelo, idioma, dispositivo: dispositivo === "gpu" ? "cuda" : "cpu", pastaDeModelos: path.join(d.caminhos.modelos, "whisper"),
       });
-      registrar(true);
+      // A placa foi pedida, mas o Whisper não conseguiu usá-la: fica registrado que rodou pelo processador.
+      if (aviso) console.error(`${new Date().toISOString()} ${aviso}`);
+      registrar(true, aviso ? "cpu" : dispositivo);
       return resultado;
     } catch (erro) {
       registrar(false);
