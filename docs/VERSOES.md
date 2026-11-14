@@ -1,13 +1,13 @@
 # Versões instaladas
 
-> Arquivo gerado por `npm run versoes` em 2026-11-13. Não edite à mão.
+> Arquivo gerado por `npm run versoes` em 2026-11-14. Não edite à mão.
 > Reflete a máquina em que o comando foi executado.
 
 ## Sistema e ferramentas
 
 | Item | Versão |
 |---|---|
-| Sistema operacional | Linux 6.18.44-fc-v445 (linux-x64) |
+| Sistema operacional | Linux 6.18.44-fc-v470 (linux-x64) |
 | CPU | Intel(R) Xeon(R) Processor @ 2.10GHz × 4 |
 | Memória RAM | 15.7 GB |
 | Node.js | 22.23.4 |
