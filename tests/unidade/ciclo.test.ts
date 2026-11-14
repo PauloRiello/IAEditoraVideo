@@ -67,7 +67,8 @@ after(() => {
 });
 
 test("instalar: configura as pastas escolhidas, prepara o banco e pode ser repetido sem perder nada", () => {
-  const r = script("instalar", "--padrao", "--dados", dados, "--biblioteca", biblioteca, "--sem-configurar", "--sem-verificar", "--sem-atalho");
+  // Primeira instalação: sem escolha anterior, valem as pastas sugeridas pelo instalador.
+  const r = script("instalar", "--padrao", "--sugerir-dados", dados, "--sugerir-biblioteca", biblioteca, "--sem-configurar", "--sem-verificar", "--sem-atalho");
   assert.equal(r.codigo, 0, r.saida);
   assert.match(r.saida, /Instalação concluída/);
   assert.deepEqual(JSON.parse(readFileSync(path.join(instalacao, "config", "local.instalacao.json"), "utf8")), { dados, biblioteca });
@@ -80,6 +81,13 @@ test("instalar: configura as pastas escolhidas, prepara o banco e pode ser repet
   const denovo = script("instalar", "--padrao", "--sem-configurar", "--sem-verificar", "--sem-atalho");
   assert.equal(denovo.codigo, 0, denovo.saida);
   assert.match(denovo.saida, /Instalação anterior encontrada/);
+  assert.match(cli("projeto", "listar").saida, /Cidade Alta/);
+
+  // O instalador do Windows sempre sugere as pastas padrão: numa reinstalação, valem as escolhidas antes.
+  const comSugestao = script("instalar", "--padrao", "--sugerir-dados", path.join(base, "outra"), "--sugerir-biblioteca", path.join(base, "outra biblioteca"), "--sem-configurar", "--sem-verificar", "--sem-atalho");
+  assert.equal(comSugestao.codigo, 0, comSugestao.saida);
+  assert.deepEqual(JSON.parse(readFileSync(path.join(instalacao, "config", "local.instalacao.json"), "utf8")), { dados, biblioteca }, "a sugestão não troca as pastas de uma instalação existente");
+  assert.ok(!existsSync(path.join(base, "outra")));
   assert.match(cli("projeto", "listar").saida, /Cidade Alta/);
 
   const invalida = script("instalar", "--padrao", "--dados", "pasta-relativa", "--sem-configurar", "--sem-verificar", "--sem-atalho");

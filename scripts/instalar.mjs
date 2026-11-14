@@ -2,7 +2,9 @@
 // instala as dependências, verifica as ferramentas, prepara o banco e cria o atalho.
 // Pode ser executado de novo sem risco: nada do que já existe é apagado ou sobrescrito.
 // Uso: npm run instalar   (no Windows: windows\Instalar.cmd, que antes instala Node, Python, FFmpeg e Git)
-// Opções: --dados <pasta>  --biblioteca <pasta>  --padrao (não pergunta nada)
+// Opções: --dados <pasta>  --biblioteca <pasta>   define as pastas (vale mais que a escolha anterior)
+//         --sugerir-dados <pasta>  --sugerir-biblioteca <pasta>   sugestão para a primeira instalação
+//         --padrao (não pergunta nada)
 //         --sem-atalho  --sem-verificar  --sem-configurar (pula a instalação de dependências)
 
 import { spawnSync } from "node:child_process";
@@ -10,7 +12,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
-import { cli, dizer, falhar } from "./lib/aplicacao.mjs";
+import { cli, comandoDoAtalho, dizer, falhar } from "./lib/aplicacao.mjs";
 import { RAIZ, WINDOWS, lerJson } from "./lib/comum.mjs";
 
 const argumentos = process.argv.slice(2);
@@ -31,14 +33,19 @@ const padrao = {
   dados: path.join(process.env.LOCALAPPDATA ?? path.join(os.homedir(), ".local", "share"), "IAEditoraVideo"),
   biblioteca: path.join(os.homedir(), "Documents", "IA Editora de Vídeo"),
 };
-const escolha = { dados: opcao("dados") ?? existente.dados ?? padrao.dados, biblioteca: opcao("biblioteca") ?? existente.biblioteca ?? padrao.biblioteca };
-if (existente.dados) dizer("Instalação anterior encontrada: as pastas escolhidas antes foram mantidas.");
-else if (!tem("padrao") && process.stdin.isTTY) {
+// Ordem de prioridade: pasta pedida agora; pasta escolhida em instalação anterior; sugestão do instalador; padrão.
+// Assim, reinstalar ou reparar nunca troca de lugar os dados e os vídeos que já existem.
+const escolha = {
+  dados: opcao("dados") ?? existente.dados ?? opcao("sugerir-dados") ?? padrao.dados,
+  biblioteca: opcao("biblioteca") ?? existente.biblioteca ?? opcao("sugerir-biblioteca") ?? padrao.biblioteca,
+};
+if (existente.dados || existente.biblioteca) dizer("Instalação anterior encontrada: as pastas escolhidas antes foram mantidas.");
+else if (!tem("padrao") && !opcao("biblioteca") && process.stdin.isTTY) {
   const leitor = createInterface({ input: process.stdin, output: process.stdout });
   dizer("Os vídeos e as exportações ficam em uma pasta sua, separada do programa.");
   dizer("Escolha um disco com bastante espaço livre. Aperte Enter para aceitar a sugestão.");
-  const biblioteca = (await leitor.question(`Pasta dos vídeos e exportações [${escolha.biblioteca}]: `)).trim();
-  if (biblioteca && !opcao("biblioteca")) escolha.biblioteca = path.resolve(biblioteca);
+  const biblioteca = (await leitor.question(`Pasta dos vídeos e exportações [${escolha.biblioteca}]: `)).trim().replace(/^"(.*)"$/, "$1");
+  if (biblioteca) escolha.biblioteca = path.resolve(biblioteca);
   leitor.close();
 }
 for (const [nome, pasta] of Object.entries(escolha)) {
@@ -84,21 +91,9 @@ const iniciar = path.join(RAIZ, "scripts", "iniciar.mjs");
 if (tem("sem-atalho")) dizer("Etapa pulada a pedido (--sem-atalho).");
 else if (WINDOWS) {
   // Atalho na Área de Trabalho e no Menu Iniciar, com a janela do console minimizada.
-  const aspas = (texto) => `'${String(texto).replace(/'/g, "''")}'`;
-  const comando = [
-    "$w = New-Object -ComObject WScript.Shell",
-    "foreach ($pasta in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'))) {",
-    "  $a = $w.CreateShortcut((Join-Path $pasta 'IA Editora de Video.lnk'))",
-    `  $a.TargetPath = ${aspas(process.execPath)}`,
-    `  $a.Arguments = ${aspas(`"${iniciar}"`)}`,
-    `  $a.WorkingDirectory = ${aspas(RAIZ)}`,
-    `  $a.IconLocation = ${aspas(path.join(RAIZ, "src", "interface", "web", "icone.ico"))}`,
-    "  $a.Description = 'IA Editora de Video'",
-    "  $a.WindowStyle = 7",
-    "  $a.Save()",
-    "}",
-  ].join("; ").replace(/\{; /g, "{ ").replace(/; \}/g, " }");
-  const atalho = spawnSync("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", comando], { encoding: "utf8", windowsHide: true });
+  const comando = comandoDoAtalho({ node: process.execPath, iniciar, raiz: RAIZ, icone: path.join(RAIZ, "src", "interface", "web", "icone.ico") });
+  // O comando vai codificado: assim aspas e espaços nos caminhos não se perdem na passagem para o PowerShell.
+  const atalho = spawnSync("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", Buffer.from(comando, "utf16le").toString("base64")], { encoding: "utf8", windowsHide: true });
   if (atalho.status === 0) dizer("Atalho \"IA Editora de Video\" criado na Área de Trabalho e no Menu Iniciar.");
   else dizer(`O atalho não pôde ser criado (${(atalho.stderr || "").trim().split("\n")[0]}). Abra a aplicação por windows\\Iniciar.cmd.`);
 } else if (process.platform === "linux") {

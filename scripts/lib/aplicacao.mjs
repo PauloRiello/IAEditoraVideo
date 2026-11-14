@@ -105,4 +105,26 @@ export function copias(dados) {
     .map((nome) => ({ nome, pasta: path.join(pasta, nome), quando: nome.slice(0, 10).split("-").reverse().join("/") + " " + nome.slice(11, 16).replace("-", ":") + " (UTC)", motivo: nome.split("_")[1].replace(/-\d+$/, "") }));
 }
 
+/**
+ * Comando do PowerShell que cria o atalho da aplicação na Área de Trabalho e no Menu
+ * Iniciar do Windows. O console do inicializador abre minimizado.
+ */
+export function comandoDoAtalho({ node, iniciar, raiz, icone }) {
+  const aspas = (texto) => `'${String(texto).replace(/'/g, "''")}'`;
+  return [
+    "$w = New-Object -ComObject WScript.Shell",
+    "foreach ($pasta in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'))) {",
+    "if (-not $pasta) { continue }",
+    "$a = $w.CreateShortcut((Join-Path $pasta 'IA Editora de Video.lnk'))",
+    `$a.TargetPath = ${aspas(node)}`,
+    `$a.Arguments = ${aspas(`"${iniciar}"`)}`,
+    `$a.WorkingDirectory = ${aspas(raiz)}`,
+    `$a.IconLocation = ${aspas(icone)}`,
+    "$a.Description = 'IA Editora de Video'",
+    "$a.WindowStyle = 7",
+    "$a.Save()",
+    "}",
+  ].join("\n");
+}
+
 export const MOTIVOS = { manual: "manual", automatica: "automática", "pre-migracao": "antes de atualizar o banco", "pre-restauracao": "antes de uma restauração", "pre-atualizacao": "antes de atualizar o programa" };
