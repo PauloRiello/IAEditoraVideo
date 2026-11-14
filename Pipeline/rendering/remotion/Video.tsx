@@ -2,7 +2,10 @@
 
 import type React from "react";
 import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
-import type { Efeito, ItemAudio, ItemCartao, ItemDaTimeline, ItemImagem, ItemLegenda, ItemTexto, ItemVideo, Timeline } from "../../../src/dominio/timeline.ts";
+import type { AreaSegura, Efeito, ItemAudio, ItemCartao, ItemDaTimeline, ItemImagem, ItemLegenda, ItemTexto, ItemVideo, Timeline } from "../../../src/dominio/timeline.ts";
+
+// Mesmos valores de AREA_SEGURA_PADRAO em src/dominio/timeline.ts (este arquivo só importa tipos de lá).
+const MARGENS_PADRAO: AreaSegura = { topo: 0.08, base: 0.14, lados: 0.06 };
 
 export interface PropriedadesDoVideo extends Record<string, unknown> {
   timeline: Timeline;
@@ -48,7 +51,7 @@ const Visual: React.FC<{ item: ItemVideo | ItemImagem | ItemCartao; arquivo: str
   );
 };
 
-const Texto: React.FC<{ item: ItemTexto }> = ({ item }) => {
+const Texto: React.FC<{ item: ItemTexto; margens: AreaSegura }> = ({ item, margens }) => {
   const quadro = useCurrentFrame();
   const { fps, height } = useVideoConfig();
   const total = quadros(item.duracaoSeg, fps);
@@ -59,7 +62,7 @@ const Texto: React.FC<{ item: ItemTexto }> = ({ item }) => {
   return (
     <AbsoluteFill
       style={{
-        alignItems: "center", padding: `${height * 0.08}px 6%`,
+        alignItems: "center", padding: `${height * margens.topo}px ${margens.lados * 100}% ${height * margens.base}px`,
         justifyContent: item.posicao === "topo" ? "flex-start" : item.posicao === "base" ? "flex-end" : "center",
       }}
     >
@@ -76,10 +79,10 @@ const Texto: React.FC<{ item: ItemTexto }> = ({ item }) => {
   );
 };
 
-const Legenda: React.FC<{ item: ItemLegenda; estilo: Timeline["legendas"] }> = ({ item, estilo }) => {
+const Legenda: React.FC<{ item: ItemLegenda; estilo: Timeline["legendas"]; margens: AreaSegura }> = ({ item, estilo, margens }) => {
   const { height } = useVideoConfig();
   return (
-    <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", padding: `0 7% ${height * 0.14}px` }}>
+    <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", padding: `0 ${margens.lados * 100}% ${height * margens.base}px` }}>
       <div
         style={{
           color: "white", fontSize: height * estilo.tamanho, fontWeight: 700, fontFamily: "Arial, Helvetica, sans-serif", textAlign: "center", lineHeight: 1.25,
@@ -123,6 +126,7 @@ const eVisual = (item: ItemDaTimeline): item is ItemVideo | ItemImagem | ItemCar
 
 export const VideoDaTimeline: React.FC<PropriedadesDoVideo> = ({ timeline, arquivos }) => {
   const { fps } = timeline.formato;
+  const margens = timeline.areaSegura ?? MARGENS_PADRAO;
   const ordenados = [...timeline.itens].sort((a, b) => a.camada - b.camada || a.inicioSeg - b.inicioSeg);
   const barras = timeline.efeitosGlobais.find((e): e is Extract<Efeito, { tipo: "barras-de-cinema" }> => e.tipo === "barras-de-cinema");
   const sequencia = (item: ItemDaTimeline, conteudo: React.ReactNode) => (
@@ -135,7 +139,11 @@ export const VideoDaTimeline: React.FC<PropriedadesDoVideo> = ({ timeline, arqui
       {ordenados.filter(eVisual).map((item) => (arquivos[item.id] ? sequencia(item, <Visual item={item} arquivo={arquivos[item.id]} />) : null))}
       {barras ? <BarrasDeCinema proporcao={barras.proporcao} /> : null}
       {ordenados.map((item) =>
-        item.tipo === "legenda" ? sequencia(item, <Legenda item={item} estilo={timeline.legendas} />) : item.tipo === "texto" ? sequencia(item, <Texto item={item} />) : null,
+        item.tipo === "legenda"
+          ? sequencia(item, <Legenda item={item} estilo={timeline.legendas} margens={margens} />)
+          : item.tipo === "texto"
+            ? sequencia(item, <Texto item={item} margens={margens} />)
+            : null,
       )}
       {ordenados.map((item) => (item.tipo === "audio" && arquivos[item.id] ? sequencia(item, <Som item={item} arquivo={arquivos[item.id]} />) : null))}
     </AbsoluteFill>

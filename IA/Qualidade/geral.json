@@ -1,0 +1,39 @@
+{
+  "id": "geral",
+  "nome": "Geral",
+  "plataformas": [],
+  "proporcao": {
+    "orientacao": "qualquer",
+    "gravidade": "recomendacao"
+  },
+  "duracao": {
+    "maximaSeg": null,
+    "gravidade": "recomendacao"
+  },
+  "texto": {
+    "tamanhoMinimo": 0.024,
+    "gravidade": "recomendacao"
+  },
+  "legendas": {
+    "tamanhoMinimo": 0.024,
+    "maximoDeCaracteres": 120
+  },
+  "areaSegura": {
+    "topo": 0.04,
+    "base": 0.06,
+    "lados": 0.04,
+    "gravidade": "recomendacao"
+  },
+  "abertura": {
+    "avaliar": false,
+    "segundos": 0
+  },
+  "ritmo": {
+    "duracaoMaximaDoPlanoSeg": null
+  },
+  "cta": "nao-avaliar",
+  "audio": {
+    "volumeAlvoLufs": -14,
+    "picoMaximoDb": -1
+  }
+}

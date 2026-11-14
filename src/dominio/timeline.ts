@@ -113,7 +113,18 @@ export interface Timeline {
   efeitosGlobais: Efeito[];
   /** Estilo visual das legendas. */
   legendas: { tamanho: number; caixa: boolean };
+  /** Margens que textos e legendas respeitam, como fração do quadro. Ausente = margens padrão. */
+  areaSegura?: AreaSegura;
 }
+
+export interface AreaSegura {
+  topo: number;
+  base: number;
+  lados: number;
+}
+
+/** Margens usadas quando a timeline não define as suas. */
+export const AREA_SEGURA_PADRAO: AreaSegura = { topo: 0.08, base: 0.14, lados: 0.06 };
 
 /** Uma alteração na timeline. Cada operação gera uma nova versão; a anterior é preservada. */
 export type Operacao =
@@ -130,7 +141,9 @@ export type Operacao =
   | { tipo: "mudar-camada"; id: string; camada: number }
   | { tipo: "alterar"; id: string; campos: Record<string, unknown> }
   | { tipo: "efeito-global"; efeito: Efeito; remover?: boolean }
-  | { tipo: "formato"; formato: Partial<FormatoDaTimeline> };
+  | { tipo: "formato"; formato: Partial<FormatoDaTimeline> }
+  /** Muda as margens de textos e legendas e/ou o estilo das legendas. */
+  | { tipo: "apresentacao"; areaSegura?: Partial<AreaSegura>; legendas?: Partial<Timeline["legendas"]> };
 
 export interface VersaoDaTimeline {
   projetoId: string;
@@ -162,6 +175,8 @@ export interface Exportacao {
   erro: string | null;
   /** Quantas tentativas foram feitas (uma falha leva a nova tentativa em modo mais conservador). */
   tentativas: number;
+  /** Preset de exportação usado, se houver. */
+  preset: string | null;
   criadoEm: string;
   concluidoEm: string | null;
 }

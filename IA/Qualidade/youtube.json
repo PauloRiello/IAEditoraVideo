@@ -1,0 +1,41 @@
+{
+  "id": "youtube",
+  "nome": "YouTube",
+  "plataformas": [
+    "youtube"
+  ],
+  "proporcao": {
+    "orientacao": "horizontal",
+    "gravidade": "recomendacao"
+  },
+  "duracao": {
+    "maximaSeg": null,
+    "gravidade": "recomendacao"
+  },
+  "texto": {
+    "tamanhoMinimo": 0.026,
+    "gravidade": "importante"
+  },
+  "legendas": {
+    "tamanhoMinimo": 0.026,
+    "maximoDeCaracteres": 120
+  },
+  "areaSegura": {
+    "topo": 0.05,
+    "base": 0.08,
+    "lados": 0.04,
+    "gravidade": "recomendacao"
+  },
+  "abertura": {
+    "avaliar": true,
+    "segundos": 5
+  },
+  "ritmo": {
+    "duracaoMaximaDoPlanoSeg": 15
+  },
+  "cta": "nao-avaliar",
+  "audio": {
+    "volumeAlvoLufs": -14,
+    "picoMaximoDb": -1
+  }
+}

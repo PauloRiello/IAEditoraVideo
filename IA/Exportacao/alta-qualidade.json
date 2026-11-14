@@ -1,0 +1,10 @@
+{
+  "id": "alta-qualidade",
+  "nome": "Qualidade máxima: resolução da timeline, codificação lenta",
+  "largura": null,
+  "altura": null,
+  "fps": null,
+  "crf": 15,
+  "velocidadeDeCodificacao": "slow",
+  "taxaDeBitsDoAudioKbps": 256
+}

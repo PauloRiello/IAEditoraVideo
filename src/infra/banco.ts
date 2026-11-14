@@ -267,6 +267,23 @@ export const MIGRACOES: string[] = [
   CREATE INDEX evidencias_avaliacao ON evidencias (avaliacao_id);
   CREATE INDEX evidencias_resultado ON evidencias (resultado_id);
   `,
+  // v7 — relatórios de controle de qualidade e preset usado em cada exportação
+  `
+  CREATE TABLE relatorios_de_qualidade (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    projeto_id TEXT NOT NULL REFERENCES projetos(id) ON DELETE CASCADE,
+    versao_da_timeline INTEGER NOT NULL,
+    exportacao_id INTEGER REFERENCES exportacoes(id) ON DELETE SET NULL,
+    arquivo TEXT,
+    perfil_de_qualidade TEXT NOT NULL,
+    situacao TEXT NOT NULL CHECK (situacao IN ('aprovado', 'aprovado-com-ressalvas', 'pendente', 'reprovado')),
+    verificacoes TEXT NOT NULL,
+    excecoes TEXT NOT NULL DEFAULT '[]',
+    criado_em TEXT NOT NULL
+  );
+  CREATE INDEX relatorios_exportacao ON relatorios_de_qualidade (exportacao_id);
+  ALTER TABLE exportacoes ADD COLUMN preset TEXT;
+  `,
 ];
 
 export const VERSAO_ESQUEMA = MIGRACOES.length;

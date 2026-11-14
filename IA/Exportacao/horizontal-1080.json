@@ -1,0 +1,10 @@
+{
+  "id": "horizontal-1080",
+  "nome": "Horizontal 1920×1080 (YouTube, institucional)",
+  "largura": 1920,
+  "altura": 1080,
+  "fps": null,
+  "crf": 18,
+  "velocidadeDeCodificacao": "medium",
+  "taxaDeBitsDoAudioKbps": 192
+}

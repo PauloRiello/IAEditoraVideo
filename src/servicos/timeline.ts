@@ -2,7 +2,7 @@
 // e cada versão salva fica no histórico. Os arquivos de mídia nunca são tocados.
 
 import { ErroAplicacao, NaoEncontrado } from "../dominio/erros.ts";
-import type { Exportacao, ItemDaTimeline, Operacao, Timeline, VersaoDaTimeline } from "../dominio/timeline.ts";
+import { AREA_SEGURA_PADRAO, type Exportacao, type ItemDaTimeline, type Operacao, type Timeline, type VersaoDaTimeline } from "../dominio/timeline.ts";
 import { agora, transacao, type Banco } from "../infra/banco.ts";
 
 type Principal = Extract<ItemDaTimeline, { tipo: "video" | "imagem" | "cartao" }>;
@@ -177,6 +177,14 @@ export function aplicarOperacao(original: Timeline, op: Operacao): Timeline {
       t.formato = { ...t.formato, ...op.formato };
       break;
     }
+    case "apresentacao": {
+      if (op.areaSegura) {
+        t.areaSegura = { ...(t.areaSegura ?? AREA_SEGURA_PADRAO), ...op.areaSegura };
+        if (Object.values(t.areaSegura).some((m) => m < 0 || m > 0.4)) throw invalida("As margens da área segura vão de 0 a 0,4.");
+      }
+      if (op.legendas) t.legendas = { ...t.legendas, ...op.legendas };
+      break;
+    }
   }
   return validar(refluir(t));
 }
@@ -187,6 +195,7 @@ export function descreverOperacao(op: Operacao): string {
   const nomes: Record<Operacao["tipo"], string> = {
     inserir: "Inserido item", remover: "Removido item", cortar: "Cortado item", dividir: "Dividido item", "ajustar-duracao": "Ajustada a duração de",
     reposicionar: "Reposicionado item", mover: "Movido item", "mudar-camada": "Mudada a camada de", alterar: "Alterado item", "efeito-global": "Alterado efeito global", formato: "Alterado o formato",
+    apresentacao: "Alteradas margens ou estilo das legendas",
   };
   const detalhe = op.tipo === "inserir" ? ` "${op.item.id}" (${op.item.tipo})` : op.tipo === "alterar" ? `: ${Object.keys(op.campos).join(", ")}` : op.tipo === "efeito-global" ? `: ${op.efeito.tipo}` : "";
   return `${nomes[op.tipo]}${alvo}${detalhe}`;
@@ -196,14 +205,14 @@ interface LinhaTimeline { projeto_id: string; versao: number; timeline: string; 
 interface LinhaExportacao {
   id: number; projeto_id: string; versao_da_timeline: number; tipo: "previa" | "final"; estado: Exportacao["estado"]; progresso: number; arquivo: string | null;
   largura: number | null; altura: number | null; fps: number | null; duracao_seg: number | null; tamanho_bytes: number | null; verificacao: string | null;
-  erro: string | null; tentativas: number; criado_em: string; concluido_em: string | null;
+  erro: string | null; tentativas: number; preset: string | null; criado_em: string; concluido_em: string | null;
 }
 
 const paraVersao = (l: LinhaTimeline): VersaoDaTimeline => ({ projetoId: l.projeto_id, versao: l.versao, timeline: JSON.parse(l.timeline), autor: l.autor, nota: l.nota, criadoEm: l.criado_em });
 const paraExportacao = (l: LinhaExportacao): Exportacao => ({
   id: l.id, projetoId: l.projeto_id, versaoDaTimeline: l.versao_da_timeline, tipo: l.tipo, estado: l.estado, progresso: l.progresso, arquivo: l.arquivo,
   largura: l.largura, altura: l.altura, fps: l.fps, duracaoSeg: l.duracao_seg, tamanhoBytes: l.tamanho_bytes,
-  verificacao: l.verificacao ? JSON.parse(l.verificacao) : null, erro: l.erro, tentativas: l.tentativas, criadoEm: l.criado_em, concluidoEm: l.concluido_em,
+  verificacao: l.verificacao ? JSON.parse(l.verificacao) : null, erro: l.erro, tentativas: l.tentativas, preset: l.preset, criadoEm: l.criado_em, concluidoEm: l.concluido_em,
 });
 
 /** Guarda as versões da timeline e o histórico de exportações. */
@@ -240,10 +249,10 @@ export class ServicoTimeline {
 
   // --- Exportações --------------------------------------------------------------
 
-  criarExportacao(projetoId: string, versaoDaTimeline: number, tipo: "previa" | "final"): Exportacao {
+  criarExportacao(projetoId: string, versaoDaTimeline: number, tipo: "previa" | "final", preset: string | null = null): Exportacao {
     const r = this.banco
-      .prepare("INSERT INTO exportacoes (projeto_id, versao_da_timeline, tipo, estado, criado_em) VALUES (?, ?, ?, 'na-fila', ?)")
-      .run(projetoId, versaoDaTimeline, tipo, agora());
+      .prepare("INSERT INTO exportacoes (projeto_id, versao_da_timeline, tipo, estado, preset, criado_em) VALUES (?, ?, ?, 'na-fila', ?, ?)")
+      .run(projetoId, versaoDaTimeline, tipo, preset, agora());
     return this.exportacao(Number(r.lastInsertRowid));
   }
 

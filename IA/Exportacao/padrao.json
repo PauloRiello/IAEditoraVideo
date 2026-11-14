@@ -1,0 +1,10 @@
+{
+  "id": "padrao",
+  "nome": "Padrão: resolução e taxa de quadros da timeline, qualidade alta",
+  "largura": null,
+  "altura": null,
+  "fps": null,
+  "crf": 18,
+  "velocidadeDeCodificacao": "medium",
+  "taxaDeBitsDoAudioKbps": 192
+}
