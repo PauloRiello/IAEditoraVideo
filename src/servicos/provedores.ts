@@ -154,3 +154,27 @@ export function provedoresConfigurados(configurados: ConfiguracaoProvedor[], cha
     .filter((config) => config.ativo && config.tipo === "compativel-openai")
     .map((config) => new ProvedorCompativelOpenAI(config, process.env, chaves[config.id]));
 }
+
+/** Servidores de modelos locais mais comuns e o endereço em que costumam atender. */
+const SERVIDORES_LOCAIS = [
+  { id: "ollama", nome: "Ollama", urlBase: "http://127.0.0.1:11434/v1" },
+  { id: "lm-studio", nome: "LM Studio", urlBase: "http://127.0.0.1:1234/v1" },
+  { id: "llama-cpp", nome: "llama.cpp", urlBase: "http://127.0.0.1:8080/v1" },
+];
+
+/** Procura servidores de modelos rodando neste computador e lista os modelos de cada um. Nunca lança erro. */
+export async function detectarServidoresLocais(): Promise<{ id: string; nome: string; urlBase: string; modelos: string[] }[]> {
+  const achados = await Promise.all(
+    SERVIDORES_LOCAIS.map(async (servidor) => {
+      try {
+        const resposta = await fetch(`${servidor.urlBase}/models`, { signal: AbortSignal.timeout(1500) });
+        if (!resposta.ok) return null;
+        const corpo = (await resposta.json()) as { data?: { id?: string }[] };
+        return { ...servidor, modelos: (corpo.data ?? []).map((m) => String(m.id ?? "")).filter(Boolean) };
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return achados.filter((s): s is NonNullable<typeof s> => s !== null);
+}

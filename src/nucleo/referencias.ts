@@ -75,6 +75,12 @@ export class AnaliseDeReferencias {
     return novas;
   }
 
+  /** Último relatório de uma referência em texto legível (Markdown), se houver. */
+  relatorioEmMarkdown(referenciaId: string): string | null {
+    const relatorio = this.relatorio(referenciaId);
+    return relatorio ? paraMarkdown(relatorio) : null;
+  }
+
   /** Último relatório gravado de uma referência, se houver. */
   relatorio(referenciaId: string): RelatorioReferencia | null {
     return (this.d.acervo.analises({ referenciaId }, "referencia")[0]?.resultado as RelatorioReferencia | undefined) ?? null;

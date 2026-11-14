@@ -36,6 +36,10 @@ export interface DependenciasDoFluxo {
   feedback: Feedback;
 }
 
+/** Tipos de arquivo aceitos como vídeo (bruto ou referência) e como trilha sonora. */
+export { EXTENSOES_DE_VIDEO } from "../../Pipeline/ingestion/arquivos.ts";
+export const EXTENSOES_DE_AUDIO = new Set([".mp3", ".m4a", ".wav", ".ogg", ".flac", ".aac"]);
+
 /** Nome de pasta aceito pelo Windows, a partir de um texto livre. */
 export const nomeDePasta = (texto: string): string => texto.replace(/[<>:"/\\|?*\u0000-\u001f]/g, " ").replace(/\s+/g, " ").replace(/[. ]+$/, "").trim().slice(0, 80) || "Projeto";
 
