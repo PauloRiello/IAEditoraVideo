@@ -194,6 +194,75 @@ Uma entrada por etapa concluída. A próxima etapa só começa com autorização
   - Telas de relatório, exceções e presets dependem da interface gráfica.
   - Execução em Windows e codificação por GPU continuam sem teste (servidor Linux sem GPU).
 
+## Etapa 10 — Interface, instalador e entrega do software independente ✅ (com ressalva)
+
+Ressalva: tudo foi testado em Linux. O instalador do Windows, os atalhos e a abertura da
+janela pelo Edge ainda não foram executados em um Windows real.
+
+- **Interface gráfica** (`src/interface/web/`, servida por `src/interface/servidor.ts`):
+  - Painel: criar e abrir projeto, recentes, status do processamento e histórico de atividades.
+  - Projetos: nome, objetivo, segmento, plataforma, formato, referências, vídeos brutos,
+    histórico e exportações.
+  - Material e análise: envio de vídeos, análise em segundo plano, transcrição, cenas com
+    miniaturas, pesquisa e relatórios de referências.
+  - Plano e roteiro, Edição (timeline visual, prévia, ajustes por item, versões, desfazer,
+    comparar), Exportação (presets, destino, conferência, relatórios com exceções, histórico)
+    e Avaliação (decisão, notas, trechos, métricas).
+  - Aprendizado: o que foi aprendido por contexto, perfis de estilo, preferências, histórico
+    e controle da memória.
+  - Configurações: modelos locais, provedores externos opcionais, credenciais, modelos
+    ativos, recursos que funcionam localmente ou exigem modelo, estado das conexões,
+    recursos do computador, pastas e cópias de segurança.
+- **Configuração dos projetos:** 9 segmentos (novo: Educação), público, objetivo, plataforma,
+  proporção, resolução, FPS, duração, estilo e nível de intervenção automática (sugestão,
+  assistido, automático). O plano sempre espera a aprovação.
+- **Núcleo:** fluxo de trabalho, tarefas em segundo plano com progresso, histórico de
+  atividades, cofre de credenciais e registro de instância. Banco na versão 8.
+- **Segurança:** servidor só em 127.0.0.1, origem conferida, sessão por abertura; a chave de
+  API nunca volta para a interface nem entra em configurações, registros ou cópias.
+- **Instalação e ciclo de vida:** `instalar`, `iniciar`, `parar`, `atualizar`, `backup` e
+  `restaurar` em `scripts/`, com atalhos em `windows/` e instalador que usa o winget.
+- **Atualização pelo GitHub** preservando dados: cópia antes, migração do banco com cópia
+  própria e volta à versão anterior se a nova não abrir.
+- **Correções:** abrir a aplicação não interfere mais em renders de outro processo (era a
+  causa de uma falha intermitente nos testes); cada render usa uma porta livre própria.
+- **Decisão de arquitetura:** janela servida pela própria aplicação em vez de Electron,
+  sem dependência nova (registrada em [ARQUITETURA.md](ARQUITETURA.md), seção 10).
+- Documentação: [INSTALACAO.md](INSTALACAO.md), [USO.md](USO.md),
+  [ATUALIZACAO.md](ATUALIZACAO.md), [BACKUP.md](BACKUP.md) e [LIMITACOES.md](LIMITACOES.md).
+- **Testes:** 78 testes de unidade (`npm test`), todos passando — 14 novos: 9 do servidor
+  da interface (sessão, projetos, envio, análise com eventos, plano, timeline, prévia com
+  reprodução parcial, exportação, avaliação, provedores e chaves, cópias, encerramento) e 5
+  do ciclo de vida, com processos próprios (instalar, iniciar, parar, backup, atualizar pelo
+  Git, atualização com defeito e restaurar).
+- **Auditoria final** (Linux, ambiente sem variáveis nem executável do Claude Code):
+
+  | Item | Como foi testado | Resultado |
+  |---|---|---|
+  | Instalação limpa | Clone novo do repositório e `instalar.mjs` completo, com dependências reais | Passou (1 min 21 s; 11 de 11 verificações) |
+  | Inicialização independente | `iniciar.mjs` na instalação limpa; processo próprio | Passou |
+  | Encerramento | Botão Encerrar na janela e `parar.mjs` | Passou |
+  | Importação de vídeos | Envio pela janela (Chromium automatizado) | Passou |
+  | Análise de referências | Pela janela, com relatório | Passou |
+  | Análise de materiais brutos | Pela janela, com transcrição pelo Whisper | Passou |
+  | Memória persistente | Reabertura: projeto, aprendizados, provedor e configurações presentes | Passou |
+  | Planejamento | Plano gerado ao fim da análise e aprovado pela janela | Passou |
+  | Edição | Ajuste de texto, inserção, desfazer e comparação de versões | Passou |
+  | Pré-visualização | Prévia gerada e reproduzida na janela | Passou |
+  | Renderização e exportação | Exportação com preset, conferida por FFprobe e FFmpeg | Passou |
+  | Feedback | Avaliação com notas e preferência registrada | Passou |
+  | Atualização | `atualizar.mjs` na instalação limpa, com dados reais, e nos testes | Passou |
+  | Backup e restauração | Pela janela, por `backup.mjs` e `restaurar.mjs` | Passou |
+  | Sem Claude Code | Ambiente sem as variáveis e sem o executável; `src/` não o menciona | Passou |
+  | Instalador e atalhos do Windows | — | **Não testado** |
+  | Vídeos reais e GPU | — | **Não testado** |
+
+- **Pendências:** estão em [LIMITACOES.md](LIMITACOES.md). As principais:
+  - Executar `windows\Instalar.cmd` em um Windows 10 ou 11 e corrigir o que aparecer.
+  - Validar com vídeos reais de FiveM e RedM e calibrar os limites de análise e de qualidade.
+  - O instalador baixa o ramo principal do GitHub: o código desta etapa precisa estar nele.
+  - Sem instalador único (.exe); prévia não é ao vivo; timeline sem arrastar e soltar.
+
 ## Próximas etapas (não iniciadas)
 
-Ordem sugerida, a confirmar: interface gráfica → instalador para Windows.
+A confirmar com o usuário. Sugestão: validação em Windows real com vídeos reais.

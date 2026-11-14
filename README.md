@@ -3,9 +3,12 @@
 Editor de vídeo assistido por IA: recebe vídeos brutos, analisa e transcreve o
 conteúdo, decide a edição, renderiza e verifica a qualidade antes de exportar.
 
-> **Status:** do vídeo bruto ao MP4 exportado e conferido, pela linha de comando: análise,
-> plano, aprovação, timeline editável, prévia, renderização, controle de qualidade com
-> relatório e aprendizado com o feedback, tudo testado. Ainda não há interface gráfica nem instalador. Andamento: [docs/PROGRESSO.md](docs/PROGRESSO.md).
+> **Status:** primeira versão utilizável (0.1.0). Aplicação com janela própria, instalação,
+> atualização e cópias de segurança: do vídeo bruto ao MP4 exportado e conferido, com
+> memória e aprendizado, sem depender de nenhum outro programa aberto nem de serviço de IA.
+> Testada em Linux com vídeos sintéticos; o instalador do Windows ainda não foi executado em
+> um Windows real. Andamento: [docs/PROGRESSO.md](docs/PROGRESSO.md). Pendências:
+> [docs/LIMITACOES.md](docs/LIMITACOES.md).
 
 Roda no computador do usuário, sem depender de nenhum serviço de IA externo. O primeiro
 foco são vídeos promocionais de servidores FiveM e RedM para Instagram e TikTok, tratados
@@ -24,12 +27,15 @@ IAEditoraVideo/
 │   ├── nucleo/           Aplicação e orquestrador do pipeline
 │   ├── servicos/         Projetos, memória, aprendizado, acervo, perfis, provedores de IA
 │   ├── infra/            Banco SQLite, cópias de segurança, caminhos, configurações
-│   └── interface/        Linha de comando (janela gráfica futura)
+│   └── interface/        Janela (servidor local e página) e linha de comando
 ├── Pipeline/             Processamento audiovisual, agentes e motor de render
-├── IA/Perfis/            Perfis de especialização (geral, fivem, redm e mais cinco)
+├── IA/Perfis/            Perfis de especialização (geral, fivem, redm e mais seis)
 ├── IA/Estilos/           Estilos de edição (gameplay, ação, trailer e mais sete)
 ├── exemplos/             Exemplos executáveis
-├── scripts/              Setup, detecção de GPU e verificadores
+├── IA/Qualidade/         Critérios de qualidade por destino
+├── IA/Exportacao/        Presets de exportação
+├── scripts/              Instalar, iniciar, parar, atualizar, backup, restaurar, setup e verificadores
+├── windows/              Instalador e atalhos para Windows
 ├── config/               Configurações das ferramentas (sem segredos)
 ├── tests/                Testes de unidade e composições de teste
 ├── docs/                 Documentação
@@ -52,7 +58,37 @@ A arquitetura está detalhada em [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
 
 Versões instaladas: [docs/VERSOES.md](docs/VERSOES.md).
 
-## Como executar
+## Instalar e usar
+
+**No Windows:** baixe o programa, abra a pasta `windows` e dê dois cliques em
+`Instalar.cmd`. Ele instala o que faltar (Node.js, Git, FFmpeg e Python), configura as
+pastas, verifica as ferramentas e cria o atalho **IA Editora de Video**. Passo a passo em
+[docs/INSTALACAO.md](docs/INSTALACAO.md).
+
+**Em macOS e Linux**, com Node.js 22.20+, Python 3.11+, FFmpeg e Git instalados:
+
+```bash
+npm run instalar
+```
+
+```bash
+npm run iniciar
+```
+
+| Para | Windows | Qualquer sistema |
+|---|---|---|
+| Instalar ou reparar | `windows\Instalar.cmd` | `npm run instalar` |
+| Abrir a aplicação | Atalho ou `windows\Iniciar.cmd` | `npm run iniciar` |
+| Fechar | Botão Encerrar ou `windows\Parar.cmd` | `npm run parar` |
+| Atualizar pelo GitHub | `windows\Atualizar.cmd` | `npm run atualizar` |
+| Cópia de segurança | `windows\Backup.cmd` | `npm run backup` |
+| Restaurar uma cópia | `windows\Restaurar.cmd` | `npm run restaurar` |
+
+Guias: [instalação](docs/INSTALACAO.md), [utilização](docs/USO.md),
+[atualização](docs/ATUALIZACAO.md), [cópia de segurança e restauração](docs/BACKUP.md) e
+[limitações conhecidas](docs/LIMITACOES.md).
+
+## Desenvolvimento
 
 Requer Node.js 22.20+, Python 3.11+, FFmpeg e Git já instalados. Funciona em
 Windows, macOS e Linux.
@@ -81,7 +117,8 @@ npm run app -- situacao
 npm run exemplo:memoria
 ```
 
-Outros comandos da aplicação (lista completa com `npm run app`):
+A janela cobre todos os recursos. Os mesmos recursos existem em comandos (lista completa
+com `npm run app`):
 
 | Comando | Função |
 |---|---|

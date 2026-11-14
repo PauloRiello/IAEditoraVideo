@@ -194,8 +194,8 @@ duração e resultado da conferência.
 
 ## Limites desta etapa
 
-- Sem interface gráfica: a timeline é editada por operações, em código ou em JSON pela
-  linha de comando. A prévia é um arquivo, não uma reprodução ao vivo.
+- Na janela, a timeline é ajustada por campos e botões, sem arrastar e soltar. A prévia é
+  um vídeo renderizado, não uma reprodução ao vivo.
 - Poucos efeitos e uma única transição além do corte, de propósito.
 - O HyperFrames é usado só no cartão final; cartões transparentes sobre o vídeo e blocos
   do catálogo dele ficam para depois.

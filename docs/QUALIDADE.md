@@ -182,4 +182,4 @@ Exportações/<projeto>/relatorios/<mesmo nome>.md
 - O contraste dos textos não considera a sombra do texto.
 - Sincronia é conferida pelo início e pela duração das faixas, não pela fala (labial).
 - Limites calibrados com vídeos sintéticos; faltam vídeos reais.
-- Telas de relatório e de exceções dependem da interface gráfica.
+- Na janela, o relatório e as exceções ficam na aba Exportação do projeto ([USO.md](USO.md)).

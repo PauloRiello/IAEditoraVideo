@@ -182,5 +182,5 @@ fechamentos, reinicializações e atualizações, como o restante da memória.
 - As correções deduzidas cobrem os assuntos da tabela acima; mudanças fora deles (por
   exemplo, reordenar clipes) aparecem na comparação, mas não viram preferência.
 - As métricas são digitadas pelo usuário; não há importação das plataformas.
-- Sem interface gráfica: avaliação, comparação e controle são feitos por código ou pela
-  linha de comando.
+- Na janela, a avaliação fica na aba Avaliação do projeto e o controle do que foi aprendido
+  na área Aprendizado ([USO.md](USO.md)).

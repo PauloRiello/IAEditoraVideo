@@ -54,6 +54,23 @@ Leia [docs/ARQUITETURA.md](docs/ARQUITETURA.md) antes de alterar a estrutura e
   limite novo entra no JSON do destino (`IA/Qualidade/`), não no código do verificador.
 - **Exportação não sobrescreve.** O arquivo é conferido fora de `Exportações/` e só então
   movido, com nome único.
+- **A janela não decide nada.** `src/interface/rotas.ts` só traduz pedidos em chamadas à
+  `Aplicacao`; a página em `src/interface/web/` só mostra e pede. Regra de negócio fica no
+  núcleo e nos serviços. A interface não importa nada de `Pipeline/`.
+- **Interface sem dependências.** A página é HTML, CSS e JavaScript puros, sem etapa de
+  compilação; o servidor usa só módulos nativos do Node. Scripts carregados só da própria
+  aplicação (a política de segurança da página bloqueia o resto).
+- **Só o próprio computador.** O servidor atende apenas `127.0.0.1`, confere a origem e
+  exige a sessão. Arquivos são servidos por identificador (projeto, mídia, exportação),
+  nunca por caminho recebido no pedido.
+- **Chave nunca aparece.** Chaves de API ficam só em `credenciais.json`, na pasta de
+  dados. Não vão para respostas da API, configurações, registros, cópias de segurança,
+  testes com valores reais nem commits.
+- **Uma instância por pasta de dados.** Quem abre a `Aplicacao` com outra já aberta não
+  recupera nem apaga trabalho em andamento (`src/infra/instancia.ts`).
+- **Instalação e atualização preservam dados.** Scripts de `scripts/` e `windows/` nunca
+  apagam nem sobrescrevem dados do usuário; a atualização faz cópia antes e volta atrás se
+  falhar. Mensagens de erro dizem o que aconteceu e o que fazer, sem jargão.
 - **Feedback ensina com cautela.** Correção de um projeto fica candidata no perfil; rejeição
   sem aspecto apontado não ensina nada; métricas são sinal fraco, nunca criam regra e nunca
   são inventadas ([docs/FEEDBACK.md](docs/FEEDBACK.md)).
@@ -67,6 +84,10 @@ Leia [docs/ARQUITETURA.md](docs/ARQUITETURA.md) antes de alterar a estrutura e
 
 | Comando | Função |
 |---|---|
+| `npm run instalar` | Instalação completa: pastas, dependências, verificação, banco e atalho |
+| `npm run iniciar` / `npm run parar` | Abre a aplicação com a janela / encerra com segurança |
+| `npm run atualizar` | Atualiza pelo Git, com cópia de segurança e reversão em caso de falha |
+| `npm run backup` / `npm run restaurar` | Cria / restaura cópia de segurança |
 | `npm run setup` | Instala o que falta (npm, `.venv`, GPU, navegador de render) |
 | `npm test` | Testes de unidade da aplicação |
 | `npm run typecheck` | Checagem de tipos |
@@ -92,22 +113,29 @@ Antes de concluir uma alteração: `npm run typecheck` e `npm test`.
 | Pasta | Conteúdo |
 |---|---|
 | `src/dominio/` | Tipos e contratos, sem E/S |
-| `src/nucleo/` | `Aplicacao` (ciclo de vida), `Orquestrador` (pipeline), análise de referências, Agente Coordenador (`producao.ts`), edição e exportação (`edicao.ts`), relatórios de qualidade e exceções (`qualidade.ts`), feedback e métricas (`feedback.ts`) |
-| `src/servicos/` | Projetos, memória, aprendizado, acervo, índice de pesquisa, timeline, comparação de versões, estilos, perfis, perfis de qualidade e presets, provedores de IA, recursos |
-| `src/infra/` | Banco SQLite, cópias de segurança, caminhos, configurações |
-| `src/interface/` | Linha de comando (janela gráfica futura) |
+| `src/nucleo/` | `Aplicacao` (ciclo de vida), `Orquestrador` (pipeline), análise de referências, Agente Coordenador (`producao.ts`), edição e exportação (`edicao.ts`), relatórios de qualidade e exceções (`qualidade.ts`), feedback e métricas (`feedback.ts`), fluxo de trabalho da janela (`fluxo.ts`), tarefas em segundo plano (`tarefas.ts`) |
+| `src/servicos/` | Projetos, memória, aprendizado, acervo, índice de pesquisa, timeline, comparação de versões, estilos, perfis, perfis de qualidade e presets, atividades, provedores de IA, recursos |
+| `src/infra/` | Banco SQLite, cópias de segurança, caminhos, configurações, credenciais, instância em execução |
+| `src/interface/` | Servidor local (`servidor.ts`), rotas (`rotas.ts`), ponto de entrada da janela (`principal.ts`), linha de comando (`cli.ts`) |
+| `src/interface/web/` | Página da janela: `app.js`, `nucleo.js`, `estilo.css` e uma tela por arquivo em `telas/` |
 | `Pipeline/<etapa>/` | Processamento audiovisual e agentes (as seis etapas têm código; `quality-control/` é o Agente de Qualidade) |
-| `IA/Perfis/` | Perfis de especialização em JSON (8 perfis) |
+| `IA/Perfis/` | Perfis de especialização em JSON (9 perfis) |
 | `IA/Estilos/` | Estilos de edição em JSON (10 estilos) |
 | `IA/Qualidade/` | Perfis de qualidade por destino em JSON (6 destinos) |
 | `IA/Exportacao/` | Presets de exportação em JSON (7 presets) |
 | `exemplos/` | Exemplos executáveis de uso da aplicação |
-| `tests/unidade/` | Testes da aplicação (referências, produção, edição e qualidade geram vídeos com o FFmpeg; os de edição e de qualidade renderizam de verdade; a suíte leva cerca de 2 min) |
+| `tests/unidade/` | Testes da aplicação (referências, produção, edição, qualidade e interface geram vídeos com o FFmpeg e renderizam de verdade; `ciclo.test.ts` instala, abre, atualiza e restaura uma cópia do programa em pasta temporária; a suíte leva cerca de 2 min) |
 | `tests/smoke/` | Composições mínimas usadas pelos verificadores |
-| `scripts/` | Setup, detecção de GPU e verificadores |
+| `scripts/` | Instalar, iniciar, parar, atualizar, backup, restaurar, setup, detecção de GPU e verificadores |
+| `windows/` | Instalador (`Instalar.cmd`, `Instalar.ps1`) e atalhos `.cmd`, em ASCII e com fim de linha do Windows |
 | `Dados/` | Banco, configurações e temporários locais (fora do Git) |
 
 ## Ao terminar uma etapa
 
-Atualize `README.md`, `docs/ARQUITETURA.md` se a estrutura mudou, e acrescente a etapa
-em `docs/PROGRESSO.md` com o que foi feito, os testes e as pendências.
+Atualize `README.md`, `docs/ARQUITETURA.md` se a estrutura mudou, os guias do usuário
+(`docs/INSTALACAO.md`, `USO.md`, `ATUALIZACAO.md`, `BACKUP.md`, `LIMITACOES.md`) se o que
+o usuário vê mudou, e acrescente a etapa em `docs/PROGRESSO.md` com o que foi feito, os
+testes e as pendências.
+
+Ao mexer na janela, confira no navegador de verdade: os testes de `interface.test.ts`
+cobrem a API, não a página.

@@ -1,8 +1,9 @@
 # Arquitetura — IA Editora de Vídeo
 
-> Status: **estrutura central implementada e testada.** As etapas de processamento
-> audiovisual e a interface gráfica ainda não existem. O andamento está em
-> [PROGRESSO.md](PROGRESSO.md).
+> Status: **primeira versão utilizável.** Núcleo, processamento audiovisual, interface
+> gráfica, instalação, atualização e cópias de segurança implementados e testados em
+> Linux; o instalador do Windows ainda não foi executado em um Windows real. O andamento
+> está em [PROGRESSO.md](PROGRESSO.md) e as pendências em [LIMITACOES.md](LIMITACOES.md).
 
 ## 1. Visão geral
 
@@ -35,7 +36,7 @@ documentário, educacional, trailer e conteúdo pessoal.
 ```
 ┌────────────────────────────────────────────────────────────┐
 │ Interface            src/interface/                        │
-│ linha de comando (hoje) · janela gráfica (futura)          │
+│ janela (servidor local + página) · linha de comando        │
 └───────────────┬────────────────────────────────────────────┘
                 │ só conhece a classe Aplicacao
 ┌───────────────▼────────────────────────────────────────────┐
@@ -66,8 +67,15 @@ processamento executa ferramentas audiovisuais.
 | Módulo | Onde | Responsabilidade | Situação |
 |---|---|---|---|
 | Núcleo de orquestração | `src/nucleo/` | Montar serviços, iniciar e encerrar, executar o pipeline por etapas e gravar cada resultado | Implementado |
-| Interface | `src/interface/` | Apresentar a aplicação ao usuário, sem lógica de negócio | Linha de comando implementada; janela gráfica pendente |
-| Projetos | `src/servicos/projetos.ts` | Criar, listar, abrir e remover projetos; registrar mídias | Implementado |
+| Interface gráfica | `src/interface/servidor.ts`, `rotas.ts`, `principal.ts`, `web/` | Servidor local (só 127.0.0.1, com sessão), rotas que traduzem pedidos em chamadas à `Aplicacao`, e a página da janela, sem lógica de negócio | Implementado |
+| Linha de comando | `src/interface/cli.ts` | Os mesmos recursos em comandos, para automação e para os scripts de instalação | Implementado |
+| Fluxo de trabalho | `src/nucleo/fluxo.ts` | Ações que a janela aciona: configuração do projeto, nível de intervenção automática, tarefas e histórico de atividades | Implementado |
+| Tarefas em segundo plano | `src/nucleo/tarefas.ts` | Fila de análises com estado e progresso; espelha os renders para o painel | Implementado |
+| Histórico de atividades | `src/servicos/atividades.ts` | Registro do que aconteceu na aplicação e em cada projeto | Implementado |
+| Credenciais | `src/infra/credenciais.ts` | Chaves de API em arquivo próprio na pasta de dados, fora das configurações, dos registros e das cópias | Implementado |
+| Instância em execução | `src/infra/instancia.ts` | Registro do processo aberto: uma instância por pasta de dados; comandos paralelos não mexem no trabalho em andamento | Implementado |
+| Instalação e ciclo de vida | `scripts/{instalar,iniciar,parar,atualizar,backup,restaurar}.mjs`, `windows/` | Instalar, abrir, fechar, atualizar pelo Git e copiar ou restaurar dados | Implementado; `windows/` não testado em Windows real |
+| Projetos | `src/servicos/projetos.ts` | Criar, listar, configurar e remover projetos; registrar mídias | Implementado |
 | Análise de referências | `Pipeline/analysis/`, `src/nucleo/referencias.ts` | Medir imagem e áudio, interpretar narrativa, gerar regras de edição, relatórios e aprendizados | Implementado |
 | Transcrição | `Pipeline/transcription/` | Fala → texto pelo Whisper local, como processo separado | Implementado para referências; etapa do pipeline pendente |
 | Análise de vídeos brutos | `Pipeline/ingestion/arquivos.ts`, `Pipeline/analysis/conteudo.ts` | Agentes de Arquivos e de Conteúdo: dados técnicos, integridade, cenas, ação, falas, erros, miniaturas e índice | Implementado |
@@ -87,10 +95,10 @@ processamento executa ferramentas audiovisuais.
 | Perfis de qualidade e presets | `src/servicos/qualidade.ts`, `IA/Qualidade/`, `IA/Exportacao/` | Critérios por destino e presets de exportação, com substituição pelos arquivos do usuário | Implementado (6 destinos, 7 presets) |
 | Provedores de IA | `src/servicos/provedores.ts` | Registrar provedores, aplicar a política local/externo e selecionar por capacidade; texto e leitura de imagens | Implementado |
 | Recursos do computador | `src/servicos/recursos.ts` | Ler CPU, RAM e GPU; decidir GPU ou CPU por modelo conforme a VRAM | Implementado |
-| Perfis de especialização | `src/servicos/perfis.ts`, `IA/Perfis/` | Carregar e combinar perfis e formatos de saída | Implementado (8 perfis) |
+| Perfis de especialização | `src/servicos/perfis.ts`, `IA/Perfis/` | Carregar e combinar perfis e formatos de saída | Implementado (9 perfis) |
 | Cópias de segurança | `src/infra/backup.ts` | Criar, validar, restaurar e rotacionar cópias; isolar arquivos corrompidos | Implementado |
 | Arquivos e exportações | `src/infra/caminhos.ts` | Definir e criar a estrutura de pastas | Implementado |
-| Banco de dados | `src/infra/banco.ts` | Esquema, migrações, transações e verificação de integridade | Implementado (esquema v7) |
+| Banco de dados | `src/infra/banco.ts` | Esquema, migrações, transações e verificação de integridade | Implementado (esquema v8) |
 | Configurações | `src/infra/configuracoes.ts` | Ler e gravar preferências do usuário | Implementado |
 
 ## 5. Pipeline
@@ -177,17 +185,21 @@ estimado ou não avaliado.
 | Perfis de qualidade e presets do usuário | `Dados/qualidade/`, `Dados/presets/` | `%LOCALAPPDATA%\IAEditoraVideo\qualidade\` e `presets\` | Não |
 | Vídeos em conferência e reprovados | `Dados/projetos/<projeto>/em-conferencia/`, `reprovados/` | `%LOCALAPPDATA%\IAEditoraVideo\projetos\` | Não |
 | Mídias originais | `Videos Brutos/`, `Referências/` | `Documentos\IA Editora de Vídeo\` | Não |
+| Chaves de API | `Dados/config/credenciais.json` | `%LOCALAPPDATA%\IAEditoraVideo\config\` | Não |
+| Registro da aplicação e instância aberta | `Dados/logs/aplicacao.log`, `Dados/execucao.json` | `%LOCALAPPDATA%\IAEditoraVideo\` | Não |
+| Pastas escolhidas na instalação | `config/local.instalacao.json` | Pasta do programa | Não |
 | Exportações e relatórios de qualidade | `Exportações/<projeto>/` e `relatorios/` | `Documentos\IA Editora de Vídeo\Exportações\` | Não |
 
-As variáveis `IAEV_DADOS` e `IAEV_BIBLIOTECA` redirecionam as pastas de dados e de
-mídias. As demais pastas de `IA/` (Memoria, Aprendizado, Feedback, Analises,
+A pasta de dados e a de mídias são definidas, nesta ordem, pelas variáveis `IAEV_DADOS` e
+`IAEV_BIBLIOTECA`, pelo arquivo `config/local.instalacao.json` gravado pelo instalador, ou
+pelo padrão de desenvolvimento (dentro do repositório, fora do Git). As demais pastas de `IA/` (Memoria, Aprendizado, Feedback, Analises,
 Conhecimento) ficam reservadas para conteúdo versionável dessas áreas; os dados de
 cada usuário vão para o banco.
 
-**Banco (SQLite, esquema v7):** `projetos`, `midias`, `execucoes`, `memoria`, `feedback`,
+**Banco (SQLite, esquema v8):** `projetos`, `midias`, `execucoes`, `memoria`, `feedback`,
 `referencias`, `projeto_referencias`, `analises`, `planos`, `aprendizados`, `evidencias`,
 `usos_ia`, `decisoes`, `indice`, `timelines`, `exportacoes`, `avaliacoes`,
-`trechos_em_revisao`, `resultados`, `acoes_de_aprendizado`, `relatorios_de_qualidade`. O banco guarda caminhos, metadados e resultados, nunca vídeos.
+`trechos_em_revisao`, `resultados`, `acoes_de_aprendizado`, `relatorios_de_qualidade`, `atividades`. O banco guarda caminhos, metadados e resultados, nunca vídeos.
 
 - **Atualizações:** o esquema evolui por migrações numeradas; uma versão nova do
   programa aplica só as que faltam, depois de criar uma cópia do banco. Configurações
@@ -209,37 +221,53 @@ o controle de qualidade e a exportação, em [QUALIDADE.md](QUALIDADE.md).
 | Mídia | FFmpeg e FFprobe | Já instalados e verificados |
 | Transcrição | faster-whisper (Python) | Já instalado; a etapa o chama como processo separado |
 | Referências | yt-dlp (Python) | Já instalado; uso restrito a conteúdo autorizado |
+| Interface gráfica | Servidor HTTP nativo do Node e página em HTML, CSS e JavaScript puros | Nenhuma dependência nova, nada a compilar; abre em janela própria do Edge ou do Chrome |
 | Testes | Executor nativo do Node (`node --test`) | Sem dependência adicional |
 
 Dependências de produção acrescentadas ao longo do projeto: apenas `@remotion/renderer` e
 `@remotion/bundler`, na etapa de renderização. Elas já vinham instaladas com o
 `@remotion/cli` e foram declaradas para poder acionar o render pelo código, o que dá
-progresso, cancelamento e controle de paralelismo.
+progresso, cancelamento e controle de paralelismo. A interface gráfica, o instalador e os
+scripts de ciclo de vida não acrescentaram nenhuma dependência.
 
-## 10. Caminho para a aplicação instalável no Windows
+## 10. Aplicação instalável: interface, instalação e ciclo de vida
 
-Planejado, ainda não implementado:
-
-| Item | Abordagem |
+| Item | Como funciona |
 |---|---|
-| Janela gráfica | Electron com React: embute o Node (necessário ao Remotion) e reaproveita os componentes de vídeo na prévia. A janela fala com a `Aplicacao` por um canal interno |
-| Instalador | electron-builder (NSIS), com Node, FFmpeg e um Python embutido para Whisper e yt-dlp |
-| Inicialização e encerramento | `new Aplicacao()` e `encerrar()`, já implementados |
-| Atualização | Atualizador do Electron; os dados ficam fora da pasta do programa e o banco migra sozinho |
-| Backup | Cópia manual, cópia automática ao abrir e restauração já implementadas; falta a tela |
+| Janela | `src/interface/principal.ts` abre a `Aplicacao` e um servidor HTTP em `127.0.0.1`. A página (`src/interface/web/`) é aberta em janela própria do Edge ou do Chrome (`--app`), ou no navegador padrão |
+| Segurança da janela | Só o próprio computador é atendido; o endereço de origem é conferido; cada abertura sorteia um segredo de sessão, entregue por cookie que o JavaScript não lê; arquivos são servidos só por identificador, nunca por caminho livre |
+| Eventos | Tarefas, renders e atividades chegam à janela por eventos enviados pelo servidor (`/api/eventos`) |
+| Instância única | `Dados/execucao.json` registra processo, porta e sessão. Abrir de novo só reabre a janela |
+| Encerramento | Botão Encerrar, `parar.mjs` ou fechar a janela (a aplicação termina o trabalho e se encerra sem janela). Renders são interrompidos sem deixar arquivo pela metade |
+| Instalação | `windows/Instalar.cmd` instala Node.js, Git, FFmpeg e Python pelo winget e chama `scripts/instalar.mjs`: pastas, dependências, verificação, banco e atalho |
+| Atualização | `scripts/atualizar.mjs`: cópia de segurança, `git merge --ff-only`, dependências se mudaram, migração do banco; em caso de falha volta à versão anterior |
+| Cópias de segurança | Automáticas, manuais, antes de migração, de atualização e de restauração; pela janela ou por `backup.mjs` e `restaurar.mjs` |
+
+**Decisão registrada.** O plano anterior previa Electron e um instalador NSIS. Foi adotada
+a janela servida pela própria aplicação porque não acrescenta dependência, não exige
+compilar nem empacotar binários, é testável de ponta a ponta e mantém a regra das camadas
+(a página só fala com a `Aplicacao` pelas rotas). A mesma página pode ser embutida em um
+Electron no futuro, se um instalador único (.exe) for necessário. Guias:
+[INSTALACAO.md](INSTALACAO.md), [USO.md](USO.md), [ATUALIZACAO.md](ATUALIZACAO.md) e
+[BACKUP.md](BACKUP.md).
 
 ## 11. Dependências
 
 **Existentes e verificadas:** Node.js, TypeScript, Remotion, HyperFrames, GSAP, React,
 FFmpeg, FFprobe, faster-whisper, yt-dlp, SQLite (nativo). Versões em [VERSOES.md](VERSOES.md).
 
-**Pendentes (não instaladas):**
+**Exigidas no computador do usuário** (instaladas pelo instalador do Windows quando faltam):
+Node.js 22.20 ou mais recente, Python 3.11 ou mais recente, FFmpeg com FFprobe e Git. Para
+abrir a janela: Microsoft Edge, Chrome ou outro navegador atual. As bibliotecas do
+programa (pacotes npm e Python) são instaladas por `npm run setup`, acionado pelo instalador.
+
+**Opcionais ou futuras (não instaladas):**
 
 | Dependência | Para quê |
 |---|---|
-| Electron e electron-builder | Janela gráfica e instalador para Windows |
+| Electron e electron-builder | Só se for necessário um instalador único (.exe) com janela própria |
 | Python embutido | Distribuir Whisper e yt-dlp sem exigir Python instalado |
-| Servidor de modelo local (por exemplo, Ollama) | Opcional: planejamento por IA sem serviço externo |
+| Servidor de modelo local (Ollama, LM Studio, llama.cpp) | Opcional: leituras por modelo de linguagem ou de visão sem serviço externo; detectado em Configurações |
 
 ## 12. Decisões em aberto
 
