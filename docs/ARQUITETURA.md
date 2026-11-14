@@ -80,6 +80,7 @@ processamento executa ferramentas audiovisuais.
 | Estilos de edição | `src/servicos/estilos.ts`, `IA/Estilos/` | Carregar e combinar estilos (gameplay, ação, trailer...) | Implementado (10 estilos) |
 | Renderização | `Pipeline/rendering/` | Remotion compõe; FFmpeg prepara trechos; HyperFrames gera cartões | Implementado |
 | Tarefas de render | `src/nucleo/edicao.ts` | Fila, progresso, cancelamento, nova tentativa, conferência do arquivo e histórico | Implementado |
+| Feedback e aprendizado contínuo | `src/nucleo/feedback.ts`, `src/servicos/comparacao.ts` | Avaliar edições, comparar versões, deduzir correções manuais, registrar métricas e mostrar o que foi aprendido | Implementado |
 | Memória persistente | `src/servicos/memoria.ts`, `acervo.ts` | Preferências, referências, análises, planos versionados e uso de IA | Implementado |
 | Aprendizado | `src/servicos/aprendizado.ts` | Feedback e aprendizados com evidências, confiança, escopo e revisão | Implementado; extração automática pendente |
 | Controle de qualidade | `Pipeline/quality-control/` | Conferir duração, sincronia, áudio e conformidade com o formato | Contrato definido |
@@ -88,7 +89,7 @@ processamento executa ferramentas audiovisuais.
 | Perfis de especialização | `src/servicos/perfis.ts`, `IA/Perfis/` | Carregar e combinar perfis e formatos de saída | Implementado (8 perfis) |
 | Cópias de segurança | `src/infra/backup.ts` | Criar, validar, restaurar e rotacionar cópias; isolar arquivos corrompidos | Implementado |
 | Arquivos e exportações | `src/infra/caminhos.ts` | Definir e criar a estrutura de pastas | Estrutura implementada; nomeação de exportações pendente |
-| Banco de dados | `src/infra/banco.ts` | Esquema, migrações, transações e verificação de integridade | Implementado (esquema v5) |
+| Banco de dados | `src/infra/banco.ts` | Esquema, migrações, transações e verificação de integridade | Implementado (esquema v6) |
 | Configurações | `src/infra/configuracoes.ts` | Ler e gravar preferências do usuário | Implementado |
 
 ## 5. Pipeline
@@ -134,7 +135,8 @@ O contrato tem duas operações opcionais: `gerarTexto` e `descreverImagens`. O 
 passa por essa camada: roda localmente, como processo Python, em `Pipeline/transcription/`.
 
 A edição e a renderização — timeline, estilos, prévia, exportação e papel de cada
-ferramenta — estão em [EDICAO.md](EDICAO.md).
+ferramenta — estão em [EDICAO.md](EDICAO.md). A avaliação das edições, as métricas de
+resultado e o controle do que foi aprendido estão em [FEEDBACK.md](FEEDBACK.md).
 
 A preparação do vídeo — brutos, pesquisa, plano, aprovação e roteiro — é feita por cinco
 agentes internos, descritos em [PRODUCAO.md](PRODUCAO.md). "Agente" aqui é um componente
@@ -178,9 +180,10 @@ mídias. As demais pastas de `IA/` (Memoria, Aprendizado, Feedback, Analises,
 Conhecimento) ficam reservadas para conteúdo versionável dessas áreas; os dados de
 cada usuário vão para o banco.
 
-**Banco (SQLite, esquema v5):** `projetos`, `midias`, `execucoes`, `memoria`, `feedback`,
+**Banco (SQLite, esquema v6):** `projetos`, `midias`, `execucoes`, `memoria`, `feedback`,
 `referencias`, `projeto_referencias`, `analises`, `planos`, `aprendizados`, `evidencias`,
-`usos_ia`, `decisoes`, `indice`, `timelines`, `exportacoes`. O banco guarda caminhos, metadados e resultados, nunca vídeos.
+`usos_ia`, `decisoes`, `indice`, `timelines`, `exportacoes`, `avaliacoes`,
+`trechos_em_revisao`, `resultados`, `acoes_de_aprendizado`. O banco guarda caminhos, metadados e resultados, nunca vídeos.
 
 - **Atualizações:** o esquema evolui por migrações numeradas; uma versão nova do
   programa aplica só as que faltam, depois de criar uma cópia do banco. Configurações

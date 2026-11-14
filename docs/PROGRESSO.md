@@ -133,6 +133,33 @@ Uma entrada por etapa concluída. A próxima etapa só começa com autorização
   - Sincronia dos cortes com a batida da trilha; legendas em frases curtas.
   - Validação com vídeos reais.
 
+## Etapa 8 — Feedback e aprendizado contínuo ✅
+
+- Avaliação de edições: aprovar, rejeitar, pedir alterações, motivo, notas de 1 a 5 por
+  aspecto (roteiro, ritmo, cortes, efeitos, áudio, resultado) e trechos marcados para revisão.
+- Comparação de versões da timeline: itens que entraram, saíram e mudaram, e indicadores.
+- Correções manuais deduzidas da diferença entre a versão da IA e a aprovada, só quando
+  mudam de faixa; valem para o projeto e ficam candidatas no perfil.
+- Notas baixas contestam e notas altas confirmam os aprendizados em vigor do aspecto;
+  rejeição sem aspecto apontado não ensina nada.
+- Planejamento e montagem passam a seguir as preferências aprendidas (transições, cor,
+  zoom, barras, legendas, posição dos textos, formato do CTA, volume da trilha).
+- Contextos separados: geral, projeto, um por perfil e temporárias; painel do que foi aprendido.
+- Rastreabilidade: cada evidência aponta a avaliação ou o resultado de origem.
+- Reversibilidade: desfazer avaliação, remover resultado e desfazer qualquer correção,
+  desativação, ativação ou exclusão de aprendizado.
+- Métricas informadas pelo usuário, com atribuição só com evidência, comparação apenas
+  com 3 ou mais resultados do mesmo perfil e plataforma, e sinal fraco que nunca cria regra.
+- Duas categorias novas: enquadramento e comunicação. Banco na versão 6.
+- Documentação em [FEEDBACK.md](FEEDBACK.md).
+- **Testes:** 56 testes de unidade (`npm test`), todos passando — 8 novos, cobrindo
+  separação de contextos, rastreabilidade, reversibilidade e métricas.
+- **Pendências:**
+  - O texto do motivo não é interpretado; só decisões, notas e correções geram aprendizado.
+  - "Aprendizados aplicados" são os em vigor no projeto, não a lista exata usada na montagem.
+  - Métricas digitadas à mão, sem importação das plataformas.
+  - Telas de avaliação, comparação e controle dependem da interface gráfica.
+
 ## Próximas etapas (não iniciadas)
 
 Ordem sugerida, a confirmar: controle de qualidade → interface gráfica → instalador para Windows.

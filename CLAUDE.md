@@ -43,6 +43,12 @@ Leia [docs/ARQUITETURA.md](docs/ARQUITETURA.md) antes de alterar a estrutura e
   para o destino ao terminar.
 - **Efeito precisa de motivo.** A montagem só aplica um recurso que o estilo, a memória ou
   as referências pedem e que faz sentido no formato, e registra a origem da escolha.
+- **Feedback ensina com cautela.** Correção de um projeto fica candidata no perfil; rejeição
+  sem aspecto apontado não ensina nada; métricas são sinal fraco, nunca criam regra e nunca
+  são inventadas ([docs/FEEDBACK.md](docs/FEEDBACK.md)).
+- **Aprendizado rastreável e reversível.** Toda evidência registra a fonte (projeto,
+  referência, avaliação ou resultado). Ações sobre aprendizados passam por
+  `ServicoAprendizado`, que guarda o estado anterior para desfazer.
 - **Nada pessoal no Git.** Vídeos, banco, `Dados/`, `.env` e chaves ficam fora.
 - **Trabalhe uma etapa por vez** e não avance para a seguinte sem autorização do usuário.
 
@@ -75,8 +81,8 @@ Antes de concluir uma alteração: `npm run typecheck` e `npm test`.
 | Pasta | Conteúdo |
 |---|---|
 | `src/dominio/` | Tipos e contratos, sem E/S |
-| `src/nucleo/` | `Aplicacao` (ciclo de vida), `Orquestrador` (pipeline), análise de referências, Agente Coordenador (`producao.ts`), edição e tarefas de render (`edicao.ts`) |
-| `src/servicos/` | Projetos, memória, aprendizado, acervo, índice de pesquisa, timeline, estilos, perfis, provedores de IA, recursos |
+| `src/nucleo/` | `Aplicacao` (ciclo de vida), `Orquestrador` (pipeline), análise de referências, Agente Coordenador (`producao.ts`), edição e tarefas de render (`edicao.ts`), feedback e métricas (`feedback.ts`) |
+| `src/servicos/` | Projetos, memória, aprendizado, acervo, índice de pesquisa, timeline, comparação de versões, estilos, perfis, provedores de IA, recursos |
 | `src/infra/` | Banco SQLite, cópias de segurança, caminhos, configurações |
 | `src/interface/` | Linha de comando (janela gráfica futura) |
 | `Pipeline/<etapa>/` | Processamento audiovisual e agentes (`ingestion/`, `analysis/`, `transcription/`, `editing/`, `rendering/` já têm código) |

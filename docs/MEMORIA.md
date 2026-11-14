@@ -33,11 +33,12 @@ Exemplo executável, em pasta temporária: `npm run exemplo:memoria`
 
 ## 2. Categorias da memória de edição
 
-Todo aprendizado pertence a uma destas 18 categorias (`CATEGORIAS_EDICAO`):
+Todo aprendizado pertence a uma destas 20 categorias (`CATEGORIAS_EDICAO`):
 
 `ritmo`, `cortes`, `duracao-planos`, `transicoes`, `movimentos-camera`, `zoom`,
 `efeitos-visuais`, `cores`, `iluminacao`, `tipografia`, `legendas`, `trilha-sonora`,
-`efeitos-sonoros`, `sincronizacao-musical`, `narrativa`, `hooks`, `retencao`, `cta`.
+`efeitos-sonoros`, `sincronizacao-musical`, `narrativa`, `hooks`, `retencao`, `cta`,
+`enquadramento`, `comunicacao`.
 
 Dentro da categoria, a `chave` identifica o assunto (por exemplo `ritmo` /
 `cortes-por-minuto`) e o `valor` guarda o dado estruturado.
@@ -157,9 +158,14 @@ app.encerrar();
 | Fechamento à força | Etapas que ficaram "executando" são marcadas como falhas na abertura seguinte |
 | Dados fora do GitHub | Tudo fica em `Dados/` (ou em `%LOCALAPPDATA%` no programa instalado), pasta ignorada pelo Git |
 
-## 7. Limites desta etapa
+## 7. De onde vêm os aprendizados
 
-- Os aprendizados são registrados e consultados, mas ainda não há motor de edição que os aplique.
-- Nada extrai aprendizados automaticamente de feedbacks em texto ou de análises: quem
-  chama `observar` e `registrarCorrecao` serão as etapas futuras e a interface.
+O que alimenta a memória — avaliações de edições, correções manuais, notas por aspecto e
+métricas de resultado — e como desfazer cada coisa está em [FEEDBACK.md](FEEDBACK.md).
+As referências analisadas também geram candidatos ([REFERENCIAS.md](REFERENCIAS.md)).
+
+## 8. Limites da memória
+
+- O texto livre de um feedback (o motivo) não é interpretado: só decisões, notas e
+  correções geram aprendizado.
 - A cópia de segurança cobre banco e configurações, não as mídias nem os perfis do usuário.

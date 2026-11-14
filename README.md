@@ -4,8 +4,8 @@ Editor de vídeo assistido por IA: recebe vídeos brutos, analisa e transcreve o
 conteúdo, decide a edição, renderiza e verifica a qualidade antes de exportar.
 
 > **Status:** do vídeo bruto ao MP4 exportado, pela linha de comando: análise, plano,
-> aprovação, timeline editável, prévia e renderização, tudo testado. Ainda não há interface
-> gráfica nem instalador. Andamento: [docs/PROGRESSO.md](docs/PROGRESSO.md).
+> aprovação, timeline editável, prévia, renderização e aprendizado com o feedback, tudo
+> testado. Ainda não há interface gráfica nem instalador. Andamento: [docs/PROGRESSO.md](docs/PROGRESSO.md).
 
 Roda no computador do usuário, sem depender de nenhum serviço de IA externo. O primeiro
 foco são vídeos promocionais de servidores FiveM e RedM para Instagram e TikTok, tratados
@@ -99,6 +99,10 @@ Outros comandos da aplicação (lista completa com `npm run app`):
 | `npm run app -- previa <projeto>` | Renderiza uma prévia de baixa qualidade |
 | `npm run app -- exportar <projeto>` | Renderiza o vídeo final em MP4 |
 | `npm run app -- exportacoes <projeto>` | Histórico de exportações |
+| `npm run app -- avaliar <projeto> aprovar "motivo"` | Avalia a edição (aprovar, rejeitar ou alterar) |
+| `npm run app -- comparar <projeto> 1 3` | Compara duas versões da timeline |
+| `npm run app -- resultado <projeto> Instagram --retencaoPercentual 48` | Registra métricas informadas |
+| `npm run app -- aprendido` | Mostra o que foi aprendido, por contexto |
 | `npm run app -- referencias importar` | Registra os vídeos novos da pasta `Referências/` |
 | `npm run app -- referencias analisar todas` | Analisa as referências e grava os relatórios |
 | `npm run app -- aprendizados` | Lista o que a IA aprendeu |
@@ -109,7 +113,8 @@ Outros comandos da aplicação (lista completa com `npm run app`):
 Documentação por assunto: memória e aprendizado em [docs/MEMORIA.md](docs/MEMORIA.md);
 análise de referências em [docs/REFERENCIAS.md](docs/REFERENCIAS.md); vídeos brutos, plano
 de edição, aprovação e roteiro em [docs/PRODUCAO.md](docs/PRODUCAO.md); timeline, estilos,
-prévia e renderização em [docs/EDICAO.md](docs/EDICAO.md).
+prévia e renderização em [docs/EDICAO.md](docs/EDICAO.md); avaliação das edições, métricas
+e controle do aprendizado em [docs/FEEDBACK.md](docs/FEEDBACK.md).
 
 Instalação, verificação, aceleração por GPU e uso de cada ferramenta estão em
 [docs/AMBIENTE.md](docs/AMBIENTE.md).
