@@ -254,9 +254,19 @@ janela pelo Edge ainda não foram executados em um Windows real.
   | Atualização | `atualizar.mjs` na instalação limpa, com dados reais, e nos testes | Passou |
   | Backup e restauração | Pela janela, por `backup.mjs` e `restaurar.mjs` | Passou |
   | Sem Claude Code | Ambiente sem as variáveis e sem o executável; `src/` não o menciona | Passou |
-  | Instalador e atalhos do Windows | — | **Não testado** |
+  | Instalador do Windows (`Instalar.ps1`) e comando do atalho | Simulação com PowerShell em Linux | Passou na simulação; **não executado em Windows real** |
+  | Arquivos `.cmd`, winget real, atalho gravado, janela pelo Edge | — | **Não testado** |
   | Vídeos reais e GPU | — | **Não testado** |
 
+- **Revisão do instalador do Windows** (autorizada depois da entrega): simulação com o
+  PowerShell em Linux, guardada em `tests/windows/simular_instalador.sh` (28 verificações).
+  A revisão corrigiu quatro defeitos antes de qualquer uso real:
+  - a pasta digitada pelo usuário era ignorada quando o instalador sugeria uma;
+  - reinstalar trocava as pastas escolhidas antes pelas sugeridas (agora são mantidas);
+  - opções extras iam parar no parâmetro errado do instalador;
+  - o "python" da Microsoft Store era tomado por Python instalado.
+  O atalho passou a ser criado por comando codificado, que preserva espaços, acentos e
+  aspas nos caminhos. Novas opções: `-Ramo`, `-Pasta`, `--sugerir-dados`, `--sugerir-biblioteca`.
 - **Pendências:** estão em [LIMITACOES.md](LIMITACOES.md). As principais:
   - Executar `windows\Instalar.cmd` em um Windows 10 ou 11 e corrigir o que aparecer.
   - Validar com vídeos reais de FiveM e RedM e calibrar os limites de análise e de qualidade.

@@ -126,6 +126,7 @@ Antes de concluir uma alteração: `npm run typecheck` e `npm test`.
 | `exemplos/` | Exemplos executáveis de uso da aplicação |
 | `tests/unidade/` | Testes da aplicação (referências, produção, edição, qualidade e interface geram vídeos com o FFmpeg e renderizam de verdade; `ciclo.test.ts` instala, abre, atualiza e restaura uma cópia do programa em pasta temporária; a suíte leva cerca de 2 min) |
 | `tests/smoke/` | Composições mínimas usadas pelos verificadores |
+| `tests/windows/` | Simulação do instalador do Windows com PowerShell fora do Windows (`bash tests/windows/simular_instalador.sh`; exige `pwsh`, senão é pulada) |
 | `scripts/` | Instalar, iniciar, parar, atualizar, backup, restaurar, setup, detecção de GPU e verificadores |
 | `windows/` | Instalador (`Instalar.cmd`, `Instalar.ps1`) e atalhos `.cmd`, em ASCII e com fim de linha do Windows |
 | `Dados/` | Banco, configurações e temporários locais (fora do Git) |
@@ -138,4 +139,6 @@ o usuário vê mudou, e acrescente a etapa em `docs/PROGRESSO.md` com o que foi 
 testes e as pendências.
 
 Ao mexer na janela, confira no navegador de verdade: os testes de `interface.test.ts`
-cobrem a API, não a página.
+cobrem a API, não a página. Ao mexer em `windows/` ou em `scripts/instalar.mjs`, rode a
+simulação de `tests/windows/` e mantenha os arquivos de `windows/` em ASCII, compatíveis
+com o Windows PowerShell 5.1.

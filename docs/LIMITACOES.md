@@ -7,9 +7,13 @@ que não foi avaliado aparece como "não avaliado", nunca como um palpite.
 
 - **Windows ainda não testado em máquina real.** A aplicação foi desenvolvida e testada em
   Linux. Os scripts de instalar, iniciar, parar, atualizar, copiar e restaurar são os
-  mesmos em todos os sistemas e passam nos testes, mas `windows\Instalar.ps1`, os arquivos
-  `.cmd`, a criação dos atalhos e a abertura da janela pelo Edge não foram executados em
-  um Windows. É o primeiro item a validar.
+  mesmos em todos os sistemas e passam nos testes. O `windows\Instalar.ps1` e o comando do
+  atalho foram simulados com o PowerShell fora do Windows
+  (`tests/windows/simular_instalador.sh`), o que cobre a lógica e os caminhos de erro. Não
+  foram executados: os arquivos `.cmd` (dependem do `cmd.exe`), o winget de verdade, o
+  pedido de autorização do Windows, a gravação do atalho, a abertura da janela pelo Edge e
+  o comportamento do Windows PowerShell 5.1 (a simulação usa o PowerShell 7, só conferindo
+  que nenhum recurso exclusivo dele é usado). É o primeiro item a validar.
 - **Não há instalador único (.exe).** A instalação é feita por um script que usa o winget
   para instalar Node.js, Git, FFmpeg e Python. Exige internet e Windows 10 ou 11 com winget.
 - **A janela é uma janela do Edge ou do Chrome.** A interface é uma página servida pela

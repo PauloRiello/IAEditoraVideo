@@ -5,8 +5,11 @@ instalada, não depende de nenhum outro programa aberto nem de internet para edi
 
 > **Situação dos testes.** A instalação, o início, a parada, a atualização, a cópia de
 > segurança e a restauração foram testados em Linux, com os mesmos scripts usados no
-> Windows. O instalador do Windows (`windows\Instalar.cmd` e `Instalar.ps1`), os atalhos e
-> a abertura da janela pelo Edge **ainda não foram executados em um Windows real**. Veja
+> Windows. O instalador do Windows (`Instalar.ps1`) e o comando que cria o atalho foram
+> revisados e simulados com o PowerShell fora do Windows, com programas falsos no lugar do
+> winget, do Node.js, do Git, do FFmpeg e do Python. Ainda **não foram executados em um
+> Windows real**: os arquivos `.cmd`, o winget de verdade, o pedido de autorização do
+> Windows, a criação do atalho e a abertura da janela pelo Edge. Veja
 > [LIMITACOES.md](LIMITACOES.md).
 
 ## O que é preciso
@@ -43,7 +46,17 @@ instalada, não depende de nenhum outro programa aberto nem de internet para edi
    no Menu Iniciar (ou por `windows\Iniciar.cmd`).
 
 O instalador pode ser executado de novo a qualquer momento, por exemplo para reparar a
-instalação: ele só instala o que falta e não apaga nem sobrescreve o que já existe.
+instalação: ele só instala o que falta, não apaga nem sobrescreve o que já existe e
+mantém as pastas de dados e de vídeos escolhidas na primeira vez.
+
+**Opções do instalador** (para quem precisar):
+
+| Opção | Efeito |
+|---|---|
+| `Instalar.cmd -Ramo nome-do-ramo` | Com o instalador sozinho: baixa um ramo específico do repositório, por exemplo para testar uma versão ainda não publicada no ramo principal |
+| `Instalar.cmd -Pasta "D:\Programas\IA Editora"` | Com o instalador sozinho: escolhe onde o programa é colocado |
+| `Instalar.cmd --padrao` | Não pergunta nada e usa as pastas sugeridas |
+| `Instalar.cmd --biblioteca "D:\Videos"` | Define a pasta dos vídeos e exportações |
 
 ## Onde fica cada coisa
 
