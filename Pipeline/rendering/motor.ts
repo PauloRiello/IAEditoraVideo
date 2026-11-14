@@ -5,6 +5,7 @@
 // Há um único motor de composição: o Remotion. Os outros dois só produzem insumos para ele.
 
 import { createHash } from "node:crypto";
+import { createServer } from "node:net";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -141,6 +142,18 @@ async function prepararMidias(p: PedidoDeRender, escala: number): Promise<Record
 
 let empacotando: Promise<string> | null = null;
 
+/** Uma porta livre neste computador, para o servidor interno do render. */
+function portaLivre(): Promise<number> {
+  return new Promise((resolver, rejeitar) => {
+    const sonda = createServer();
+    sonda.once("error", rejeitar);
+    sonda.listen(0, () => {
+      const { port } = sonda.address() as { port: number };
+      sonda.close(() => resolver(port));
+    });
+  });
+}
+
 /** Empacota a composição do Remotion uma vez e reaproveita o pacote enquanto o código não mudar. */
 function pacoteDaComposicao(pastaTemporaria: string): Promise<string> {
   empacotando ??= (async () => {
@@ -202,10 +215,12 @@ export async function renderizarTimeline(p: PedidoDeRender): Promise<{ largura: 
     if (p.cancelamento.cancelado) throw new RenderCancelado();
     const inputProps = { timeline: p.timeline, arquivos };
     const comum = { serveUrl: pacote, inputProps, browserExecutable: navegador, logLevel: "error" as const };
-    const composition = await selectComposition({ ...comum, id: "Timeline" });
+    // Cada etapa usa uma porta livre própria: a porta padrão do Remotion é fixa e pode estar em uso por outro programa ou outro render.
+    const composition = await selectComposition({ ...comum, id: "Timeline", port: await portaLivre() });
     const final = p.qualidade === "final";
     await renderMedia({
       ...comum,
+      port: await portaLivre(),
       composition,
       codec: "h264",
       audioCodec: "aac",

@@ -6,11 +6,12 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { caminhosPadrao } from "../infra/caminhos.ts";
+import { arquivoDeExecucao as arquivoDaInstancia } from "../infra/instancia.ts";
 import { Aplicacao } from "../nucleo/aplicacao.ts";
 import { iniciarServidor } from "./servidor.ts";
 
 const caminhos = caminhosPadrao();
-const arquivoDeExecucao = path.join(caminhos.dados, "execucao.json");
+const arquivoDeExecucao = arquivoDaInstancia(caminhos.dados);
 const agora = () => new Date().toISOString();
 
 /** Outra instância já está atendendo? Duas ao mesmo tempo disputariam o banco e os renders. */

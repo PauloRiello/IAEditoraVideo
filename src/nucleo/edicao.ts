@@ -24,6 +24,7 @@ import type { Hardware } from "../servicos/recursos.ts";
 import { aplicarOperacao, descreverOperacao, normalizarTimeline, type ServicoTimeline } from "../servicos/timeline.ts";
 import type { ServicoDeQualidade } from "../servicos/qualidade.ts";
 import type { Producao } from "./producao.ts";
+import { processoVivo } from "../infra/instancia.ts";
 import { resumoDoRelatorio, type Qualidade } from "./qualidade.ts";
 
 export interface DependenciasDaEdicao {
@@ -208,12 +209,20 @@ export class Edicao {
     return this.renderizar(anterior.projetoId, anterior.tipo, { versao: anterior.versaoDaTimeline, preset: anterior.preset ?? undefined });
   }
 
-  /** Na abertura: fecha as exportações que ficaram pela metade e apaga os arquivos temporários de render. */
+  /**
+   * Na abertura: fecha as exportações que ficaram pela metade e apaga os arquivos temporários
+   * de render. Só é apagado o que pertence a processos que já terminaram: um render em
+   * andamento em outro processo não é tocado.
+   */
   recuperar(): number {
     for (const nome of existsSync(this.d.caminhos.temporarios) ? readdirSync(this.d.caminhos.temporarios) : []) {
       if (/^render-\d+\.mp4$/.test(nome)) rmSync(path.join(this.d.caminhos.temporarios, nome), { force: true });
     }
-    rmSync(path.join(this.d.caminhos.temporarios, "remotion-pacote", "public"), { recursive: true, force: true });
+    const publica = path.join(this.d.caminhos.temporarios, "remotion-pacote", "public");
+    for (const nome of existsSync(publica) ? readdirSync(publica) : []) {
+      const pid = Number(/-(\d+)$/.exec(nome)?.[1] ?? NaN);
+      if (!Number.isInteger(pid) || pid === process.pid || !processoVivo(pid)) rmSync(path.join(publica, nome), { recursive: true, force: true });
+    }
     return this.d.timelines.recuperarInterrompidas();
   }
 

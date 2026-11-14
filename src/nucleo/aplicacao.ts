@@ -14,6 +14,7 @@ import {
 } from "../infra/backup.ts";
 import { abrirBanco, BancoCorrompido, VERSAO_ESQUEMA, type Banco } from "../infra/banco.ts";
 import { caminhosPadrao, garantirPastas, type Caminhos } from "../infra/caminhos.ts";
+import { outraInstanciaAtiva } from "../infra/instancia.ts";
 import { carregarConfiguracoes, CONFIGURACOES_PADRAO, salvarConfiguracoes, type Configuracoes } from "../infra/configuracoes.ts";
 import { arquivoDeCredenciais, carregarCredenciais, salvarCredenciais } from "../infra/credenciais.ts";
 import { ServicoAtividades } from "../servicos/atividades.ts";
@@ -110,10 +111,13 @@ export class Aplicacao {
     });
     this.montarServicos();
 
-    const interrompidas = this.orquestrador.recuperarInterrompidas();
-    if (interrompidas > 0) this.avisos.push(`${interrompidas} etapa(s) interrompida(s) por fechamento inesperado foram marcadas como falhas.`);
-    const rendersInterrompidos = this.edicao.recuperar();
-    if (rendersInterrompidos > 0) this.avisos.push(`${rendersInterrompidos} exportação(ões) interrompida(s) pelo fechamento da aplicação; podem ser repetidas.`);
+    // Com a aplicação já aberta em outra janela, o que está "em andamento" está mesmo em andamento lá: nada é recuperado.
+    if (!outraInstanciaAtiva(caminhos.dados)) {
+      const interrompidas = this.orquestrador.recuperarInterrompidas();
+      if (interrompidas > 0) this.avisos.push(`${interrompidas} etapa(s) interrompida(s) por fechamento inesperado foram marcadas como falhas.`);
+      const rendersInterrompidos = this.edicao.recuperar();
+      if (rendersInterrompidos > 0) this.avisos.push(`${rendersInterrompidos} exportação(ões) interrompida(s) pelo fechamento da aplicação; podem ser repetidas.`);
+    }
     this.aprendizado.limparExpirados();
     if (bancoExistia) this.copiaAutomatica();
   }
