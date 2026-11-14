@@ -254,8 +254,8 @@ janela pelo Edge ainda não foram executados em um Windows real.
   | Atualização | `atualizar.mjs` na instalação limpa, com dados reais, e nos testes | Passou |
   | Backup e restauração | Pela janela, por `backup.mjs` e `restaurar.mjs` | Passou |
   | Sem Claude Code | Ambiente sem as variáveis e sem o executável; `src/` não o menciona | Passou |
-  | Instalador do Windows (`Instalar.ps1`) e comando do atalho | Simulação com PowerShell em Linux | Passou na simulação; **não executado em Windows real** |
-  | Arquivos `.cmd`, winget real, atalho gravado, janela pelo Edge | — | **Não testado** |
+  | Instalador do Windows (`Instalar.cmd`, `Instalar.ps1`), winget e atalho | Simulação com PowerShell em Linux e uma execução em Windows 11 real | Passou (2 verificações de ferramentas falharam e foram corrigidas) |
+  | Abrir pelo atalho, janela no Edge e uso da aplicação no Windows | — | **Não testado** |
   | Vídeos reais e GPU | — | **Não testado** |
 
 - **Revisão do instalador do Windows** (autorizada depois da entrega): simulação com o
@@ -267,8 +267,24 @@ janela pelo Edge ainda não foram executados em um Windows real.
   - o "python" da Microsoft Store era tomado por Python instalado.
   O atalho passou a ser criado por comando codificado, que preserva espaços, acentos e
   aspas nos caminhos. Novas opções: `-Ramo`, `-Pasta`, `--sugerir-dados`, `--sugerir-biblioteca`.
+- **Primeiro teste em Windows real** (feito pelo usuário: Windows 11, Node.js 26.13,
+  Python 3.14.7, RTX 3050 6 GB, programa baixado em ZIP):
+  - Funcionou: `Instalar.cmd`, instalação do FFmpeg pelo winget, pacotes npm, ambiente
+    Python, detecção da placa e do NVENC, render do Remotion com NVENC, yt-dlp, banco e
+    atalho. 9 de 11 verificações passaram.
+  - Falhou e foi corrigido:
+    - Whisper: `cublas64_12.dll` não encontrada. A detecção dava a placa como utilizável só
+      pelo driver. Agora as bibliotecas são conferidas de verdade (`Pipeline/transcription/gpu.py`),
+      instaladas quando faltam, e a transcrição cai para o processador se a placa falhar.
+    - HyperFrames: o navegador próprio dele não abriu ("Invalid file descriptor to ICU
+      data"). Agora o cartão tenta o navegador do Remotion e o Chrome ou Edge do sistema;
+      se nenhum servir, é desenhado pela composição do Remotion. Os verificadores passaram
+      a relatar isso como aviso, porque a aplicação continua funcionando.
+    - Aviso `DEP0190` do Node 26 ao chamar arquivos `.cmd`: eliminado.
+  - 3 testes novos (`tests/unidade/alternativas.test.ts`), simulando as falhas em Linux;
+    a suíte passou a ter 81 testes. As correções ainda não foram conferidas no Windows.
 - **Pendências:** estão em [LIMITACOES.md](LIMITACOES.md). As principais:
-  - Executar `windows\Instalar.cmd` em um Windows 10 ou 11 e corrigir o que aparecer.
+  - Repetir a instalação no Windows com as correções e testar a abertura e o uso da aplicação.
   - Validar com vídeos reais de FiveM e RedM e calibrar os limites de análise e de qualidade.
   - O instalador baixa o ramo principal do GitHub: o código desta etapa precisa estar nele.
   - Sem instalador único (.exe); prévia não é ao vivo; timeline sem arrastar e soltar.

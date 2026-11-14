@@ -5,15 +5,19 @@ que não foi avaliado aparece como "não avaliado", nunca como um palpite.
 
 ## Instalação e sistema
 
-- **Windows ainda não testado em máquina real.** A aplicação foi desenvolvida e testada em
-  Linux. Os scripts de instalar, iniciar, parar, atualizar, copiar e restaurar são os
-  mesmos em todos os sistemas e passam nos testes. O `windows\Instalar.ps1` e o comando do
-  atalho foram simulados com o PowerShell fora do Windows
-  (`tests/windows/simular_instalador.sh`), o que cobre a lógica e os caminhos de erro. Não
-  foram executados: os arquivos `.cmd` (dependem do `cmd.exe`), o winget de verdade, o
-  pedido de autorização do Windows, a gravação do atalho, a abertura da janela pelo Edge e
-  o comportamento do Windows PowerShell 5.1 (a simulação usa o PowerShell 7, só conferindo
-  que nenhum recurso exclusivo dele é usado). É o primeiro item a validar.
+- **Windows testado só em parte.** A aplicação é desenvolvida e testada em Linux. O
+  instalador rodou uma vez em um Windows 11 real (Node.js 26, Python 3.14, RTX 3050):
+  winget, dependências, detecção da placa, render pelo Remotion com NVENC, banco e atalho
+  funcionaram. Duas verificações falharam e foram corrigidas: o Whisper não achava as
+  bibliotecas CUDA (agora são conferidas e instaladas, e a transcrição cai para o
+  processador se a placa não puder ser usada) e o navegador do HyperFrames não abriu
+  (agora há navegadores alternativos e, por fim, o cartão desenhado pelo Remotion). Essas
+  correções foram testadas em Linux, simulando as falhas, mas **ainda não conferidas no
+  Windows**. Também faltam testar no Windows: abrir pelo atalho, a janela no Edge, o uso
+  da aplicação, atualizar, copiar e restaurar.
+- **Causa do erro do HyperFrames no Windows não identificada.** A mensagem foi "Invalid
+  file descriptor to ICU data received", do navegador próprio dele. A aplicação contorna
+  o problema, mas não o elimina.
 - **Não há instalador único (.exe).** A instalação é feita por um script que usa o winget
   para instalar Node.js, Git, FFmpeg e Python. Exige internet e Windows 10 ou 11 com winget.
 - **A janela é uma janela do Edge ou do Chrome.** A interface é uma página servida pela
@@ -21,8 +25,9 @@ que não foi avaliado aparece como "não avaliado", nunca como um palpite.
   tarefas além do atalho.
 - **Atualização depende do Git.** Instalações feitas a partir de um ZIP são atualizadas
   baixando o ZIP novo e executando o instalador de novo.
-- **Codificação por GPU (NVENC) não testada.** O servidor de desenvolvimento não tem GPU.
-  Sem GPU, tudo roda pelo processador.
+- **Codificação por GPU (NVENC) testada só na verificação.** Em um Windows com RTX 3050, o
+  render de teste do Remotion usou NVENC. Uma exportação completa pela GPU ainda não foi
+  conferida. Sem GPU, tudo roda pelo processador.
 
 ## Interface
 

@@ -73,6 +73,10 @@ para `config/local.aceleracao.json` (por máquina, fora do Git):
 | HyperFrames | sem `--gpu` | `--gpu` |
 
 - `remotion.config.ts` lê esse arquivo automaticamente.
+- Ter a placa e o driver não basta: o Whisper só usa a GPU se o cuBLAS e o cuDNN
+  carregarem. A detecção confere isso de verdade (`Pipeline/transcription/gpu.py`), no
+  Windows e no Linux, e torna visíveis as bibliotecas instaladas pelo pip. Se a placa não
+  puder ser usada, a transcrição é feita pelo processador, com aviso no registro.
 - Com GPU NVIDIA, o setup instala cuBLAS e cuDNN (`requirements-gpu-nvidia.txt`). No
   Linux pode ser preciso apontar `LD_LIBRARY_PATH` para essas bibliotecas, conforme o
   [README do faster-whisper](https://github.com/SYSTRAN/faster-whisper#gpu).

@@ -4,12 +4,13 @@ A IA Editora de Vídeo é instalada no seu computador e funciona sozinha: depois
 instalada, não depende de nenhum outro programa aberto nem de internet para editar.
 
 > **Situação dos testes.** A instalação, o início, a parada, a atualização, a cópia de
-> segurança e a restauração foram testados em Linux, com os mesmos scripts usados no
-> Windows. O instalador do Windows (`Instalar.ps1`) e o comando que cria o atalho foram
-> revisados e simulados com o PowerShell fora do Windows, com programas falsos no lugar do
-> winget, do Node.js, do Git, do FFmpeg e do Python. Ainda **não foram executados em um
-> Windows real**: os arquivos `.cmd`, o winget de verdade, o pedido de autorização do
-> Windows, a criação do atalho e a abertura da janela pelo Edge. Veja
+> segurança e a restauração são testados em Linux, com os mesmos scripts usados no
+> Windows. O instalador foi executado uma vez em um Windows real (Windows 11, Node.js 26,
+> Python 3.14, placa NVIDIA RTX 3050): instalou o FFmpeg pelo winget, as dependências, o
+> banco e o atalho, e 9 das 11 verificações passaram. As duas que falharam (Whisper na
+> placa de vídeo e render do HyperFrames) foram corrigidas depois, e a correção ainda não
+> foi conferida no Windows. **Ainda não foram testados em Windows:** abrir a aplicação
+> pelo atalho, a janela no Edge, o uso da aplicação, atualizar, copiar e restaurar. Veja
 > [LIMITACOES.md](LIMITACOES.md).
 
 ## O que é preciso
@@ -116,6 +117,8 @@ npm run iniciar
 | "a aplicação ainda não foi instalada nesta pasta" ao abrir | Execute `windows\Instalar.cmd` |
 | A janela não abre sozinha | O inicializador mostra um endereço: copie-o para o navegador |
 | "a aplicação fechou logo ao iniciar" | A mensagem indica o arquivo de registro (`aplicacao.log`) e mostra as últimas linhas |
+| Verificação do Whisper com aviso sobre a placa de vídeo | A transcrição funciona pelo processador. Para usar a placa NVIDIA, execute o instalador de novo: ele instala as bibliotecas CUDA (download de cerca de 1 GB) |
+| Verificação do HyperFrames com aviso | A aplicação funciona: usa outro navegador para o cartão final ou o desenha pelo Remotion. Para tentar corrigir: `npx hyperframes browser ensure --force` |
 | O primeiro render demora mais | Na primeira vez o programa prepara a composição (cerca de 40 s) e pode baixar o navegador de render |
 | A primeira transcrição demora | O modelo do Whisper é baixado uma vez; depois funciona sem internet |
 

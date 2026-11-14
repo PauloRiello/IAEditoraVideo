@@ -71,6 +71,11 @@ Leia [docs/ARQUITETURA.md](docs/ARQUITETURA.md) antes de alterar a estrutura e
 - **Instalação e atualização preservam dados.** Scripts de `scripts/` e `windows/` nunca
   apagam nem sobrescrevem dados do usuário; a atualização faz cópia antes e volta atrás se
   falhar. Mensagens de erro dizem o que aconteceu e o que fazer, sem jargão.
+- **Ferramenta opcional não trava o trabalho.** Placa de vídeo, bibliotecas CUDA e o
+  navegador do HyperFrames podem não funcionar no computador do usuário. Sempre há caminho
+  alternativo (processador; outro navegador; cartão desenhado pelo Remotion), e a troca é
+  registrada. Ter o driver não prova que a placa funciona: confira carregando as bibliotecas
+  (`Pipeline/transcription/gpu.py`).
 - **Feedback ensina com cautela.** Correção de um projeto fica candidata no perfil; rejeição
   sem aspecto apontado não ensina nada; métricas são sinal fraco, nunca criam regra e nunca
   são inventadas ([docs/FEEDBACK.md](docs/FEEDBACK.md)).

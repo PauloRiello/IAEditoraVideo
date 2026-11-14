@@ -197,6 +197,10 @@ duração e resultado da conferência.
 - Na janela, a timeline é ajustada por campos e botões, sem arrastar e soltar. A prévia é
   um vídeo renderizado, não uma reprodução ao vivo.
 - Poucos efeitos e uma única transição além do corte, de propósito.
+- Se o HyperFrames não conseguir renderizar o cartão neste computador (o navegador próprio
+  dele não abre, por exemplo), a aplicação tenta o navegador do Remotion e depois o Chrome
+  ou o Edge do sistema. Se nenhum servir, o cartão é desenhado pela própria composição do
+  Remotion, com o mesmo conteúdo e a mesma entrada: o render não falha por causa dele.
 - O HyperFrames é usado só no cartão final; cartões transparentes sobre o vídeo e blocos
   do catálogo dele ficam para depois.
 - Legendas não são quebradas em frases curtas nem animadas palavra a palavra.
