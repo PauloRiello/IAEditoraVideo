@@ -144,7 +144,8 @@ orienta a duração dos planos no planejamento.
 
 - Vertical 9:16, horizontal 16:9 e quadrado 1:1, com resolução e taxa de quadros livres
   (largura e altura pares). O formato inicial vem do projeto: em redes sociais, 1080×1920.
-- Exportação padrão: **MP4 com H.264 e AAC**.
+- Exportação padrão: **MP4 com H.264 e AAC**. Presets de resolução, taxa de quadros e
+  qualidade estão em [QUALIDADE.md](QUALIDADE.md).
 - A taxa de quadros dos originais é mantida na preparação dos trechos; a conversão para a
   taxa de saída acontece uma única vez, na composição.
 - Arquivo em orientação diferente da do formato recebe recorte central, ajustável por clipe.
@@ -153,10 +154,10 @@ orienta a duração dos planos no planejamento.
 
 | | Prévia | Final |
 |---|---|---|
-| Resolução | Um terço (1080×1920 → 360×640) | Inteira |
+| Resolução | Um terço (1080×1920 → 360×640) | Inteira, ou a do preset |
 | Codificação | Rápida, qualidade baixa | Qualidade alta |
 | Destino | `Dados/projetos/<projeto>/previas/` | `Exportações/<nome do projeto>/` |
-| Nome | `previa-v<versão>.mp4` | `<nome> v<versão> <data-hora>.mp4`, nunca sobrescreve |
+| Nome | `previa-v<versão>.mp4` | `<nome> v<versão> [<preset>] <data-hora>.mp4`, nunca sobrescreve |
 
 **Tarefas.** Cada render é uma tarefa com estado (`na-fila`, `renderizando`, `concluida`,
 `falhou`, `cancelada`) e progresso. Roda um render por vez, para não disputar CPU,
@@ -172,8 +173,11 @@ terminar: cancelar ou falhar nunca deixa arquivo pela metade.
 - Se a aplicação fecha durante um render, a tarefa é marcada como falha na abertura
   seguinte, os temporários são apagados e ela pode ser repetida (`app.edicao.repetir`).
 
-**Conferência.** Todo arquivo exportado é decodificado e conferido: integridade, H.264,
-AAC, resolução, taxa de quadros e duração. Se algo não bate, a tarefa é marcada como falha.
+**Conferência.** A prévia passa por uma conferência básica: integridade, H.264, AAC,
+resolução, taxa de quadros e duração. O vídeo final passa pelo controle de qualidade
+completo, antes e depois do render, e só entra em `Exportações/` se nenhuma verificação
+obrigatória falhar; o relatório fica em `Exportações/<projeto>/relatorios/`. Verificações,
+destinos, exceções e presets estão em [QUALIDADE.md](QUALIDADE.md).
 
 **Histórico.** `exportacoes` lista todas as tarefas do projeto, com arquivo, tamanho,
 duração e resultado da conferência.
@@ -199,4 +203,4 @@ duração e resultado da conferência.
 - A sincronia dos cortes com as batidas da trilha não é aplicada: a trilha entra inteira.
 - A codificação por GPU (NVENC) e a execução em Windows não foram testadas neste servidor.
 - O primeiro render de cada instalação leva cerca de 40 s a mais para empacotar a composição.
-- Validado com vídeos sintéticos; o controle de qualidade completo é a próxima etapa.
+- Validado com vídeos sintéticos.

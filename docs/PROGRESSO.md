@@ -160,6 +160,40 @@ Uma entrada por etapa concluída. A próxima etapa só começa com autorização
   - Métricas digitadas à mão, sem importação das plataformas.
   - Telas de avaliação, comparação e controle dependem da interface gráfica.
 
+## Etapa 9 — Controle de qualidade e exportação profissional ✅
+
+- Agente de Qualidade (`Pipeline/quality-control/verificador.ts`): 36 verificações em
+  quatro grupos — técnicas, visuais, de áudio e do destino —, cada uma com situação,
+  gravidade (obrigatória, importante ou recomendação), detalhe e sugestão de correção.
+- Conferência independente do renderizador: o arquivo é lido pelo FFprobe e decodificado
+  e medido pelo FFmpeg. O que é estimado vem marcado e nunca é obrigatório.
+- Seis perfis de qualidade por destino (`IA/Qualidade/`): redes sociais, publicidade,
+  YouTube, documentário, institucional e geral. Proporção, duração, áreas seguras,
+  abertura, ritmo e CTA só são cobrados onde o destino pede.
+- A montagem aplica à timeline as áreas seguras do destino; a operação `apresentacao` as altera.
+- Relatório gravado no banco e em arquivo, com situação final: aprovado, aprovado com
+  ressalvas, pendente ou reprovado. Falha obrigatória reprova e não pode ser aceita;
+  problema importante pode ser aceito pelo usuário, com justificativa registrada.
+- Exportação: conferência da timeline antes do render e do arquivo depois; vídeo
+  reprovado não entra em `Exportações/`. Sete presets (`IA/Exportacao/`), nome com versão
+  e preset, proteção contra sobrescrita, repetição, histórico e cancelamento seguro.
+- Perfis e presets do usuário em `Dados/qualidade/` e `Dados/presets/` substituem os padrão.
+- Banco na versão 7 (relatórios de qualidade; preset da exportação).
+- Correção: a pasta de trabalho de cada render passou a ser única por processo.
+- Documentação em [QUALIDADE.md](QUALIDADE.md).
+- **Testes:** 64 testes de unidade (`npm test`), todos passando — 8 novos: arquivos com
+  um defeito cada (codec, cor, índice, resolução, duração, truncado, tela preta, sem
+  áudio, mudo, estourado, áudio curto), verificações da timeline, critérios por destino,
+  situação final e exceções, exportação com preset conferida por FFprobe e FFmpeg, vídeo
+  reprovado e persistência após reabrir. O fluxo também foi executado pela linha de comando.
+- **Pendências:**
+  - Verificações visuais usam a timeline e amostras de quadro, sem leitura da imagem (OCR);
+    o contraste dos textos ignora a sombra.
+  - Sincronia conferida por início e duração das faixas, não pela fala.
+  - Limites calibrados com vídeos sintéticos; falta validar com vídeos reais.
+  - Telas de relatório, exceções e presets dependem da interface gráfica.
+  - Execução em Windows e codificação por GPU continuam sem teste (servidor Linux sem GPU).
+
 ## Próximas etapas (não iniciadas)
 
-Ordem sugerida, a confirmar: controle de qualidade → interface gráfica → instalador para Windows.
+Ordem sugerida, a confirmar: interface gráfica → instalador para Windows.

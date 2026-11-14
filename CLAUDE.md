@@ -43,6 +43,17 @@ Leia [docs/ARQUITETURA.md](docs/ARQUITETURA.md) antes de alterar a estrutura e
   para o destino ao terminar.
 - **Efeito precisa de motivo.** A montagem só aplica um recurso que o estilo, a memória ou
   as referências pedem e que faz sentido no formato, e registra a origem da escolha.
+- **Obrigatória reprovada não passa.** Vídeo com falha em verificação obrigatória nunca é
+  aprovado nem entra em `Exportações/`, e essa falha não pode ser aceita como exceção. Só
+  problemas não críticos são aceitos, pelo usuário, com justificativa
+  ([docs/QUALIDADE.md](docs/QUALIDADE.md)).
+- **Conferência independente.** O arquivo exportado é conferido com FFmpeg e FFprobe,
+  nunca pelo que o renderizador informa. Verificação estimada é marcada como `estimado` e
+  nunca é obrigatória.
+- **Critério depende do destino.** Regras de redes sociais ficam no perfil `redes-sociais`;
+  limite novo entra no JSON do destino (`IA/Qualidade/`), não no código do verificador.
+- **Exportação não sobrescreve.** O arquivo é conferido fora de `Exportações/` e só então
+  movido, com nome único.
 - **Feedback ensina com cautela.** Correção de um projeto fica candidata no perfil; rejeição
   sem aspecto apontado não ensina nada; métricas são sinal fraco, nunca criam regra e nunca
   são inventadas ([docs/FEEDBACK.md](docs/FEEDBACK.md)).
@@ -81,15 +92,17 @@ Antes de concluir uma alteração: `npm run typecheck` e `npm test`.
 | Pasta | Conteúdo |
 |---|---|
 | `src/dominio/` | Tipos e contratos, sem E/S |
-| `src/nucleo/` | `Aplicacao` (ciclo de vida), `Orquestrador` (pipeline), análise de referências, Agente Coordenador (`producao.ts`), edição e tarefas de render (`edicao.ts`), feedback e métricas (`feedback.ts`) |
-| `src/servicos/` | Projetos, memória, aprendizado, acervo, índice de pesquisa, timeline, comparação de versões, estilos, perfis, provedores de IA, recursos |
+| `src/nucleo/` | `Aplicacao` (ciclo de vida), `Orquestrador` (pipeline), análise de referências, Agente Coordenador (`producao.ts`), edição e exportação (`edicao.ts`), relatórios de qualidade e exceções (`qualidade.ts`), feedback e métricas (`feedback.ts`) |
+| `src/servicos/` | Projetos, memória, aprendizado, acervo, índice de pesquisa, timeline, comparação de versões, estilos, perfis, perfis de qualidade e presets, provedores de IA, recursos |
 | `src/infra/` | Banco SQLite, cópias de segurança, caminhos, configurações |
 | `src/interface/` | Linha de comando (janela gráfica futura) |
-| `Pipeline/<etapa>/` | Processamento audiovisual e agentes (`ingestion/`, `analysis/`, `transcription/`, `editing/`, `rendering/` já têm código) |
+| `Pipeline/<etapa>/` | Processamento audiovisual e agentes (as seis etapas têm código; `quality-control/` é o Agente de Qualidade) |
 | `IA/Perfis/` | Perfis de especialização em JSON (8 perfis) |
 | `IA/Estilos/` | Estilos de edição em JSON (10 estilos) |
+| `IA/Qualidade/` | Perfis de qualidade por destino em JSON (6 destinos) |
+| `IA/Exportacao/` | Presets de exportação em JSON (7 presets) |
 | `exemplos/` | Exemplos executáveis de uso da aplicação |
-| `tests/unidade/` | Testes da aplicação (referências, produção e edição geram vídeos com o FFmpeg; os de edição renderizam de verdade e levam cerca de 2 min) |
+| `tests/unidade/` | Testes da aplicação (referências, produção, edição e qualidade geram vídeos com o FFmpeg; os de edição e de qualidade renderizam de verdade; a suíte leva cerca de 2 min) |
 | `tests/smoke/` | Composições mínimas usadas pelos verificadores |
 | `scripts/` | Setup, detecção de GPU e verificadores |
 | `Dados/` | Banco, configurações e temporários locais (fora do Git) |

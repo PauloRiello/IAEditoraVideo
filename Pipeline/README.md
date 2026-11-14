@@ -13,7 +13,7 @@ registrada no `Orquestrador`, que cuida da ordem, da gravação do resultado e d
 | `transcription/` | Fala → texto com tempo (Whisper local) | Implementada |
 | `editing/` | Agentes de Planejamento, de Roteiro e de Edição: plano, roteiro e montagem da timeline | Implementada |
 | `rendering/` | Motor de render: FFmpeg prepara trechos, HyperFrames gera cartões, Remotion compõe e codifica | Implementada |
-| `quality-control/` | Verificação antes de exportar | Não implementada |
+| `quality-control/` | Agente de Qualidade: confere a timeline e o arquivo exportado com FFmpeg e FFprobe | Implementada |
 
 Arquivos de `analysis/`: `ferramentas.ts` (FFmpeg e FFprobe), `visual.ts` e `audio.ts`
 (medição), `interpretacao.ts` (narrativa, tipos de conteúdo e leitura por modelos),
@@ -24,6 +24,10 @@ Arquivos de `analysis/`: `ferramentas.ts` (FFmpeg e FFprobe), `visual.ts` e `aud
 Os agentes são acionados pelo Coordenador (`src/nucleo/producao.ts`) e pela edição
 (`src/nucleo/edicao.ts`). Os arquivos em `rendering/remotion/` são empacotados para o
 navegador de render e não rodam direto no Node. Detalhes em [docs/EDICAO.md](../docs/EDICAO.md).
+
+O Agente de Qualidade (`quality-control/verificador.ts`) é acionado por
+`src/nucleo/qualidade.ts`, antes e depois do render, e não usa o Remotion. Detalhes em
+[docs/QUALIDADE.md](../docs/QUALIDADE.md).
 
 Regras: o resultado de uma etapa deve ser serializável em JSON; a etapa não acessa o
 banco diretamente; mídias originais não são alteradas.

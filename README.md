@@ -3,9 +3,9 @@
 Editor de vídeo assistido por IA: recebe vídeos brutos, analisa e transcreve o
 conteúdo, decide a edição, renderiza e verifica a qualidade antes de exportar.
 
-> **Status:** do vídeo bruto ao MP4 exportado, pela linha de comando: análise, plano,
-> aprovação, timeline editável, prévia, renderização e aprendizado com o feedback, tudo
-> testado. Ainda não há interface gráfica nem instalador. Andamento: [docs/PROGRESSO.md](docs/PROGRESSO.md).
+> **Status:** do vídeo bruto ao MP4 exportado e conferido, pela linha de comando: análise,
+> plano, aprovação, timeline editável, prévia, renderização, controle de qualidade com
+> relatório e aprendizado com o feedback, tudo testado. Ainda não há interface gráfica nem instalador. Andamento: [docs/PROGRESSO.md](docs/PROGRESSO.md).
 
 Roda no computador do usuário, sem depender de nenhum serviço de IA externo. O primeiro
 foco são vídeos promocionais de servidores FiveM e RedM para Instagram e TikTok, tratados
@@ -97,7 +97,12 @@ Outros comandos da aplicação (lista completa com `npm run app`):
 | `npm run app -- montar <projeto> --estilo acao` | Monta a timeline do plano aprovado |
 | `npm run app -- editar <projeto> '<operação>'` | Altera a timeline (nova versão) |
 | `npm run app -- previa <projeto>` | Renderiza uma prévia de baixa qualidade |
-| `npm run app -- exportar <projeto>` | Renderiza o vídeo final em MP4 |
+| `npm run app -- qualidade <projeto>` | Confere a timeline antes de renderizar |
+| `npm run app -- presets` | Lista os presets de exportação e os destinos |
+| `npm run app -- exportar <projeto> --preset vertical-1080` | Renderiza o vídeo final em MP4, confere e mostra o relatório |
+| `npm run app -- relatorio <exportação>` | Relatório de qualidade de uma exportação |
+| `npm run app -- aceitar <relatório> <verificação> "motivo"` | Aceita um problema não crítico |
+| `npm run app -- repetir <exportação>` | Repete uma exportação, sem sobrescrever |
 | `npm run app -- exportacoes <projeto>` | Histórico de exportações |
 | `npm run app -- avaliar <projeto> aprovar "motivo"` | Avalia a edição (aprovar, rejeitar ou alterar) |
 | `npm run app -- comparar <projeto> 1 3` | Compara duas versões da timeline |
@@ -113,8 +118,9 @@ Outros comandos da aplicação (lista completa com `npm run app`):
 Documentação por assunto: memória e aprendizado em [docs/MEMORIA.md](docs/MEMORIA.md);
 análise de referências em [docs/REFERENCIAS.md](docs/REFERENCIAS.md); vídeos brutos, plano
 de edição, aprovação e roteiro em [docs/PRODUCAO.md](docs/PRODUCAO.md); timeline, estilos,
-prévia e renderização em [docs/EDICAO.md](docs/EDICAO.md); avaliação das edições, métricas
-e controle do aprendizado em [docs/FEEDBACK.md](docs/FEEDBACK.md).
+prévia e renderização em [docs/EDICAO.md](docs/EDICAO.md); controle de qualidade, destinos,
+presets e exportação em [docs/QUALIDADE.md](docs/QUALIDADE.md); avaliação das edições,
+métricas e controle do aprendizado em [docs/FEEDBACK.md](docs/FEEDBACK.md).
 
 Instalação, verificação, aceleração por GPU e uso de cada ferramenta estão em
 [docs/AMBIENTE.md](docs/AMBIENTE.md).

@@ -79,17 +79,18 @@ processamento executa ferramentas audiovisuais.
 | Timeline editável | `src/servicos/timeline.ts`, `src/dominio/timeline.ts` | Operações não destrutivas, versões e histórico de exportações | Implementado |
 | Estilos de edição | `src/servicos/estilos.ts`, `IA/Estilos/` | Carregar e combinar estilos (gameplay, ação, trailer...) | Implementado (10 estilos) |
 | Renderização | `Pipeline/rendering/` | Remotion compõe; FFmpeg prepara trechos; HyperFrames gera cartões | Implementado |
-| Tarefas de render | `src/nucleo/edicao.ts` | Fila, progresso, cancelamento, nova tentativa, conferência do arquivo e histórico | Implementado |
+| Tarefas de render e exportação | `src/nucleo/edicao.ts` | Fila, progresso, cancelamento, nova tentativa, presets, nomes com versão, proteção contra sobrescrita e histórico | Implementado |
 | Feedback e aprendizado contínuo | `src/nucleo/feedback.ts`, `src/servicos/comparacao.ts` | Avaliar edições, comparar versões, deduzir correções manuais, registrar métricas e mostrar o que foi aprendido | Implementado |
 | Memória persistente | `src/servicos/memoria.ts`, `acervo.ts` | Preferências, referências, análises, planos versionados e uso de IA | Implementado |
 | Aprendizado | `src/servicos/aprendizado.ts` | Feedback e aprendizados com evidências, confiança, escopo e revisão | Implementado; extração automática pendente |
-| Controle de qualidade | `Pipeline/quality-control/` | Conferir duração, sincronia, áudio e conformidade com o formato | Contrato definido |
+| Controle de qualidade | `Pipeline/quality-control/verificador.ts`, `src/nucleo/qualidade.ts` | Agente de Qualidade: verificações técnicas, visuais, de áudio e do destino, com FFmpeg e FFprobe; relatórios, situação final e exceções aceitas | Implementado |
+| Perfis de qualidade e presets | `src/servicos/qualidade.ts`, `IA/Qualidade/`, `IA/Exportacao/` | Critérios por destino e presets de exportação, com substituição pelos arquivos do usuário | Implementado (6 destinos, 7 presets) |
 | Provedores de IA | `src/servicos/provedores.ts` | Registrar provedores, aplicar a política local/externo e selecionar por capacidade; texto e leitura de imagens | Implementado |
 | Recursos do computador | `src/servicos/recursos.ts` | Ler CPU, RAM e GPU; decidir GPU ou CPU por modelo conforme a VRAM | Implementado |
 | Perfis de especialização | `src/servicos/perfis.ts`, `IA/Perfis/` | Carregar e combinar perfis e formatos de saída | Implementado (8 perfis) |
 | Cópias de segurança | `src/infra/backup.ts` | Criar, validar, restaurar e rotacionar cópias; isolar arquivos corrompidos | Implementado |
-| Arquivos e exportações | `src/infra/caminhos.ts` | Definir e criar a estrutura de pastas | Estrutura implementada; nomeação de exportações pendente |
-| Banco de dados | `src/infra/banco.ts` | Esquema, migrações, transações e verificação de integridade | Implementado (esquema v6) |
+| Arquivos e exportações | `src/infra/caminhos.ts` | Definir e criar a estrutura de pastas | Implementado |
+| Banco de dados | `src/infra/banco.ts` | Esquema, migrações, transações e verificação de integridade | Implementado (esquema v7) |
 | Configurações | `src/infra/configuracoes.ts` | Ler e gravar preferências do usuário | Implementado |
 
 ## 5. Pipeline
@@ -172,18 +173,21 @@ estimado ou não avaliado.
 | Relatórios de análise | `Dados/analises/` | `%LOCALAPPDATA%\IAEditoraVideo\analises\` | Não |
 | Trechos preparados, prévias e miniaturas | `Dados/projetos/<projeto>/` | `%LOCALAPPDATA%\IAEditoraVideo\projetos\` | Não |
 | Estilos do usuário | `Dados/estilos/` | `%LOCALAPPDATA%\IAEditoraVideo\estilos\` | Não |
+| Perfis de qualidade e presets padrão | `IA/Qualidade/`, `IA/Exportacao/` | Pasta do programa | Sim |
+| Perfis de qualidade e presets do usuário | `Dados/qualidade/`, `Dados/presets/` | `%LOCALAPPDATA%\IAEditoraVideo\qualidade\` e `presets\` | Não |
+| Vídeos em conferência e reprovados | `Dados/projetos/<projeto>/em-conferencia/`, `reprovados/` | `%LOCALAPPDATA%\IAEditoraVideo\projetos\` | Não |
 | Mídias originais | `Videos Brutos/`, `Referências/` | `Documentos\IA Editora de Vídeo\` | Não |
-| Exportações | `Exportações/` | `Documentos\IA Editora de Vídeo\Exportações\` | Não |
+| Exportações e relatórios de qualidade | `Exportações/<projeto>/` e `relatorios/` | `Documentos\IA Editora de Vídeo\Exportações\` | Não |
 
 As variáveis `IAEV_DADOS` e `IAEV_BIBLIOTECA` redirecionam as pastas de dados e de
 mídias. As demais pastas de `IA/` (Memoria, Aprendizado, Feedback, Analises,
 Conhecimento) ficam reservadas para conteúdo versionável dessas áreas; os dados de
 cada usuário vão para o banco.
 
-**Banco (SQLite, esquema v6):** `projetos`, `midias`, `execucoes`, `memoria`, `feedback`,
+**Banco (SQLite, esquema v7):** `projetos`, `midias`, `execucoes`, `memoria`, `feedback`,
 `referencias`, `projeto_referencias`, `analises`, `planos`, `aprendizados`, `evidencias`,
 `usos_ia`, `decisoes`, `indice`, `timelines`, `exportacoes`, `avaliacoes`,
-`trechos_em_revisao`, `resultados`, `acoes_de_aprendizado`. O banco guarda caminhos, metadados e resultados, nunca vídeos.
+`trechos_em_revisao`, `resultados`, `acoes_de_aprendizado`, `relatorios_de_qualidade`. O banco guarda caminhos, metadados e resultados, nunca vídeos.
 
 - **Atualizações:** o esquema evolui por migrações numeradas; uma versão nova do
   programa aplica só as que faltam, depois de criar uma cópia do banco. Configurações
@@ -191,7 +195,8 @@ cada usuário vão para o banco.
 - **Proteção:** gravação imediata em disco, cópias manuais e automáticas, restauração
   reversível e recuperação de banco corrompido.
 
-O funcionamento da memória, do aprendizado e das proteções está em [MEMORIA.md](MEMORIA.md).
+O funcionamento da memória, do aprendizado e das proteções está em [MEMORIA.md](MEMORIA.md);
+o controle de qualidade e a exportação, em [QUALIDADE.md](QUALIDADE.md).
 
 ## 9. Tecnologias
 
