@@ -74,6 +74,8 @@ export class AgenteDeEdicao implements Agente {
     if (saturacao === "alta" || saturacao === "baixa") {
       cor = { tipo: "cor", saturacao: saturacao === "alta" ? 1.15 : 0.85, contraste: corDoEstilo?.contraste ?? 1, brilho: 1 };
       decisoes.push({ aspecto: "efeito/cor", decisao: `saturação ${saturacao}`, origem: origemDe("cores", "saturacao") });
+    } else if (saturacao === "media") {
+      decisoes.push({ aspecto: "efeito/cor", decisao: "sem correção de cor: a preferência aprendida é a cor natural", origem: origemDe("cores", "saturacao") });
     } else if (corDoEstilo) {
       cor = corDoEstilo;
       decisoes.push({ aspecto: "efeito/cor", decisao: `correção do estilo ${estilo.nome}`, origem: "perfil" });
@@ -81,7 +83,10 @@ export class AgenteDeEdicao implements Agente {
 
     // --- Zoom lento: só em planos parados, e só se o estilo ou a memória pedirem -------------
     const zoomAprendido = aprendido("zoom", "uso");
-    const querZoom = estilo.zoomLentoEmPlanosParados || (zoomAprendido !== null && zoomAprendido !== "raro");
+    const querZoom = zoomAprendido !== null ? zoomAprendido !== "raro" : estilo.zoomLentoEmPlanosParados;
+    if (zoomAprendido === "raro" && estilo.zoomLentoEmPlanosParados) {
+      decisoes.push({ aspecto: "efeito/zoom-lento", decisao: "não aplicado: a preferência aprendida é usar zoom raramente", origem: origemDe("zoom", "uso") });
+    }
 
     const temTrilha = Boolean(plano.trilhaSonora.arquivo);
     const falas = plano.legendas.itens;
@@ -126,7 +131,7 @@ export class AgenteDeEdicao implements Agente {
     const clipes = itens.filter((x): x is ItemVideo => x.tipo === "video");
     if (querZoom) {
       decisoes.push({
-        aspecto: "efeito/zoom-lento", origem: estilo.zoomLentoEmPlanosParados ? "perfil" : origemDe("zoom", "uso"),
+        aspecto: "efeito/zoom-lento", origem: zoomAprendido !== null ? origemDe("zoom", "uso") : "perfil",
         decisao: comZoom ? `aplicado em ${comZoom} plano(s) parado(s)` : "não aplicado: nenhum plano parado entre os escolhidos",
       });
     }
@@ -138,8 +143,11 @@ export class AgenteDeEdicao implements Agente {
     // --- Barras de cinema: só fazem sentido em formato horizontal -------------------------------
     const efeitosGlobais: Efeito[] = [];
     const barrasDoEstilo = estilo.efeitos.find((x): x is Extract<Efeito, { tipo: "barras-de-cinema" }> => x.tipo === "barras-de-cinema");
-    const barrasAprendidas = aprendido("efeitos-visuais", "barras-de-cinema") === "sim";
-    if (barrasDoEstilo || barrasAprendidas) {
+    const sobreBarras = aprendido("efeitos-visuais", "barras-de-cinema");
+    const barrasAprendidas = sobreBarras === "sim";
+    if (sobreBarras === "nao" && barrasDoEstilo) {
+      decisoes.push({ aspecto: "efeito/barras-de-cinema", decisao: "não aplicadas: a preferência aprendida é não usar", origem: origemDe("efeitos-visuais", "barras-de-cinema") });
+    } else if (barrasDoEstilo || barrasAprendidas) {
       if (horizontal) efeitosGlobais.push(barrasDoEstilo ?? { tipo: "barras-de-cinema", proporcao: 2.39 });
       decisoes.push({
         aspecto: "efeito/barras-de-cinema", origem: barrasAprendidas ? origemDe("efeitos-visuais", "barras-de-cinema") : "perfil",
@@ -150,6 +158,22 @@ export class AgenteDeEdicao implements Agente {
     // --- Encerramento: fade final ---------------------------------------------------------------
     const fadeFinal = plano.transicoes.encerramento === "fade-preto" ? Math.max(0.5, estilo.fadeFinalSeg) : estilo.fadeFinalSeg;
 
+    // --- Preferências aprendidas de texto, legenda, CTA e volume da trilha ------------------------------
+    const preferir = <T extends string>(categoria: string, chave: string, validos: readonly T[], aspecto: string): T | null => {
+      const valor = aprendido(categoria, chave);
+      if (valor === null || !validos.includes(valor as T)) return null;
+      decisoes.push({ aspecto, decisao: valor, origem: origemDe(categoria, chave) });
+      return valor as T;
+    };
+    const posicaoDoTexto = preferir("tipografia", "posicao-do-texto", ["topo", "centro", "base"] as const, "texto/posicao") ?? estilo.texto.posicao;
+    const tamanhoDaLegenda = { pequena: 0.027, media: 0.034, grande: 0.042 }[preferir("legendas", "tamanho", ["pequena", "media", "grande"] as const, "legendas/tamanho") ?? ""] ?? estilo.legendas.tamanho;
+    const caixaDaLegenda = { sim: true, nao: false }[preferir("legendas", "caixa", ["sim", "nao"] as const, "legendas/caixa") ?? ""] ?? estilo.legendas.caixa;
+    const formatoDoCta = preferir("cta", "formato", ["cartao", "texto"] as const, "cta/formato") ?? estilo.encerramento;
+    const volumeDaTrilha = { baixo: 0.3, medio: 0.6, alto: 0.9 }[preferir("trilha-sonora", "volume", ["baixo", "medio", "alto"] as const, "trilha/volume") ?? ""] ?? estilo.volumeDaTrilha;
+    if (preferir("legendas", "uso", ["nao"] as const, "legendas/uso") === "nao") {
+      for (let i = itens.length - 1; i >= 0; i -= 1) if (itens[i].tipo === "legenda") itens.splice(i, 1);
+    }
+
     // --- Textos na tela vindos do roteiro (cada fato do briefing, uma vez) --------------------------
     const textos = (e.roteiro?.linhas ?? []).filter((l) => l.tipo === "texto-na-tela" && !l.baseadoEm.includes("CTA"));
     for (const [n, linha] of textos.entries()) {
@@ -157,14 +181,14 @@ export class AgenteDeEdicao implements Agente {
       if (!alvo) continue;
       itens.push({
         id: `texto-${n + 1}`, tipo: "texto", camada: 20, texto: linha.texto, inicioSeg: alvo.inicioSeg, duracaoSeg: arredondar(Math.min(3, alvo.duracaoSeg)),
-        posicao: estilo.texto.posicao, tamanho: estilo.texto.tamanho, cor: "#ffffff", fundo: "", animacao: estilo.texto.animacao,
+        posicao: posicaoDoTexto, tamanho: estilo.texto.tamanho, cor: "#ffffff", fundo: "", animacao: estilo.texto.animacao,
         ancora: { itemId: alvo.id, deslocamentoSeg: 0 },
       });
     }
 
     // --- Chamada para ação: cartão animado ou texto, conforme o estilo --------------------------------
     if (plano.cta) {
-      if (estilo.encerramento === "cartao") {
+      if (formatoDoCta === "cartao") {
         itens.push({
           id: "cartao-final", tipo: "cartao", camada: 0, inicioSeg: arredondar(Math.max(0, tempo - 0.3)), duracaoSeg: 2.5, titulo: plano.cta.texto, subtitulo: e.nomeDoProjeto,
           corDeFundo: "#0e1116", corDoTexto: "#ffffff", enquadramento: { ...CENTRO, modo: "conter" },
@@ -189,11 +213,11 @@ export class AgenteDeEdicao implements Agente {
     if (plano.trilhaSonora.arquivo) {
       itens.push({
         id: "trilha", tipo: "audio", papel: "trilha", camada: 0, arquivo: plano.trilhaSonora.arquivo, inicioSeg: 0, duracaoSeg: arredondar(tempo), inicioOrigemSeg: 0,
-        volume: estilo.volumeDaTrilha, fadeDeEntradaSeg: 0.3, fadeDeSaidaSeg: Math.min(1.5, tempo / 4),
+        volume: volumeDaTrilha, fadeDeEntradaSeg: 0.3, fadeDeSaidaSeg: Math.min(1.5, tempo / 4),
         reduzirEm: itens.filter((x) => x.tipo === "legenda").map((x) => ({ inicioSeg: x.inicioSeg, fimSeg: arredondar(x.inicioSeg + x.duracaoSeg) })),
-        volumeReduzido: estilo.volumeDaTrilhaNasFalas,
+        volumeReduzido: Math.min(estilo.volumeDaTrilhaNasFalas, volumeDaTrilha),
       });
-      decisoes.push({ aspecto: "trilha", decisao: `volume ${estilo.volumeDaTrilha}, baixando para ${estilo.volumeDaTrilhaNasFalas} durante as falas`, origem: "perfil" });
+      decisoes.push({ aspecto: "trilha", decisao: `volume ${volumeDaTrilha}, baixando durante as falas`, origem: "perfil" });
     } else {
       avisos.push("Nenhuma trilha sonora foi escolhida: o vídeo sai com o som original dos trechos. Acrescente uma trilha à timeline, se quiser.");
     }
@@ -201,7 +225,7 @@ export class AgenteDeEdicao implements Agente {
     return {
       timeline: {
         versao: 1, formato: { largura: plano.formato.largura, altura: plano.formato.altura, fps }, duracaoSeg: arredondar(tempo), itens, efeitosGlobais,
-        legendas: { ...estilo.legendas },
+        legendas: { tamanho: tamanhoDaLegenda, caixa: caixaDaLegenda },
       },
       decisoes,
       avisos,

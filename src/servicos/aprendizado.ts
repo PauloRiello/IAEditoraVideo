@@ -2,7 +2,8 @@
 // observado, quantas evidências tem e a confiança. Uma observação isolada fica como
 // "candidato": só passa a valer para outros projetos depois de se repetir.
 
-import { NaoEncontrado } from "../dominio/erros.ts";
+import { ErroAplicacao, NaoEncontrado } from "../dominio/erros.ts";
+import type { AcaoDeAprendizado } from "../dominio/feedback.ts";
 import {
   CATEGORIAS_EDICAO, PROJETOS_PARA_ATIVAR,
   type Aprendizado, type CategoriaEdicao, type Conflito, type ConsultaAprendizados, type EscopoAprendizado,
@@ -30,6 +31,17 @@ const PESO = { usuario: 3, correcao: 1, feedback: 1, analise: 1 } as const;
 
 /** Do mais específico para o mais amplo: o mais específico prevalece. */
 const PRECEDENCIA: Record<EscopoAprendizado, number> = { temporaria: 4, projeto: 3, especializacao: 2, geral: 1 };
+
+/** Evidência a favor ou contra um aprendizado existente, com a fonte que a gerou. */
+export interface SinalDeEvidencia {
+  origem: Observacao["origem"];
+  projetoObservado?: string;
+  detalhe?: string;
+  avaliacaoId?: number;
+  resultadoId?: number;
+  /** Peso da evidência; por padrão, o da origem. Sinais de métricas usam peso menor. */
+  peso?: number;
+}
 
 export interface FiltroAprendizados {
   escopo?: EscopoAprendizado;
@@ -102,13 +114,14 @@ export class ServicoAprendizado {
 
       const referencia = o.referenciaObservada ?? null;
       const evidencia = this.banco.prepare(
-        "INSERT INTO evidencias (aprendizado_id, origem, projeto_id, referencia_id, feedback_id, detalhe, confirma, peso, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO evidencias (aprendizado_id, origem, projeto_id, referencia_id, avaliacao_id, feedback_id, detalhe, confirma, peso, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       );
-      evidencia.run(alvo, o.origem, observadoEm, referencia, o.feedbackId ?? null, o.detalhe ?? "", 1, PESO[o.origem], instante);
+      const avaliacao = o.avaliacaoId ?? null;
+      evidencia.run(alvo, o.origem, observadoEm, referencia, avaliacao, o.feedbackId ?? null, o.detalhe ?? "", 1, PESO[o.origem], instante);
 
       const rivais = this.banco.prepare(`SELECT id FROM aprendizados WHERE ${DONO} AND valor <> ?`).all(...dono, valor) as unknown as { id: number }[];
       for (const rival of rivais) {
-        evidencia.run(rival.id, o.origem, observadoEm, referencia, o.feedbackId ?? null, `Observado valor diferente: ${o.descricao}`, 0, PESO[o.origem], instante);
+        evidencia.run(rival.id, o.origem, observadoEm, referencia, avaliacao, o.feedbackId ?? null, `Observado valor diferente: ${o.descricao}`, 0, PESO[o.origem], instante);
         this.reavaliar(rival.id);
       }
       this.reavaliar(alvo);
@@ -124,7 +137,7 @@ export class ServicoAprendizado {
    */
   registrarCorrecao(
     projetoId: string,
-    dados: Pick<Observacao, "categoria" | "chave" | "descricao" | "valor" | "contexto" | "detalhe" | "feedbackId">,
+    dados: Pick<Observacao, "categoria" | "chave" | "descricao" | "valor" | "contexto" | "detalhe" | "feedbackId" | "avaliacaoId">,
   ): { doProjeto: Aprendizado; daEspecializacao: Aprendizado } {
     const projeto = this.banco.prepare("SELECT perfil FROM projetos WHERE id = ?").get(projetoId) as { perfil: string } | undefined;
     if (!projeto) throw new NaoEncontrado("Projeto", projetoId);
@@ -136,20 +149,20 @@ export class ServicoAprendizado {
   }
 
   /** Registra que um aprendizado não se confirmou em uma situação. */
-  contradizer(id: number, dados: { origem: Observacao["origem"]; projetoObservado?: string; detalhe?: string }): Aprendizado {
+  contradizer(id: number, dados: SinalDeEvidencia): Aprendizado {
     return this.avaliar(id, 0, dados);
   }
 
   /** Registra que um aprendizado se confirmou (por exemplo, o usuário aprovou um plano que o aplicava). */
-  confirmar(id: number, dados: { origem: Observacao["origem"]; projetoObservado?: string; detalhe?: string }): Aprendizado {
+  confirmar(id: number, dados: SinalDeEvidencia): Aprendizado {
     return this.avaliar(id, 1, dados);
   }
 
-  private avaliar(id: number, confirma: 0 | 1, dados: { origem: Observacao["origem"]; projetoObservado?: string; detalhe?: string }): Aprendizado {
+  private avaliar(id: number, confirma: 0 | 1, dados: SinalDeEvidencia): Aprendizado {
     this.obter(id);
     this.banco
-      .prepare("INSERT INTO evidencias (aprendizado_id, origem, projeto_id, detalhe, confirma, peso, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?)")
-      .run(id, dados.origem, dados.projetoObservado ?? null, dados.detalhe ?? "", confirma, PESO[dados.origem], agora());
+      .prepare("INSERT INTO evidencias (aprendizado_id, origem, projeto_id, avaliacao_id, resultado_id, detalhe, confirma, peso, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .run(id, dados.origem, dados.projetoObservado ?? null, dados.avaliacaoId ?? null, dados.resultadoId ?? null, dados.detalhe ?? "", confirma, dados.peso ?? PESO[dados.origem], agora());
     this.reavaliar(id);
     return this.obter(id);
   }
@@ -159,14 +172,29 @@ export class ServicoAprendizado {
    * em dobro. Aprendizados que ficarem sem nenhuma evidência são excluídos.
    */
   esquecerReferencia(referenciaId: string): void {
-    transacao(this.banco, () => {
-      const afetados = this.banco.prepare("SELECT DISTINCT aprendizado_id AS id FROM evidencias WHERE referencia_id = ?").all(referenciaId) as unknown as { id: number }[];
-      this.banco.prepare("DELETE FROM evidencias WHERE referencia_id = ?").run(referenciaId);
+    this.esquecerFonte("referencia_id", referenciaId);
+  }
+
+  /** Desfaz o que uma avaliação do usuário ensinou. Devolve quantos aprendizados foram afetados. */
+  esquecerAvaliacao(avaliacaoId: number): number {
+    return this.esquecerFonte("avaliacao_id", avaliacaoId);
+  }
+
+  /** Desfaz o sinal que um resultado publicado deu aos aprendizados. */
+  esquecerResultado(resultadoId: number): number {
+    return this.esquecerFonte("resultado_id", resultadoId);
+  }
+
+  private esquecerFonte(coluna: "referencia_id" | "avaliacao_id" | "resultado_id", valor: string | number): number {
+    return transacao(this.banco, () => {
+      const afetados = this.banco.prepare(`SELECT DISTINCT aprendizado_id AS id FROM evidencias WHERE ${coluna} = ?`).all(valor) as unknown as { id: number }[];
+      this.banco.prepare(`DELETE FROM evidencias WHERE ${coluna} = ?`).run(valor);
       for (const { id } of afetados) {
         const restam = this.banco.prepare("SELECT COUNT(*) AS n FROM evidencias WHERE aprendizado_id = ?").get(id) as { n: number };
         if (restam.n === 0) this.banco.prepare("DELETE FROM aprendizados WHERE id = ?").run(id);
         else this.reavaliar(id);
       }
+      return afetados.length;
     });
   }
 
@@ -178,7 +206,7 @@ export class ServicoAprendizado {
                 COALESCE(SUM(CASE WHEN confirma = 0 THEN peso END), 0) AS contra,
                 COALESCE(SUM(confirma), 0) AS confirmam,
                 COUNT(*) - COALESCE(SUM(confirma), 0) AS contradizem,
-                COUNT(DISTINCT CASE WHEN confirma = 1 THEN COALESCE(projeto_id, 'ref:' || referencia_id) END) AS projetos,
+                COUNT(DISTINCT CASE WHEN confirma = 1 AND resultado_id IS NULL THEN COALESCE(projeto_id, 'ref:' || referencia_id) END) AS projetos,
                 COALESCE(MAX(CASE WHEN confirma = 1 AND origem = 'usuario' THEN 1 ELSE 0 END), 0) AS explicito
          FROM evidencias WHERE aprendizado_id = ?`,
       )
@@ -188,6 +216,8 @@ export class ServicoAprendizado {
       estado: EstadoAprendizado;
     };
 
+    // Sinais vindos de métricas de resultado (resultado_id) pesam na confiança, mas não contam como
+    // fonte distinta: números de audiência, sozinhos, nunca promovem um candidato a regra.
     // Confiança cresce com as evidências e nunca chega a 1: uma evidência = 0,33; três = 0,6.
     const confianca = Math.round((s.favor / (s.favor + s.contra + 2)) * 100) / 100;
     const suficiente =
@@ -214,11 +244,13 @@ export class ServicoAprendizado {
   /** Histórico de onde o aprendizado veio. */
   evidencias(id: number): Evidencia[] {
     const linhas = this.banco.prepare("SELECT * FROM evidencias WHERE aprendizado_id = ? ORDER BY id").all(id) as unknown as {
-      id: number; aprendizado_id: number; origem: Evidencia["origem"]; projeto_id: string | null; referencia_id: string | null; feedback_id: number | null;
+      id: number; aprendizado_id: number; origem: Evidencia["origem"]; projeto_id: string | null; referencia_id: string | null;
+      avaliacao_id: number | null; resultado_id: number | null; feedback_id: number | null;
       detalhe: string; confirma: number; peso: number; criado_em: string;
     }[];
     return linhas.map((l) => ({
-      id: l.id, aprendizadoId: l.aprendizado_id, origem: l.origem, projetoId: l.projeto_id, referenciaId: l.referencia_id, feedbackId: l.feedback_id,
+      id: l.id, aprendizadoId: l.aprendizado_id, origem: l.origem, projetoId: l.projeto_id, referenciaId: l.referencia_id,
+      avaliacaoId: l.avaliacao_id, resultadoId: l.resultado_id, feedbackId: l.feedback_id,
       detalhe: l.detalhe, confirma: l.confirma === 1, peso: l.peso, criadoEm: l.criado_em,
     }));
   }
@@ -244,6 +276,7 @@ export class ServicoAprendizado {
     const atual = this.obter(id);
     const categoria = campos.categoria ?? atual.categoria;
     if (!CATEGORIAS_EDICAO.includes(categoria)) throw new Error(`Categoria desconhecida: "${categoria}".`);
+    this.registrarAcao(id, "corrigido");
     this.banco
       .prepare("UPDATE aprendizados SET descricao = ?, valor = ?, contexto = ?, categoria = ?, atualizado_em = ? WHERE id = ?")
       .run(
@@ -260,6 +293,7 @@ export class ServicoAprendizado {
   /** Desativa: o aprendizado deixa de ser aplicado, mas continua guardado. */
   desativar(id: number): Aprendizado {
     this.obter(id);
+    this.registrarAcao(id, "desativado");
     this.banco.prepare("UPDATE aprendizados SET estado = 'desativado', atualizado_em = ? WHERE id = ?").run(agora(), id);
     return this.obter(id);
   }
@@ -267,6 +301,7 @@ export class ServicoAprendizado {
   /** Ativa por decisão do usuário, mesmo sem evidências suficientes. Fica registrado como instrução explícita. */
   ativar(id: number): Aprendizado {
     this.obter(id);
+    this.registrarAcao(id, "ativado");
     transacao(this.banco, () => {
       this.banco.prepare("UPDATE aprendizados SET estado = 'candidato' WHERE id = ?").run(id);
       this.banco
@@ -279,7 +314,58 @@ export class ServicoAprendizado {
 
   excluir(id: number): void {
     this.obter(id);
+    this.registrarAcao(id, "excluido");
     this.banco.prepare("DELETE FROM aprendizados WHERE id = ?").run(id);
+  }
+
+  // --- Reversibilidade ----------------------------------------------------------
+
+  /** Guarda o estado completo do aprendizado (com suas evidências) antes de uma ação do usuário. */
+  private registrarAcao(id: number, acao: AcaoDeAprendizado["acao"]): void {
+    const aprendizado = this.banco.prepare("SELECT * FROM aprendizados WHERE id = ?").get(id) as Record<string, unknown>;
+    const evidencias = this.banco.prepare("SELECT * FROM evidencias WHERE aprendizado_id = ? ORDER BY id").all(id);
+    this.banco
+      .prepare("INSERT INTO acoes_de_aprendizado (aprendizado_id, acao, descricao, estado_anterior, criado_em) VALUES (?, ?, ?, ?, ?)")
+      .run(id, acao, `${aprendizado.categoria}/${aprendizado.chave}: ${aprendizado.descricao}`, JSON.stringify({ aprendizado, evidencias }), agora());
+  }
+
+  /** Ações do usuário sobre aprendizados (correções, desativações, ativações, exclusões), da mais recente para a mais antiga. */
+  acoes(aprendizadoId?: number): AcaoDeAprendizado[] {
+    const linhas = this.banco
+      .prepare("SELECT id, aprendizado_id, acao, descricao, desfeita, criado_em FROM acoes_de_aprendizado WHERE (? IS NULL OR aprendizado_id = ?) ORDER BY id DESC")
+      .all(aprendizadoId ?? null, aprendizadoId ?? null) as unknown as { id: number; aprendizado_id: number; acao: AcaoDeAprendizado["acao"]; descricao: string; desfeita: number; criado_em: string }[];
+    return linhas.map((l) => ({ id: l.id, aprendizadoId: l.aprendizado_id, acao: l.acao, descricao: l.descricao, desfeita: l.desfeita === 1, criadoEm: l.criado_em }));
+  }
+
+  /** Desfaz uma ação: o aprendizado volta exatamente ao estado anterior, com as evidências que tinha. */
+  desfazerAcao(acaoId: number): Aprendizado {
+    const acao = this.banco.prepare("SELECT * FROM acoes_de_aprendizado WHERE id = ?").get(acaoId) as
+      | { aprendizado_id: number; estado_anterior: string; desfeita: number }
+      | undefined;
+    if (!acao) throw new NaoEncontrado("Ação de aprendizado", String(acaoId));
+    if (acao.desfeita) throw new ErroAplicacao("acao-ja-desfeita", "Esta ação já foi desfeita.");
+    const { aprendizado, evidencias } = JSON.parse(acao.estado_anterior) as { aprendizado: Record<string, unknown>; evidencias: Record<string, unknown>[] };
+    const existe = (tabela: string, id: unknown) => id === null || id === undefined || Boolean(this.banco.prepare(`SELECT 1 FROM ${tabela} WHERE id = ?`).get(id as string | number));
+    if (!existe("projetos", aprendizado.projeto_id)) throw new ErroAplicacao("projeto-removido", "O projeto deste aprendizado não existe mais.");
+
+    const inserir = (tabela: string, linha: Record<string, unknown>) => {
+      const colunas = Object.keys(linha);
+      this.banco
+        .prepare(`INSERT INTO ${tabela} (${colunas.join(", ")}) VALUES (${colunas.map(() => "?").join(", ")})`)
+        .run(...colunas.map((c) => linha[c] as string | number | null));
+    };
+    transacao(this.banco, () => {
+      this.banco.prepare("DELETE FROM aprendizados WHERE id = ?").run(acao.aprendizado_id);
+      inserir("aprendizados", aprendizado);
+      for (const evidencia of evidencias) {
+        // Fontes que deixaram de existir (projeto, referência, avaliação, resultado) ficam sem vínculo.
+        const fontes = { projeto_id: "projetos", referencia_id: "referencias", avaliacao_id: "avaliacoes", resultado_id: "resultados", feedback_id: "feedback" };
+        for (const [coluna, tabela] of Object.entries(fontes)) if (!existe(tabela, evidencia[coluna])) evidencia[coluna] = null;
+        inserir("evidencias", evidencia);
+      }
+      this.banco.prepare("UPDATE acoes_de_aprendizado SET desfeita = 1 WHERE id = ?").run(acaoId);
+    });
+    return this.obter(acao.aprendizado_id);
   }
 
   /** Remove orientações temporárias vencidas. Devolve quantas foram removidas. */

@@ -178,11 +178,11 @@ test("revisar, corrigir, desativar, reativar e excluir aprendizados", () =>
 
 test("todas as categorias de edição são aceitas e as desconhecidas são recusadas", () =>
   comApp((app) => {
-    assert.equal(CATEGORIAS_EDICAO.length, 18);
+    assert.equal(CATEGORIAS_EDICAO.length, 20);
     for (const categoria of CATEGORIAS_EDICAO) {
       app.aprendizado.observar({ escopo: "geral", categoria, chave: "teste", descricao: `Sobre ${categoria}`, origem: "usuario" });
     }
-    assert.equal(app.aprendizado.listar({ estado: "ativo" }).length, 18);
+    assert.equal(app.aprendizado.listar({ estado: "ativo" }).length, 20);
     assert.throws(() =>
       app.aprendizado.observar({ escopo: "geral", categoria: "culinaria" as CategoriaEdicao, chave: "x", descricao: "y", origem: "usuario" }),
     );

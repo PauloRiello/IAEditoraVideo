@@ -32,6 +32,14 @@ Comandos:
   previa <projeto>                 Renderiza uma prévia de baixa qualidade
   exportar <projeto>               Renderiza o vídeo final (MP4, H.264 + AAC)
   exportacoes <projeto>            Mostra o histórico de exportações
+  avaliar <projeto> <aprovar|rejeitar|alterar> [motivo] [--nota aspecto=1..5] [--trecho inicio-fim:comentário]
+  avaliacoes <projeto>             Mostra as avaliações e os trechos pendentes de revisão
+  desfazer-avaliacao <id>          Desfaz o que uma avaliação ensinou
+  comparar <projeto> [de] [para]   Compara duas versões da timeline
+  resultado <projeto> <plataforma> [--metrica valor ...] [--evidencia texto]   Registra métricas informadas
+  aprendido [perfil]               Mostra o que foi aprendido, por contexto
+  aprendizado acoes                Lista as ações feitas sobre aprendizados
+  aprendizado desfazer <acao>      Desfaz uma correção, desativação, ativação ou exclusão
   referencias importar             Registra os vídeos novos da pasta Referências/
   referencias listar               Lista as referências registradas
   referencias analisar <id|todas>  Analisa referências e grava os relatórios
@@ -228,6 +236,91 @@ async function executar(app: Aplicacao, argumentos: string[]): Promise<number> {
     const lista = app.edicao.exportacoes(acao);
     if (lista.length === 0) console.log("Nenhuma exportação.");
     for (const e of lista) mostrarExportacao(e);
+    return 0;
+  }
+
+  if (comando === "avaliar" && acao && resto[0]) {
+    const decisoes = { aprovar: "aprovada", rejeitar: "rejeitada", alterar: "alteracoes-solicitadas" } as const;
+    const decisao = decisoes[resto[0] as keyof typeof decisoes];
+    if (!decisao) throw new ErroAplicacao("decisao-invalida", "Use aprovar, rejeitar ou alterar.");
+    const opcoes = (nome: string) => resto.flatMap((valor, i) => (valor === `--${nome}` && resto[i + 1] ? [resto[i + 1]] : []));
+    const primeiraOpcao = resto.findIndex((valor) => valor.startsWith("--"));
+    const r = app.feedback.avaliar(acao, {
+      decisao,
+      motivo: resto.slice(1, primeiraOpcao < 0 ? undefined : primeiraOpcao).join(" "),
+      notas: Object.fromEntries(opcoes("nota").map((par) => [par.split("=")[0], Number(par.split("=")[1])])),
+      trechos: opcoes("trecho").map((texto) => {
+        const [intervalo, ...comentario] = texto.split(":");
+        const [inicioSeg, fimSeg] = intervalo.split("-").map(Number);
+        return { inicioSeg, fimSeg, comentario: comentario.join(":") };
+      }),
+    });
+    console.log(`Avaliação #${r.id}: edição v${r.versaoDaTimeline} ${r.decisao}.`);
+    for (const c of r.aprendizado.correcoes) console.log(`  Correção registrada: ${c.categoria}/${c.chave} → ${c.valor}`);
+    console.log(`  Aprendizados confirmados: ${r.aprendizado.confirmados}; contestados: ${r.aprendizado.contestados}; trechos para revisão: ${r.trechos.length}`);
+    return 0;
+  }
+
+  if (comando === "avaliacoes" && acao) {
+    for (const a of app.feedback.avaliacoes(acao)) {
+      const notas = Object.entries(a.notas).map(([aspecto, nota]) => `${aspecto} ${nota}`).join(", ");
+      console.log(`#${a.id} edição v${a.versaoDaTimeline}: ${a.decisao}${a.motivo ? ` — ${a.motivo}` : ""}${notas ? ` [${notas}]` : ""}${a.desfeita ? " (aprendizado desfeito)" : ""}`);
+    }
+    for (const t of app.feedback.trechosEmRevisao(acao)) console.log(`Trecho pendente #${t.id}: ${t.inicioSeg}–${t.fimSeg} s — ${t.comentario}`);
+    return 0;
+  }
+
+  if (comando === "desfazer-avaliacao" && acao) {
+    console.log(`Aprendizado da avaliação desfeito: ${app.feedback.desfazerAvaliacao(Number(acao)).aprendizadosAfetados} aprendizado(s) afetado(s).`);
+    return 0;
+  }
+
+  if (comando === "comparar" && acao) {
+    const c = app.feedback.compararVersoes(acao, resto[0] ? Number(resto[0]) : undefined, resto[1] ? Number(resto[1]) : undefined);
+    console.log(`Timeline v${c.de} → v${c.para}`);
+    for (const linha of c.resumo) console.log(`  ${linha}`);
+    for (const i of c.itens.adicionados) console.log(`  + ${i.id} [${i.tipo}]`);
+    for (const i of c.itens.removidos) console.log(`  - ${i.id} [${i.tipo}]`);
+    for (const i of c.itens.alterados) console.log(`  ~ ${i.id}: ${i.campos.map((campo) => campo.campo).join(", ")}`);
+    if (c.resumo.length + c.itens.adicionados.length + c.itens.removidos.length + c.itens.alterados.length === 0) console.log("  As versões são iguais.");
+    return 0;
+  }
+
+  if (comando === "resultado" && acao && resto[0]) {
+    const metricas: Record<string, number> = {};
+    let evidenciaDeAtribuicao: string | undefined;
+    for (let i = 1; i < resto.length - 1; i += 2) {
+      if (resto[i] === "--evidencia") evidenciaDeAtribuicao = resto[i + 1];
+      else metricas[resto[i].replace(/^--/, "")] = Number(resto[i + 1]);
+    }
+    const r = app.feedback.registrarResultado(acao, { plataforma: resto[0], metricas, evidenciaDeAtribuicao });
+    console.log(`Resultado #${r.id} registrado em ${r.plataforma}. Leitura: ${r.leitura.sinal}.`);
+    console.log(`  ${r.leitura.observacao}`);
+    return 0;
+  }
+
+  if (comando === "aprendido") {
+    const painel = app.feedback.painel();
+    const mostrar = (titulo: string, lista: typeof painel.geral) => {
+      if (lista.length === 0) return;
+      console.log(titulo);
+      for (const a of lista) console.log(`  #${a.id} [${a.estado}, confiança ${a.confianca}, ${a.evidencias} a favor, ${a.contrarias} contra, ${a.projetosObservados} fonte(s)] ${a.categoria}/${a.chave} = ${JSON.stringify(a.valor)}`);
+    };
+    if (!acao) mostrar("Preferências gerais", painel.geral);
+    for (const [perfil, lista] of Object.entries(painel.perfis)) if (!acao || acao === perfil) mostrar(`Perfil ${perfil}`, lista);
+    if (!acao) for (const [projeto, lista] of Object.entries(painel.projetos)) mostrar(`Projeto ${app.projetos.obter(projeto).nome}`, lista);
+    if (!acao) mostrar("Orientações temporárias", painel.temporarias);
+    return 0;
+  }
+
+  if (comando === "aprendizado" && acao === "acoes") {
+    for (const a of app.aprendizado.acoes()) console.log(`#${a.id} ${a.acao}${a.desfeita ? " (desfeita)" : ""}: ${a.descricao}`);
+    return 0;
+  }
+
+  if (comando === "aprendizado" && acao === "desfazer" && resto[0]) {
+    const a = app.aprendizado.desfazerAcao(Number(resto[0]));
+    console.log(`Ação desfeita. Aprendizado #${a.id} voltou a: ${a.estado}, ${a.categoria}/${a.chave} = ${JSON.stringify(a.valor)}`);
     return 0;
   }
 

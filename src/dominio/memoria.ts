@@ -20,6 +20,8 @@ export const CATEGORIAS_EDICAO = [
   "hooks",
   "retencao",
   "cta",
+  "enquadramento",
+  "comunicacao",
 ] as const;
 
 export type CategoriaEdicao = (typeof CATEGORIAS_EDICAO)[number];
@@ -78,6 +80,10 @@ export interface Evidencia {
   projetoId: string | null;
   /** Referência em que foi observada. */
   referenciaId: string | null;
+  /** Avaliação do usuário que gerou a evidência. */
+  avaliacaoId: number | null;
+  /** Resultado publicado que gerou a evidência (sinal fraco). */
+  resultadoId: number | null;
   feedbackId: number | null;
   detalhe: string;
   confirma: boolean;
@@ -100,6 +106,8 @@ export interface Observacao {
   projetoObservado?: string;
   /** Referência em que foi observada (análise de referências). */
   referenciaObservada?: string;
+  /** Avaliação do usuário que motivou a observação. */
+  avaliacaoId?: number;
   feedbackId?: number;
   detalhe?: string;
   /** Somente para orientações temporárias. */

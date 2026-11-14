@@ -218,6 +218,55 @@ export const MIGRACOES: string[] = [
     concluido_em TEXT
   );
   `,
+  // v6 — avaliações de edições, trechos em revisão, métricas de resultado e ações reversíveis sobre aprendizados
+  `
+  CREATE TABLE avaliacoes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    projeto_id TEXT NOT NULL REFERENCES projetos(id) ON DELETE CASCADE,
+    versao_da_timeline INTEGER NOT NULL,
+    exportacao_id INTEGER REFERENCES exportacoes(id) ON DELETE SET NULL,
+    decisao TEXT NOT NULL CHECK (decisao IN ('aprovada', 'rejeitada', 'alteracoes-solicitadas')),
+    motivo TEXT NOT NULL DEFAULT '',
+    notas TEXT NOT NULL DEFAULT '{}',
+    desfeita INTEGER NOT NULL DEFAULT 0,
+    criado_em TEXT NOT NULL
+  );
+  CREATE TABLE trechos_em_revisao (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    avaliacao_id INTEGER NOT NULL REFERENCES avaliacoes(id) ON DELETE CASCADE,
+    projeto_id TEXT NOT NULL REFERENCES projetos(id) ON DELETE CASCADE,
+    inicio_seg REAL NOT NULL,
+    fim_seg REAL NOT NULL,
+    item_id TEXT,
+    aspecto TEXT,
+    comentario TEXT NOT NULL DEFAULT '',
+    resolvido INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE TABLE resultados (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    projeto_id TEXT NOT NULL REFERENCES projetos(id) ON DELETE CASCADE,
+    exportacao_id INTEGER REFERENCES exportacoes(id) ON DELETE SET NULL,
+    plataforma TEXT NOT NULL,
+    metricas TEXT NOT NULL,
+    evidencia_de_atribuicao TEXT NOT NULL DEFAULT '',
+    observacoes TEXT NOT NULL DEFAULT '',
+    leitura TEXT NOT NULL,
+    criado_em TEXT NOT NULL
+  );
+  CREATE TABLE acoes_de_aprendizado (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    aprendizado_id INTEGER NOT NULL,
+    acao TEXT NOT NULL CHECK (acao IN ('corrigido', 'desativado', 'ativado', 'excluido')),
+    descricao TEXT NOT NULL,
+    estado_anterior TEXT NOT NULL,
+    desfeita INTEGER NOT NULL DEFAULT 0,
+    criado_em TEXT NOT NULL
+  );
+  ALTER TABLE evidencias ADD COLUMN avaliacao_id INTEGER REFERENCES avaliacoes(id) ON DELETE SET NULL;
+  ALTER TABLE evidencias ADD COLUMN resultado_id INTEGER REFERENCES resultados(id) ON DELETE SET NULL;
+  CREATE INDEX evidencias_avaliacao ON evidencias (avaliacao_id);
+  CREATE INDEX evidencias_resultado ON evidencias (resultado_id);
+  `,
 ];
 
 export const VERSAO_ESQUEMA = MIGRACOES.length;

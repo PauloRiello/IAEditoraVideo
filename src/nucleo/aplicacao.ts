@@ -23,6 +23,7 @@ import { ServicoProjetos } from "../servicos/projetos.ts";
 import { criarRegistroProvedores, type RegistroProvedores } from "../servicos/provedores.ts";
 import { ServicoTimeline } from "../servicos/timeline.ts";
 import { Edicao } from "./edicao.ts";
+import { Feedback } from "./feedback.ts";
 import { detectarHardware, GerenciadorVram, type Hardware } from "../servicos/recursos.ts";
 import { Orquestrador } from "./orquestrador.ts";
 import { Producao } from "./producao.ts";
@@ -62,6 +63,8 @@ export class Aplicacao {
   estilos!: ServicoEstilos;
   /** Timeline editável, prévia, renderização e histórico de exportações. */
   edicao!: Edicao;
+  /** Avaliação de edições, comparação de versões, métricas de resultado e controle do que foi aprendido. */
+  feedback!: Feedback;
   hardware: Hardware;
   vram: GerenciadorVram;
   orquestrador: Orquestrador;
@@ -144,10 +147,12 @@ export class Aplicacao {
       caminhos: this.caminhos, configuracoes: this.configuracoes, projetos: this.projetos, acervo: this.acervo, aprendizado: this.aprendizado,
       memoria: this.memoria, perfis: this.perfis, indice: new ServicoIndice(this.banco), estilos: this.estilos, provedores: this.provedores, vram: this.vram,
     });
+    const timelines = new ServicoTimeline(this.banco);
     this.edicao = new Edicao({
       caminhos: this.caminhos, projetos: this.projetos, acervo: this.acervo, aprendizado: this.aprendizado, memoria: this.memoria, estilos: this.estilos,
-      timelines: new ServicoTimeline(this.banco), producao: this.producao, hardware: this.hardware, eventos: this.eventos,
+      timelines, producao: this.producao, hardware: this.hardware, eventos: this.eventos,
     });
+    this.feedback = new Feedback({ banco: this.banco, projetos: this.projetos, aprendizado: this.aprendizado, timelines });
     this.referencias = new AnaliseDeReferencias({
       caminhos: this.caminhos, configuracoes: this.configuracoes, acervo: this.acervo, aprendizado: this.aprendizado,
       perfis: this.perfis, provedores: this.provedores, vram: this.vram,
