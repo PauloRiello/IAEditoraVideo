@@ -166,10 +166,13 @@ export class AgenteDeEdicao implements Agente {
       return valor as T;
     };
     const posicaoDoTexto = preferir("tipografia", "posicao-do-texto", ["topo", "centro", "base"] as const, "texto/posicao") ?? estilo.texto.posicao;
-    const tamanhoDaLegenda = { pequena: 0.027, media: 0.034, grande: 0.042 }[preferir("legendas", "tamanho", ["pequena", "media", "grande"] as const, "legendas/tamanho") ?? ""] ?? estilo.legendas.tamanho;
-    const caixaDaLegenda = { sim: true, nao: false }[preferir("legendas", "caixa", ["sim", "nao"] as const, "legendas/caixa") ?? ""] ?? estilo.legendas.caixa;
+    const tamanhoAprendido = preferir("legendas", "tamanho", ["pequena", "media", "grande"] as const, "legendas/tamanho");
+    const tamanhoDaLegenda = tamanhoAprendido ? { pequena: 0.027, media: 0.034, grande: 0.042 }[tamanhoAprendido] : estilo.legendas.tamanho;
+    const caixaAprendida = preferir("legendas", "caixa", ["sim", "nao"] as const, "legendas/caixa");
+    const caixaDaLegenda = caixaAprendida ? caixaAprendida === "sim" : estilo.legendas.caixa;
     const formatoDoCta = preferir("cta", "formato", ["cartao", "texto"] as const, "cta/formato") ?? estilo.encerramento;
-    const volumeDaTrilha = { baixo: 0.3, medio: 0.6, alto: 0.9 }[preferir("trilha-sonora", "volume", ["baixo", "medio", "alto"] as const, "trilha/volume") ?? ""] ?? estilo.volumeDaTrilha;
+    const volumeAprendido = preferir("trilha-sonora", "volume", ["baixo", "medio", "alto"] as const, "trilha/volume");
+    const volumeDaTrilha = volumeAprendido ? { baixo: 0.3, medio: 0.6, alto: 0.9 }[volumeAprendido] : estilo.volumeDaTrilha;
     if (preferir("legendas", "uso", ["nao"] as const, "legendas/uso") === "nao") {
       for (let i = itens.length - 1; i >= 0; i -= 1) if (itens[i].tipo === "legenda") itens.splice(i, 1);
     }
