@@ -1,6 +1,6 @@
 // Aba "Exportação": preset, destino, conferência de qualidade, exportação final, relatórios e histórico.
 
-import { agir, api, aviso, barra, campo, confirmar, dialogo, escolha, etiqueta, h, limpar, nomeDoArquivo, perguntar, quando, tamanho, tempo } from "/nucleo.js";
+import { agir, api, aviso, barra, campo, confirmar, dialogo, escolha, etiqueta, h, limpar, nomeDoArquivo, perguntar, quando, tamanho, tempo, por } from "/nucleo.js";
 
 const SITUACOES = { aprovado: ["Aprovado", "bom"], "aprovado-com-ressalvas": ["Aprovado com ressalvas", "bom"], pendente: ["Pendente: precisa da sua decisão", "alerta"], reprovado: ["Reprovado", "ruim"] };
 const GRAVIDADES = { obrigatoria: ["Obrigatória", "ruim"], importante: ["Importante", "alerta"], recomendacao: ["Recomendação", "info"] };
@@ -22,7 +22,7 @@ export function mostrarRelatorio(projetoId, relatorio, aoMudar) {
         aoMudar?.();
       }, "Exceção registrada.");
     };
-    limpar(corpo).append(
+    por(limpar(corpo), 
       h("div.linha", { style: "margin-bottom:12px" }, etiqueta(...(SITUACOES[r.situacao] ?? [r.situacao, ""])), h("span.suave", {}, `Destino: ${r.perfilDeQualidade} · timeline v${r.versaoDaTimeline} · ${quando(r.criadoEm)}`)),
       r.arquivo ? h("p.suave", {}, r.arquivo) : h("p.suave", {}, "Conferência da timeline, antes de renderizar."),
       h("p", {}, `${aprovadas.length} verificação(ões) aprovada(s), ${reprovadas.length} com problema, ${outras.length} que não se aplicam.`),
@@ -62,11 +62,11 @@ export async function aba(raiz, estado) {
 
   const desenhar = (lista) => {
     const ativas = lista.filter((e) => e.estado === "na-fila" || e.estado === "renderizando");
-    limpar(andamento).append(ativas.map((e) => h("div.nota", {}, h("div.linha", {},
+    por(limpar(andamento), ativas.map((e) => h("div.nota", {}, h("div.linha", {},
       h("div", { style: "flex:1" }, h("strong", {}, `${e.tipo === "previa" ? "Prévia" : "Exportação"} da timeline v${e.versaoDaTimeline}`), h("div", { dados: { exportacao: e.id } }, barra(progresso.get(e.id) ?? e.progresso ?? 0))),
       h("button", { aoClicar: (ev) => agir(ev, () => api(`/api/projetos/${id}/exportacoes/${e.id}/cancelar`, { metodo: "POST" })) }, "Cancelar")))));
     const finais = lista.filter((e) => e.tipo === "final");
-    limpar(historico).append(finais.length === 0 ? h("div.vazio", {}, "Nenhum vídeo exportado ainda.") : h("div.rolavel", {}, h("table", {},
+    por(limpar(historico), finais.length === 0 ? h("div.vazio", {}, "Nenhum vídeo exportado ainda.") : h("div.rolavel", {}, h("table", {},
       h("thead", {}, h("tr", {}, ["Data", "Versão", "Preset", "Situação", "Arquivo", "Qualidade", ""].map((c) => h("th", {}, c)))),
       h("tbody", {}, finais.map((e) => h("tr", {},
         h("td", {}, quando(e.criadoEm)), h("td", {}, `v${e.versaoDaTimeline}`), h("td", {}, e.preset ?? "padrão"), h("td", {}, etiqueta(...(ESTADOS[e.estado] ?? [e.estado, ""]))),
@@ -81,7 +81,7 @@ export async function aba(raiz, estado) {
   };
   const carregar = async () => desenhar(await api(`/api/projetos/${id}/exportacoes`));
 
-  raiz.append(
+  por(raiz, 
     h("section.bloco", {}, h("h2", {}, "Exportar o vídeo final"),
       !timeline ? h("div.nota.alerta", {}, "Ainda não há timeline para exportar. ", h("a", { href: `#/projeto/${id}/edicao` }, "Abrir a edição")) : [
         h("p", {}, `Será exportada a timeline v${timeline.versao} (${timeline.timeline.formato.largura}×${timeline.timeline.formato.altura}, ${tempo(timeline.timeline.duracaoSeg)}), em MP4 com H.264 e AAC. O arquivo é conferido antes de entrar na pasta de exportações, e um arquivo existente nunca é sobrescrito.`),

@@ -1,6 +1,6 @@
 // Aba "Material e análise": vídeos brutos (envio, análise, cenas, transcrição, pesquisa) e referências do projeto.
 
-import { agir, api, areaDeEnvio, aviso, dialogo, escolha, etiqueta, h, limpar, markdown, quando, tamanho, tempo } from "/nucleo.js";
+import { agir, api, areaDeEnvio, aviso, dialogo, escolha, etiqueta, h, limpar, markdown, quando, tamanho, tempo, por } from "/nucleo.js";
 
 const INTEGRIDADE = { integro: ["Íntegro", "bom"], "com-erros": ["Com erros", "alerta"], ilegivel: ["Ilegível", "ruim"] };
 
@@ -59,19 +59,19 @@ export async function aba(raiz, estado) {
   const desenharBotoes = (brutos) => {
     if (brutos.length) ultimos = brutos;
     const pendentes = ultimos.filter((b) => !b.analisado).length;
-    limpar(botoes).append(
+    por(limpar(botoes), 
       h("label.marca-campo", { title: "Usa o Whisper neste computador. Desmarque para uma análise mais rápida, sem as falas." }, transcrever, "Transcrever as falas"),
       h("span.espaco"),
       analisando ? h("span.suave", {}, "Análise em andamento…") : [
         ultimos.length > pendentes ? h("button", { aoClicar: analisar(true) }, "Analisar tudo de novo") : null,
-        h("button.principal", { disabled: ultimos.length === 0, aoClicar: analisar(false) }, pendentes ? `Analisar ${pendentes} vídeo(s)` : "Analisar vídeos"),
+        pendentes || ultimos.length === 0 ? h("button.principal", { disabled: ultimos.length === 0, aoClicar: analisar(false) }, pendentes ? `Analisar ${pendentes} vídeo(s)` : "Analisar vídeos") : h("span.suave", {}, "Todos os vídeos já foram analisados."),
       ],
     );
   };
 
   const desenharBrutos = (brutos) => {
     desenharBotoes(brutos);
-    limpar(tabela).append(brutos.length === 0 ? h("div.vazio", {}, "Nenhum vídeo bruto neste projeto. Envie arquivos acima ou copie-os para a pasta do projeto.") : h("div.rolavel", {}, h("table", {},
+    por(limpar(tabela), brutos.length === 0 ? h("div.vazio", {}, "Nenhum vídeo bruto neste projeto. Envie arquivos acima ou copie-os para a pasta do projeto.") : h("div.rolavel", {}, h("table", {},
       h("thead", {}, h("tr", {}, ["", "Arquivo", "Duração", "Imagem", "Situação", "Cenas", "Falas", "Problemas"].map((c) => h("th", {}, c)))),
       h("tbody", {}, brutos.map((b) => h("tr.clicavel", { aoClicar: () => agir(null, () => verBruto(id, b.id)), title: "Ver cenas, transcrição e dados técnicos" },
         h("td", {}, b.miniatura !== null ? h("img.miniatura", { src: `/api/projetos/${id}/brutos/${b.id}/miniaturas/${b.miniatura}`, loading: "lazy", alt: "" }) : h("div.miniatura")),
@@ -91,7 +91,7 @@ export async function aba(raiz, estado) {
       await carregarReferencias();
     }, "Referência associada ao projeto."));
     const pendentes = vinculadas.filter((r) => !r.analisada && r.existe);
-    limpar(referencias).append(
+    por(limpar(referencias), 
       vinculadas.length === 0 ? h("div.vazio", {}, "Nenhuma referência neste projeto. Referências são vídeos prontos cujo estilo você quer que a aplicação observe.") : h("table", {},
         h("thead", {}, h("tr", {}, ["Referência", "Situação", ""].map((c) => h("th", {}, c)))),
         h("tbody", {}, vinculadas.map((r) => h("tr", {}, h("td", {}, h("strong", {}, r.titulo), h("div.suave", {}, `Adicionada em ${quando(r.criadoEm)}`)),
@@ -109,13 +109,13 @@ export async function aba(raiz, estado) {
   const busca = h("input", { type: "search", placeholder: "Procurar nas falas, cenas e acontecimentos dos vídeos analisados" });
   const pesquisar = () => agir(null, async () => {
     const achados = busca.value.trim() ? await api(`/api/projetos/${id}/pesquisa?q=${encodeURIComponent(busca.value)}`) : null;
-    limpar(resultados).append(achados === null ? null : achados.length === 0 ? h("div.suave", { style: "margin-top:10px" }, "Nada encontrado.") : h("ul.lista", { style: "margin-top:8px" },
+    por(limpar(resultados), achados === null ? null : achados.length === 0 ? h("div.suave", { style: "margin-top:10px" }, "Nada encontrado.") : h("ul.lista", { style: "margin-top:8px" },
       achados.map((r) => h("li", {}, h("time", {}, `${tempo(r.inicioSeg)}–${tempo(r.fimSeg)}`), h("span", {}, h("strong", {}, r.arquivo.split(/[\\/]/).pop()), ` — ${r.texto} `, etiqueta(r.tipo))))));
   });
   busca.addEventListener("keydown", (e) => { if (e.key === "Enter") pesquisar(); });
 
   const video = contexto.catalogo.extensoesDeVideo;
-  raiz.append(
+  por(raiz, 
     h("section.bloco", {},
       h("h2", {}, "Vídeos brutos", h("span.acoes", {},
         h("button.pequeno", { aoClicar: (e) => agir(e, () => api("/api/abrir", { metodo: "POST", corpo: { alvo: "brutos", projetoId: id } })) }, "Abrir pasta"),

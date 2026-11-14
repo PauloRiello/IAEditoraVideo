@@ -1,6 +1,6 @@
 // Aprendizado: o que a aplicação aprendeu, perfis de estilo, preferências do usuário, histórico e controle da memória.
 
-import { agir, api, campo, confirmar, dialogo, escolha, etiqueta, h, limpar, perguntar, porcento, quando } from "/nucleo.js";
+import { agir, api, campo, confirmar, dialogo, escolha, etiqueta, h, limpar, perguntar, porcento, quando, por } from "/nucleo.js";
 
 const ESTADOS = { ativo: ["Em vigor", "bom"], candidato: ["Candidato", "alerta"], desativado: ["Desativado", ""] };
 const ORIGENS = { feedback: "avaliação", analise: "análise", correcao: "correção sua", usuario: "instrução sua" };
@@ -91,13 +91,13 @@ export async function mostrar(raiz, contexto) {
 
   function desenhar() {
     const secoes = [["aprendido", "O que foi aprendido"], ["estilos", "Perfis de estilo"], ["preferencias", "Preferências"], ["historico", "Histórico e controle"]];
-    limpar(area).append(
+    por(limpar(area), 
       h("nav.abas", { style: "margin-top:0" }, secoes.map(([id, nome]) => h(`a${id === secao ? ".ativo" : ""}`, { href: "#/aprendizado", aoClicar: (e) => { e.preventDefault(); secao = id; desenhar(); } }, nome))),
       secao === "aprendido" ? aprendido() : secao === "estilos" ? estilos() : secao === "preferencias" ? preferencias() : historico());
   }
   const carregar = async () => { dados = await api("/api/aprendizado"); desenhar(); };
 
-  raiz.append(h("div.cabecalho", {}, h("div", {}, h("h1", {}, "Aprendizado"),
+  por(raiz, h("div.cabecalho", {}, h("div", {}, h("h1", {}, "Aprendizado"),
     h("div.subtitulo", {}, "A memória da aplicação fica neste computador. Aqui você vê o que ela aprendeu, de onde veio, e controla o que vale."))), area);
   await carregar();
 }

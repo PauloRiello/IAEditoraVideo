@@ -60,6 +60,17 @@ export function h(marca, propriedades = {}, ...filhos) {
 
 export const limpar = (no) => { no.replaceChildren(); return no; };
 
+/** Acrescenta filhos a um elemento. Como em `h`, aceita listas e ignora valores vazios. */
+export function por(no, ...filhos) {
+  const acrescentar = (filho) => {
+    if (filho === null || filho === undefined || filho === false) return;
+    if (Array.isArray(filho)) filho.forEach(acrescentar);
+    else no.append(filho instanceof Node ? filho : document.createTextNode(String(filho)));
+  };
+  filhos.forEach(acrescentar);
+  return no;
+}
+
 // --- Formatação -------------------------------------------------------------------------------
 export const tempo = (seg) => {
   if (seg === null || seg === undefined || Number.isNaN(Number(seg))) return "—";
@@ -128,7 +139,7 @@ export async function agir(botao, acao, sucesso) {
 export function dialogo({ titulo, corpo, acoes = [], estreito = false }) {
   const caixa = h(`dialog${estreito ? ".estreito" : ""}`, {});
   caixa.fechar = () => { caixa.close(); caixa.remove(); };
-  caixa.append(
+  por(caixa,
     h("header", {}, h("h2", {}, titulo), h("button.discreto", { aoClicar: caixa.fechar, "aria-label": "Fechar" }, "Fechar")),
     h("div.corpo", {}, corpo),
     acoes.length ? h("footer", {}, acoes) : null,
@@ -185,14 +196,14 @@ export function markdown(texto) {
   for (let i = 0; i < linhas.length; i += 1) {
     const linha = linhas[i];
     const titulo = /^(#{1,4})\s+(.*)$/.exec(linha);
-    if (titulo) { raiz.append(h(`h${Math.min(titulo[1].length, 3)}`, {}, emLinha(titulo[2]))); continue; }
+    if (titulo) { por(raiz, h(`h${Math.min(titulo[1].length, 3)}`, {}, emLinha(titulo[2]))); continue; }
     if (/^\s*\|.*\|\s*$/.test(linha)) {
       const bloco = [];
       while (i < linhas.length && /^\s*\|.*\|\s*$/.test(linhas[i])) { bloco.push(linhas[i]); i += 1; }
       i -= 1;
       const celulas = (l) => l.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
       const corpo = bloco.filter((l, k) => k !== 1 || !/^[\s|:-]+$/.test(l));
-      raiz.append(h("div.rolavel", {}, h("table", {},
+      por(raiz, h("div.rolavel", {}, h("table", {},
         h("thead", {}, h("tr", {}, celulas(corpo[0]).map((c) => h("th", {}, emLinha(c))))),
         h("tbody", {}, corpo.slice(1).map((l) => h("tr", {}, celulas(l).map((c) => h("td", {}, emLinha(c)))))))));
       continue;
@@ -201,10 +212,10 @@ export function markdown(texto) {
       const itens = [];
       while (i < linhas.length && /^\s*[-*]\s+/.test(linhas[i])) { itens.push(linhas[i].replace(/^\s*[-*]\s+/, "")); i += 1; }
       i -= 1;
-      raiz.append(h("ul", {}, itens.map((item) => h("li", {}, emLinha(item)))));
+      por(raiz, h("ul", {}, itens.map((item) => h("li", {}, emLinha(item)))));
       continue;
     }
-    if (linha.trim()) raiz.append(h("p", {}, emLinha(linha)));
+    if (linha.trim()) por(raiz, h("p", {}, emLinha(linha)));
   }
   return raiz;
 }
@@ -220,7 +231,7 @@ export function areaDeEnvio({ texto, aceitos, destino, aoTerminar }) {
     let enviados = 0;
     for (const [n, arquivo] of lista.entries()) {
       const progresso = barra(0);
-      limpar(estado).append(h("p", { style: "margin-top:10px" }, `Enviando ${arquivo.name} (${n + 1} de ${lista.length})…`), progresso);
+      por(limpar(estado), h("p", { style: "margin-top:10px" }, `Enviando ${arquivo.name} (${n + 1} de ${lista.length})…`), progresso);
       try {
         await enviar(destino(arquivo), arquivo, (fracao) => { progresso.firstChild.style.width = `${Math.round(fracao * 100)}%`; });
         enviados += 1;

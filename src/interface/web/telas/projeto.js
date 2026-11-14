@@ -1,6 +1,6 @@
 // Tela de um projeto: cabeçalho com as etapas e abas de trabalho.
 
-import { agir, api, confirmar, h, limpar, quando } from "/nucleo.js";
+import { agir, api, confirmar, h, limpar, quando, por } from "/nucleo.js";
 import { etapasDoProjeto, formularioDoProjeto } from "/telas/formulario-projeto.js";
 
 const ABAS = [["visao", "Visão geral"], ["material", "Material e análise"], ["plano", "Plano e roteiro"], ["edicao", "Edição"], ["exportacao", "Exportação"], ["avaliacao", "Avaliação"]];
@@ -32,7 +32,7 @@ async function visaoGeral(raiz, estado) {
     const sim = await confirmar("Remover este projeto?", `"${projeto.nome}" sai da aplicação com o plano, a timeline e o histórico. Os vídeos brutos e os arquivos exportados continuam nas pastas.`, { rotulo: "Remover projeto", perigo: true });
     if (sim) await agir(evento.target, async () => { await api(`/api/projetos/${projeto.id}`, { metodo: "DELETE" }); contexto.ir("#/projetos"); });
   };
-  raiz.append(
+  por(raiz, 
     h("div.nota.bom", {}, h("div.linha", {}, h("span", {}, h("strong", {}, "Próximo passo: "), texto), h("span.espaco"), h("a.botao", { href: `#/projeto/${projeto.id}/${aba}` }, rotulo))),
     h("section.bloco", {}, h("h2", {}, "Configuração do projeto"), formulario.no,
       h("div.linha", { style: "margin-top:16px" }, h("button.principal", { aoClicar: salvar }, "Salvar configuração"),
@@ -59,7 +59,7 @@ export async function mostrar(raiz, contexto, partes) {
 
   const desenharCabecalho = () => {
     const f = projeto.formatoEfetivo;
-    limpar(cabecalho).append(h("div.cabecalho", { style: "margin-bottom:0" }, h("div", {},
+    por(limpar(cabecalho), h("div.cabecalho", { style: "margin-bottom:0" }, h("div", {},
       h("div.suave", {}, h("a", { href: "#/projetos" }, "Projetos"), " / ", projeto.perfilNome),
       h("h1", {}, projeto.nome),
       h("div.subtitulo", {}, [f ? `${f.largura}×${f.altura}, ${f.fps} fps` : null, projeto.configuracao.plataforma || null, projeto.configuracao.duracaoSeg ? `${projeto.configuracao.duracaoSeg} s` : null].filter(Boolean).join(" · ")),
@@ -74,7 +74,7 @@ export async function mostrar(raiz, contexto, partes) {
   const abrirAba = async (pedido) => {
     const nome = ABAS.some(([a]) => a === pedido) ? pedido : "visao";
     const minhaVez = (vez += 1);
-    limpar(abas).append(ABAS.map(([a, rotulo]) => h(`a${a === nome ? ".ativo" : ""}`, { href: `#/projeto/${id}/${a}` }, rotulo)));
+    por(limpar(abas), ABAS.map(([a, rotulo]) => h(`a${a === nome ? ".ativo" : ""}`, { href: `#/projeto/${id}/${a}` }, rotulo)));
     abaAtual?.aoSair?.();
     abaAtual = null;
     nomeDaAba = nome;
@@ -86,12 +86,12 @@ export async function mostrar(raiz, contexto, partes) {
       abaAtual = tela ?? {};
     } catch (erro) {
       if (minhaVez !== vez) return;
-      limpar(area).append(h("div.nota.erro", {}, erro.message));
+      por(limpar(area), h("div.nota.erro", {}, erro.message));
     }
-    limpar(corpo).append(area);
+    por(limpar(corpo), area);
   };
 
-  raiz.append(cabecalho, abas, corpo);
+  por(raiz, cabecalho, abas, corpo);
   desenharCabecalho();
   await abrirAba(partes[1]);
 

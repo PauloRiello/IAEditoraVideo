@@ -1,6 +1,6 @@
 // Referências: vídeos prontos cujo estilo a aplicação observa. Envio, análise, relatórios e remoção.
 
-import { agir, api, areaDeEnvio, aviso, confirmar, escolha, etiqueta, h, limpar, quando } from "/nucleo.js";
+import { agir, api, areaDeEnvio, aviso, confirmar, escolha, etiqueta, h, limpar, quando, por } from "/nucleo.js";
 import { verRelatorioDaReferencia } from "/telas/projeto-material.js";
 
 export async function mostrar(raiz, contexto) {
@@ -22,7 +22,7 @@ export async function mostrar(raiz, contexto) {
 
   const desenhar = (lista) => {
     const pendentes = lista.filter((r) => !r.analisada && r.existe);
-    limpar(tabela).append(
+    por(limpar(tabela), 
       h("div.linha", { style: "margin-bottom:12px" },
         h("label.marca-campo", { title: "Usa o Whisper neste computador." }, transcrever, "Transcrever as falas"), h("span.espaco"),
         pendentes.length ? h("button.principal", { aoClicar: analisar(pendentes.map((r) => r.id)) }, `Analisar ${pendentes.length} não analisada(s)`) : null),
@@ -38,7 +38,7 @@ export async function mostrar(raiz, contexto) {
   };
   const carregar = async () => desenhar(await api("/api/referencias"));
 
-  raiz.append(
+  por(raiz, 
     h("div.cabecalho", {},
       h("div", {}, h("h1", {}, "Referências"), h("div.subtitulo", {}, "Vídeos prontos que mostram o estilo desejado. A aplicação aprende princípios com eles, sem copiar.")),
       h("div.acoes", {},

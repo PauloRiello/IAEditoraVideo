@@ -1,6 +1,6 @@
 // Configurações: preferências gerais, transcrição, provedores de IA (todos opcionais), computador, pastas e cópias de segurança.
 
-import { agir, api, aviso, campo, confirmar, dialogo, escolha, etiqueta, h, limpar, quando } from "/nucleo.js";
+import { agir, api, aviso, campo, confirmar, dialogo, escolha, etiqueta, h, limpar, quando, por } from "/nucleo.js";
 
 const MOTIVOS = { manual: "Manual", automatica: "Automática", "pre-migracao": "Antes de atualizar o banco", "pre-restauracao": "Antes de uma restauração", "pre-atualizacao": "Antes de atualizar o programa" };
 
@@ -126,12 +126,12 @@ export async function mostrar(raiz, contexto) {
   }
 
   function desenhar() {
-    limpar(area).append(geral(), ia(), computador(), seguranca(),
+    por(limpar(area), geral(), ia(), computador(), seguranca(),
       h("section.bloco", {}, h("h2", {}, "Sobre"), h("p", {}, `IA Editora de Vídeo, versão ${c.versao}. Roda neste computador, com memória própria, sem depender de nenhum outro programa aberto.`),
         h("p.suave", {}, "Para atualizar, use o atalho Atualizar (ou o comando de atualização): ele faz uma cópia de segurança antes e preserva projetos, aprendizados e exportações.")));
   }
   const carregar = async () => { [c, copias] = await Promise.all([api("/api/configuracoes"), api("/api/backups")]); desenhar(); };
 
-  raiz.append(h("div.cabecalho", {}, h("div", {}, h("h1", {}, "Configurações"), h("div.subtitulo", {}, "Preferências, modelos, provedores de IA opcionais, recursos do computador e cópias de segurança."))), area);
+  por(raiz, h("div.cabecalho", {}, h("div", {}, h("h1", {}, "Configurações"), h("div.subtitulo", {}, "Preferências, modelos, provedores de IA opcionais, recursos do computador e cópias de segurança."))), area);
   await carregar();
 }

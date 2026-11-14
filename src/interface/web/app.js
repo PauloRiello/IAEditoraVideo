@@ -1,6 +1,6 @@
 // Ponto de partida da interface: navegação entre telas, eventos ao vivo e indicador de processamento.
 
-import { agir, api, aviso, barra, confirmar, h, limpar } from "/nucleo.js";
+import { agir, api, aviso, barra, confirmar, h, limpar, por } from "/nucleo.js";
 
 const TELAS = {
   painel: () => import("/telas/painel.js"), projetos: () => import("/telas/projetos.js"), projeto: () => import("/telas/projeto.js"),
@@ -33,13 +33,13 @@ async function navegar() {
     const tela = (await modulo.mostrar(raiz, contexto, partes.slice(1))) ?? {};
     if (vez !== navegacao) return; // o usuário já foi para outra tela
     telaAtual = { nome, ...tela };
-    limpar(conteudo).append(raiz);
+    por(limpar(conteudo), raiz);
     conteudo.scrollTop = 0;
     window.scrollTo(0, 0);
   } catch (erro) {
     if (vez !== navegacao) return;
     telaAtual = null;
-    limpar(conteudo).append(h("div.cabecalho", {}, h("h1", {}, "Não foi possível abrir esta tela")), h("div.nota.erro", {}, erro.message), h("a", { href: "#/painel" }, "Voltar ao painel"));
+    por(limpar(conteudo), h("div.cabecalho", {}, h("h1", {}, "Não foi possível abrir esta tela")), h("div.nota.erro", {}, erro.message), h("a", { href: "#/painel" }, "Voltar ao painel"));
   }
 }
 
@@ -49,7 +49,7 @@ function mostrarProcessamento() {
   caixa.hidden = ativas.length === 0;
   if (ativas.length === 0) return;
   const atual = ativas.find((t) => t.estado === "executando") ?? ativas[0];
-  limpar(caixa).append(
+  por(limpar(caixa), 
     h("strong", {}, ativas.length === 1 ? "Processando" : `Processando (${ativas.length} na fila)`), h("div", { style: "margin-bottom:6px" }, atual.titulo),
     h("small", {}, atual.etapa || "Aguardando"), barra(atual.estado === "executando" ? atual.progresso : 0),
   );

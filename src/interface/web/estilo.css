@@ -5,6 +5,7 @@
   --raio: 10px; --fonte: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body { margin: 0; display: grid; grid-template-columns: 232px 1fr; background: var(--fundo); color: var(--texto); font: 14px/1.5 var(--fonte); }
 h1 { font-size: 24px; margin: 0; font-weight: 650; }
@@ -41,6 +42,7 @@ main { padding: 26px 32px 60px; min-width: 0; outline: none; }
 .grade.cartoes { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); }
 .bloco { background: var(--painel); border: 1px solid var(--borda); border-radius: var(--raio); padding: 18px; min-width: 0; }
 .bloco > h2 { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.grade > .bloco, .grade > .cartao { margin-top: 0 !important; }
 .bloco + .bloco, .grade + .bloco, .bloco + .grade, .grade + .grade { margin-top: 16px; }
 .vazio { color: var(--suave); padding: 18px; text-align: center; border: 1px dashed var(--borda); border-radius: var(--raio); }
 .linha { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -110,7 +112,7 @@ a.cartao:hover { border-color: var(--destaque); text-decoration: none; }
 /* Envio de arquivos */
 .soltar { border: 2px dashed var(--borda); border-radius: var(--raio); padding: 22px; text-align: center; color: var(--suave); transition: border-color .15s, background .15s; }
 .soltar.sobre { border-color: var(--destaque); background: var(--destaque-escuro); color: var(--texto); }
-.miniatura { width: 96px; height: 54px; object-fit: cover; border-radius: 6px; background: #000; display: block; }
+.miniatura { width: 96px; height: 54px; object-fit: cover; border-radius: 6px; background: var(--painel-2); border: 1px solid var(--borda); display: block; }
 .cenas { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
 .cena { background: var(--painel-2); border-radius: 8px; overflow: hidden; font-size: 12px; }
 .cena img, .cena .sem-imagem { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #000; display: block; }
@@ -146,7 +148,6 @@ dialog header h2 { margin: 0; }
 dialog .corpo { padding: 18px 20px; overflow: auto; max-height: calc(90vh - 130px); }
 dialog footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--borda); }
 .cortina { position: fixed; inset: 0; background: #0b0d10ee; display: flex; align-items: center; justify-content: center; z-index: 60; text-align: center; }
-.cortina[hidden] { display: none; }
 .cortina > div { max-width: 460px; padding: 24px; }
 .texto-longo h1 { font-size: 19px; margin: 14px 0 8px; } .texto-longo h2 { font-size: 16px; margin: 16px 0 8px; } .texto-longo h3 { margin: 12px 0 6px; }
 .texto-longo ul { margin: 0 0 10px; padding-left: 20px; }

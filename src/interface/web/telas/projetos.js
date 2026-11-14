@@ -1,6 +1,6 @@
 // Lista de projetos e criação de projeto novo.
 
-import { agir, api, dialogo, h, limpar } from "/nucleo.js";
+import { agir, api, dialogo, h, limpar, por } from "/nucleo.js";
 import { formularioDoProjeto } from "/telas/formulario-projeto.js";
 import { cartaoDoProjeto } from "/telas/painel.js";
 
@@ -25,12 +25,12 @@ export async function mostrar(raiz, contexto) {
   const desenhar = () => {
     const termo = busca.value.trim().toLowerCase();
     const visiveis = todos.filter((p) => !termo || `${p.nome} ${p.perfilNome}`.toLowerCase().includes(termo));
-    limpar(lista).append(visiveis.length
+    por(limpar(lista), visiveis.length
       ? h("div.grade.cartoes", {}, visiveis.map(cartaoDoProjeto))
       : h("div.vazio", {}, todos.length ? "Nenhum projeto com esse nome." : "Nenhum projeto ainda. Crie o primeiro para começar."));
   };
   busca.addEventListener("input", desenhar);
-  raiz.append(
+  por(raiz, 
     h("div.cabecalho", {},
       h("div", {}, h("h1", {}, "Projetos"), h("div.subtitulo", {}, `${todos.length} projeto(s). Clique em um para abrir.`)),
       h("div.acoes", {}, busca, h("button.principal", { aoClicar: () => abrirNovoProjeto(contexto) }, "Criar projeto"))),

@@ -1,6 +1,6 @@
 // Aba "Plano e roteiro": gerar, revisar, aprovar ou rejeitar o plano de edição e escrever o roteiro.
 
-import { agir, api, aviso, etiqueta, h, limpar, nomeDoArquivo, perguntar, quando, tempo } from "/nucleo.js";
+import { agir, api, aviso, etiqueta, h, limpar, nomeDoArquivo, perguntar, quando, tempo, por } from "/nucleo.js";
 
 const ESTADOS = { rascunho: ["Aguardando aprovação", "alerta"], aprovado: ["Aprovado", "bom"], rejeitado: ["Rejeitado", "ruim"] };
 const BLOCOS = { abertura: "Abertura", desenvolvimento: "Desenvolvimento", climax: "Clímax", encerramento: "Encerramento" };
@@ -32,14 +32,14 @@ export async function aba(raiz, estado) {
     limpar(area);
     const v = d.atual, p = v?.plano;
     if (!v) {
-      area.append(h("section.bloco", {}, h("h2", {}, "Plano de edição"),
+      por(area, h("section.bloco", {}, h("h2", {}, "Plano de edição"),
         h("p", {}, "O plano diz quais trechos entram no vídeo, em que ordem e por quê. Ele é gerado a partir do objetivo do projeto e do material analisado, e a edição só começa depois que você aprovar."),
         !d.pronto.objetivo ? h("div.nota.alerta", {}, "Falta informar o objetivo do vídeo. ", h("a", { href: `#/projeto/${id}/visao` }, "Abrir a configuração do projeto")) : null,
         !d.pronto.material ? h("div.nota.alerta", {}, "Falta analisar os vídeos brutos. ", h("a", { href: `#/projeto/${id}/material` }, "Abrir material e análise")) : null,
         h("button.principal", { disabled: !d.pronto.objetivo || !d.pronto.material, aoClicar: acao("plano", {}, "Plano gerado.") }, "Gerar plano de edição")));
     } else {
       const [rotulo, tipo] = ESTADOS[v.estado];
-      area.append(
+      por(area, 
         h("section.bloco", {},
           h("h2", {}, h("span", {}, `Plano de edição — versão ${v.versao} `, etiqueta(rotulo, tipo)),
             h("span.acoes", {},
@@ -71,7 +71,7 @@ export async function aba(raiz, estado) {
     }
 
     const r = d.roteiro;
-    area.append(h("section.bloco", {},
+    por(area, h("section.bloco", {},
       h("h2", {}, "Roteiro", v ? h("button", { aoClicar: acao("roteiro", {}, "Roteiro escrito.") }, r ? "Escrever de novo" : "Escrever roteiro") : null),
       !v ? h("div.suave", {}, "O roteiro é escrito a partir do plano.") : !r ? h("div.suave", {}, "Opcional. O roteiro só usa fatos do projeto e do material: nada é inventado.") : [
         r.avisos.map((a) => h("div.nota", {}, a)),
@@ -80,12 +80,12 @@ export async function aba(raiz, estado) {
         h("small", {}, r.base === "modelo" ? "Escrito por modelo de linguagem e conferido contra os fatos." : "Estrutura montada sem modelo de linguagem, com os fatos do material."),
       ]));
 
-    if (d.historico.length > 1) area.append(h("section.bloco", {}, h("h2", {}, "Versões do plano"), h("table", {},
+    if (d.historico.length > 1) por(area, h("section.bloco", {}, h("h2", {}, "Versões do plano"), h("table", {},
       h("thead", {}, h("tr", {}, ["Versão", "Situação", "Autor", "Nota", "Data"].map((c) => h("th", {}, c)))),
       h("tbody", {}, d.historico.map((x) => h("tr", {}, h("td", {}, `v${x.versao}`), h("td", {}, etiqueta(...ESTADOS[x.estado])), h("td", {}, x.autor === "ia" ? "Aplicação" : "Você"), h("td", {}, x.nota), h("td", {}, quando(x.criadoEm))))))));
   }
 
-  raiz.append(area);
+  por(raiz, area);
   desenhar(await api(`/api/projetos/${id}/plano`));
   return {
     aoEvento: (nome, dados) => {

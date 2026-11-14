@@ -1,6 +1,6 @@
 // Aba "Edição": montar a timeline, ver as faixas, ajustar itens, gerar e assistir à prévia.
 
-import { agir, api, aviso, barra, campo, confirmar, dialogo, enviar, escolha, etiqueta, h, limpar, nomeDoArquivo, quando, tempo } from "/nucleo.js";
+import { agir, api, aviso, barra, campo, confirmar, dialogo, enviar, escolha, etiqueta, h, limpar, nomeDoArquivo, quando, tempo, por } from "/nucleo.js";
 
 const FAIXAS = [["video", "Vídeo"], ["sobreposicao", "Sobreposição"], ["texto", "Textos"], ["legenda", "Legendas"], ["audio", "Áudio"]];
 const faixaDe = (item) => (item.tipo === "texto" || item.tipo === "legenda" || item.tipo === "audio" ? item.tipo : item.camada === 0 ? "video" : "sobreposicao");
@@ -188,7 +188,7 @@ export async function aba(raiz, estado) {
         await estado.recarregarProjeto();
         await carregar();
       }, "Timeline montada.");
-      area.append(h("section.bloco", {}, h("h2", {}, "Montar a timeline"),
+      por(area, h("section.bloco", {}, h("h2", {}, "Montar a timeline"),
         !dados.planoAprovado
           ? h("div.nota.alerta", {}, "A edição só começa depois que o plano for aprovado. ", h("a", { href: `#/projeto/${id}/plano` }, "Abrir o plano"))
           : [h("p", {}, "A aplicação monta a timeline a partir do plano aprovado, usando só os recursos que o estilo, a memória ou as referências pedem."),
@@ -202,7 +202,7 @@ export async function aba(raiz, estado) {
         await agir(evento.target, async () => { const r = await api(`/api/projetos/${id}/timeline/montar`, { metodo: "POST", corpo: {} }); for (const a of r.avisos) aviso(a); await carregar(); }, "Timeline montada de novo.");
       }
     };
-    area.append(h("div.editor", {},
+    por(area, h("div.editor", {},
       h("div", {}, visor(),
         h("div.linha", { style: "margin-bottom:8px" }, h("strong", {}, `Timeline v${dados.atual.versao}`), h("span.suave", {}, `${t.formato.largura}×${t.formato.altura}, ${t.formato.fps} fps · ${tempo(t.duracaoSeg)} · ${t.itens.length} item(ns)`), h("span.espaco"),
           dados.historico.length > 1 ? h("button.pequeno", { title: "Volta à versão anterior", aoClicar: (e) => agir(e, async () => { dados = await api(`/api/projetos/${id}/timeline/restaurar`, { metodo: "POST", corpo: {} }); escolhido = null; desenhar(); }, "Alteração desfeita.") }, "Desfazer") : null,
@@ -213,7 +213,7 @@ export async function aba(raiz, estado) {
       item ? inspetorDoItem(item) : inspetorGeral()));
   }
 
-  raiz.append(area);
+  por(raiz, area);
   await carregar();
 
   return {

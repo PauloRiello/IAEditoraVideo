@@ -1,6 +1,6 @@
 // Aba "Avaliação": aprovar, rejeitar ou pedir alterações na edição, dar notas, marcar trechos e registrar resultados.
 
-import { agir, api, aviso, campo, confirmar, escolha, etiqueta, h, limpar, quando, tempo } from "/nucleo.js";
+import { agir, api, aviso, campo, confirmar, escolha, etiqueta, h, limpar, quando, tempo, por } from "/nucleo.js";
 
 const DECISOES = { aprovada: ["Aprovada", "bom"], rejeitada: ["Rejeitada", "ruim"], "alteracoes-solicitadas": ["Alterações solicitadas", "alerta"] };
 const ASPECTOS = { roteiro: "Roteiro", ritmo: "Ritmo", cortes: "Cortes", efeitos: "Efeitos", audio: "Áudio", resultado: "Resultado" };
@@ -25,7 +25,7 @@ export async function aba(raiz, estado) {
     return h("div.linha", {}, h("span", { style: "min-width:90px" }, nome), h("span.estrelas", {}, botoes));
   });
   const trechos = h("div", { style: "display:grid;gap:8px" });
-  const novoTrecho = () => trechos.append(h("div.linha", {},
+  const novoTrecho = () => por(trechos, h("div.linha", {},
     h("input", { type: "number", min: 0, step: "0.1", placeholder: "Início (s)", style: "width:110px" }), h("input", { type: "number", min: 0, step: "0.1", placeholder: "Fim (s)", style: "width:110px" }),
     h("input", { placeholder: "O que precisa ser revisto neste trecho", style: "flex:1;min-width:200px" }), h("button.discreto", { type: "button", aoClicar: (e) => e.target.parentElement.remove() }, "Remover")));
   const enviar = (evento) => agir(evento, async () => {
@@ -35,7 +35,7 @@ export async function aba(raiz, estado) {
     const a = r.aprendizado;
     aviso(a.correcoes.length || a.confirmados || a.contestados
       ? `Avaliação registrada: ${a.correcoes.length} correção(ões) aprendida(s), ${a.confirmados} aprendizado(s) confirmado(s), ${a.contestados} contestado(s).`
-      : "Avaliação registrada. Sem notas nem correções apontadas, ela não muda o que a aplicação aprendeu.", "sucesso");
+      : "Avaliação registrada. Ela não confirmou nem contestou nenhum aprendizado em vigor.", "sucesso");
     motivo.value = "";
     limpar(trechos);
     await carregar();
@@ -53,7 +53,7 @@ export async function aba(raiz, estado) {
   }, "Resultado registrado.");
 
   const desenhar = (d) => {
-    limpar(lista).append(
+    por(limpar(lista), 
       d.trechos.some((t) => !t.resolvido) ? [h("h3", {}, "Trechos aguardando revisão"), h("ul.lista", { style: "margin-bottom:14px" }, d.trechos.filter((t) => !t.resolvido).map((t) => h("li", {},
         h("time", {}, `${tempo(t.inicioSeg)}–${tempo(t.fimSeg)}`), h("span", { style: "flex:1" }, t.comentario),
         h("button.pequeno", { aoClicar: (e) => agir(e, async () => { await api(`/api/trechos/${t.id}/resolver`, { metodo: "POST", corpo: {} }); await carregar(); }) }, "Marcar como resolvido"))))] : null,
@@ -65,7 +65,7 @@ export async function aba(raiz, estado) {
         a.motivo ? h("div", {}, a.motivo) : null,
         Object.keys(a.notas).length ? h("small", {}, Object.entries(a.notas).map(([aspecto, nota]) => `${ASPECTOS[aspecto] ?? aspecto} ${nota}/5`).join(" · ")) : null))),
     );
-    limpar(resultados).append(d.resultados.length === 0 ? h("div.suave", {}, "Nenhum resultado registrado.") : h("ul.lista", {}, d.resultados.map((r) => h("li", { style: "display:block" },
+    por(limpar(resultados), d.resultados.length === 0 ? h("div.suave", {}, "Nenhum resultado registrado.") : h("ul.lista", {}, d.resultados.map((r) => h("li", { style: "display:block" },
       h("div.linha", {}, h("strong", {}, r.plataforma), h("small", {}, quando(r.criadoEm)), h("span.espaco"),
         h("button.pequeno", { aoClicar: (e) => agir(e, async () => { await api(`/api/resultados/${r.id}`, { metodo: "DELETE" }); await carregar(); }, "Resultado removido.") }, "Remover")),
       h("small", {}, METRICAS.filter(([chave]) => r.metricas[chave] !== undefined).map(([chave, nome]) => `${nome}: ${r.metricas[chave]}`).join(" · ")),
@@ -73,7 +73,7 @@ export async function aba(raiz, estado) {
   };
   const carregar = async () => desenhar(await api(`/api/projetos/${id}/avaliacoes`));
 
-  raiz.append(
+  por(raiz, 
     h("div.grade.duas", {},
       h("section.bloco", {}, h("h2", {}, "Avaliar a edição"),
         !timeline ? h("div.nota.alerta", {}, "Ainda não há edição para avaliar.") : [
