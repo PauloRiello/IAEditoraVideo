@@ -179,12 +179,14 @@ export async function renderizarTimeline(p: PedidoDeRender): Promise<{ largura: 
     const pacote = await pacoteDaComposicao(p.pastaTemporaria);
 
     // Os trechos preparados são expostos à composição numa pasta pública própria deste render.
-    pastaPublica = path.join(pacote, "public", p.id);
+    // O nome inclui o processo: duas instâncias que compartilhem a pasta temporária não se atrapalham.
+    const nomeDaPasta = `${p.id}-${process.pid}`;
+    pastaPublica = path.join(pacote, "public", nomeDaPasta);
     mkdirSync(pastaPublica, { recursive: true });
     const arquivos: Record<string, string> = {};
     for (const [itemId, arquivo] of Object.entries(preparados)) {
       copyFileSync(arquivo, path.join(pastaPublica, path.basename(arquivo)));
-      arquivos[itemId] = `${p.id}/${path.basename(arquivo)}`;
+      arquivos[itemId] = `${nomeDaPasta}/${path.basename(arquivo)}`;
     }
 
     let navegador: string | undefined;
