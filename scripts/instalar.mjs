@@ -67,7 +67,7 @@ passo("3 de 5: verificação das ferramentas");
 let pendencias = false;
 if (tem("sem-verificar")) dizer("Etapa pulada a pedido (--sem-verificar).");
 else {
-  const verificacao = spawnSync(process.execPath, [path.join(RAIZ, "scripts", "verificar", "todos.mjs")], { cwd: RAIZ, stdio: "inherit", windowsHide: true });
+  const verificacao = spawnSync(process.execPath, [path.join(RAIZ, "scripts", "verificar", "todos.mjs"), "--produto"], { cwd: RAIZ, stdio: "inherit", windowsHide: true });
   pendencias = verificacao.status !== 0;
   if (pendencias) dizer("\nHá ferramentas com problema (veja acima). A aplicação abre mesmo assim, mas o recurso correspondente pode não funcionar.");
 }

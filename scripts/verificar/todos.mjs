@@ -1,5 +1,6 @@
 // Executa todas as verificações, uma por ferramenta, e mostra um resumo.
 // Uso: npm run verificar
+// Com --produto, confere só o que a aplicação instalada usa (deixa de fora as ferramentas de desenvolvimento).
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,7 +10,7 @@ const pasta = path.dirname(fileURLToPath(import.meta.url));
 const verificacoes = [
   "node", "python", "typescript", "ffmpeg", "ffprobe", "gpu",
   "gsap", "remotion", "hyperframes", "whisper", "yt-dlp", "skills",
-];
+].filter((nome) => !(process.argv.includes("--produto") && nome === "skills"));
 
 const resultados = [];
 for (const nome of verificacoes) {
