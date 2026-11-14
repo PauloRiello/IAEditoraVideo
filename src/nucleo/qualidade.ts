@@ -2,6 +2,8 @@
 // os relatórios e registra as exceções que o usuário aceitar. Uma verificação obrigatória
 // reprovada nunca pode ser aceita nem ignorada.
 
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { AgenteDeQualidade } from "../../Pipeline/quality-control/verificador.ts";
 import { ErroAplicacao, NaoEncontrado } from "../dominio/erros.ts";
 import type { PlanoDeEdicao } from "../dominio/producao.ts";
@@ -45,6 +47,16 @@ const SITUACOES: Record<SituacaoFinal, string> = {
   reprovado: "Reprovado: há falha em verificação obrigatória",
 };
 const GRAVIDADES = { obrigatoria: "obrigatória", importante: "importante", recomendacao: "recomendação" } as const;
+
+/** O que a exportação guarda da conferência: se foi aprovada e a lista de problemas. */
+export const resumoDoRelatorio = (r: RelatorioDeQualidade) => ({
+  aprovada: r.situacao === "aprovado" || r.situacao === "aprovado-com-ressalvas",
+  problemas: r.verificacoes.filter((v) => v.situacao === "reprovada").map((v) => `${v.nome} (${v.gravidade}): ${v.detalhe}`),
+});
+
+/** Onde fica o relatório em arquivo de um vídeo: em relatorios/, ao lado do vídeo exportado; junto do vídeo, se ele foi reprovado. */
+export const arquivoDoRelatorio = (video: string, reprovado: boolean): string =>
+  reprovado ? `${video.slice(0, -path.extname(video).length)}.qualidade.md` : path.join(path.dirname(video), "relatorios", `${path.basename(video, path.extname(video))}.md`);
 
 /** Relatório legível: situação final, problemas com gravidade e sugestão, e verificações aprovadas. */
 export function relatorioEmMarkdown(r: RelatorioDeQualidade, nomeDoProjeto: string): string {
@@ -165,7 +177,23 @@ export class Qualidade {
     if (!justificativa.trim()) throw new ErroAplicacao("justificativa-obrigatoria", "Informe por que o problema está sendo aceito.");
     const excecoes = [...relatorio.excecoes.filter((e) => e.verificacaoId !== verificacaoId), { verificacaoId, justificativa: justificativa.trim(), aceitaEm: agora() }];
     this.d.banco.prepare("UPDATE relatorios_de_qualidade SET excecoes = ?, situacao = ? WHERE id = ?").run(JSON.stringify(excecoes), situacaoFinal(relatorio.verificacoes, excecoes), relatorioId);
-    return this.relatorio(relatorioId);
+    // A decisão aparece também no relatório em arquivo e na exportação a que o relatório pertence.
+    const atual = this.relatorio(relatorioId);
+    if (atual.arquivo && existsSync(atual.arquivo)) this.gravarMarkdown(relatorioId);
+    if (atual.exportacaoId !== null && this.relatorioDaExportacao(atual.exportacaoId)?.id === relatorioId) {
+      this.d.timelines.atualizarExportacao(atual.exportacaoId, { verificacao: resumoDoRelatorio(atual) });
+    }
+    return atual;
+  }
+
+  /** Grava (ou regrava) o relatório em arquivo de um vídeo conferido e devolve o caminho. */
+  gravarMarkdown(relatorioId: number): string {
+    const relatorio = this.relatorio(relatorioId);
+    if (!relatorio.arquivo) throw new ErroAplicacao("relatorio-sem-arquivo", "Este relatório é de uma timeline, não de um vídeo exportado.");
+    const destino = arquivoDoRelatorio(relatorio.arquivo, relatorio.situacao === "reprovado");
+    mkdirSync(path.dirname(destino), { recursive: true });
+    writeFileSync(destino, this.markdown(relatorioId));
+    return destino;
   }
 
   markdown(relatorioId: number): string {

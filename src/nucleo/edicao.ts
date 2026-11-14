@@ -3,7 +3,7 @@
 // cancelamento, nova tentativa e histórico de exportações).
 
 import type { EventEmitter } from "node:events";
-import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, rmSync, statSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { AgenteDeEdicao } from "../../Pipeline/editing/montagem.ts";
@@ -12,7 +12,6 @@ import { AgenteDeArquivos } from "../../Pipeline/ingestion/arquivos.ts";
 import { moverArquivo, RenderCancelado, renderizarTimeline, type Cancelamento, type PedidoDeRender } from "../../Pipeline/rendering/motor.ts";
 import { ErroAplicacao } from "../dominio/erros.ts";
 import type { AnaliseDeConteudo, ArquivoBruto, Decisao, PlanoDeEdicao, Roteiro } from "../dominio/producao.ts";
-import type { RelatorioDeQualidade } from "../dominio/qualidade.ts";
 import type { Exportacao, ItemAudio, Operacao, Timeline, VersaoDaTimeline } from "../dominio/timeline.ts";
 import { agora } from "../infra/banco.ts";
 import type { Caminhos } from "../infra/caminhos.ts";
@@ -25,7 +24,7 @@ import type { Hardware } from "../servicos/recursos.ts";
 import { aplicarOperacao, descreverOperacao, normalizarTimeline, type ServicoTimeline } from "../servicos/timeline.ts";
 import type { ServicoDeQualidade } from "../servicos/qualidade.ts";
 import type { Producao } from "./producao.ts";
-import type { Qualidade } from "./qualidade.ts";
+import { resumoDoRelatorio, type Qualidade } from "./qualidade.ts";
 
 export interface DependenciasDaEdicao {
   caminhos: Caminhos;
@@ -241,10 +240,7 @@ export class Edicao {
     const cancelamento: Cancelamento = { cancelado: false };
     this.emAndamento.set(id, cancelamento);
     const emitir = (exportacao: Exportacao) => { eventos.emit("render:atualizado", exportacao); return exportacao; };
-    const resumir = (relatorio: RelatorioDeQualidade) => ({
-      aprovada: relatorio.situacao === "aprovado" || relatorio.situacao === "aprovado-com-ressalvas",
-      problemas: relatorio.verificacoes.filter((v) => v.situacao === "reprovada").map((v) => `${v.nome} (${v.gravidade}): ${v.detalhe}`),
-    });
+    const resumir = resumoDoRelatorio;
     emitir(timelines.atualizarExportacao(id, { estado: "renderizando" }));
 
     try {
@@ -325,9 +321,7 @@ export class Edicao {
       const tamanhoBytes = statSync(saida).size;
       moverArquivo(saida, arquivo);
       qualidade.definirArquivo(relatorio.id, arquivo);
-      const arquivoDoRelatorio = reprovado ? `${arquivo.slice(0, -4)}.qualidade.md` : path.join(pasta, "relatorios", `${path.basename(arquivo, ".mp4")}.md`);
-      mkdirSync(path.dirname(arquivoDoRelatorio), { recursive: true });
-      writeFileSync(arquivoDoRelatorio, qualidade.markdown(relatorio.id));
+      qualidade.gravarMarkdown(relatorio.id);
 
       const exame = await new AgenteDeArquivos().examinar(arquivo);
       const resumo = resumir(relatorio);

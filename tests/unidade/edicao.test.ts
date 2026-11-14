@@ -238,7 +238,11 @@ test("prévia: render real em baixa qualidade, com progresso, conferência e ori
 test("exportação final: MP4 H.264 + AAC em 1080×1920 na pasta Exportações, sem sobrescrever exportações anteriores", async () => {
   const final = await app.edicao.exportar(projetoId).conclusao;
   assert.equal(final.estado, "concluida", final.erro ?? "");
-  assert.deepEqual([final.largura, final.altura, final.fps, final.verificacao?.aprovada, final.tentativas], [1080, 1920, 30, true, 1]);
+  assert.deepEqual([final.largura, final.altura, final.fps, final.tentativas], [1080, 1920, 30, 1]);
+  // O controle de qualidade conferiu o arquivo: nenhuma verificação obrigatória falhou.
+  const relatorio = app.qualidade.relatorioDaExportacao(final.id)!;
+  assert.notEqual(relatorio.situacao, "reprovado");
+  assert.ok(!relatorio.verificacoes.some((v) => v.situacao === "reprovada" && v.gravidade === "obrigatoria"));
   assert.ok(final.arquivo?.startsWith(path.join(caminhos.exportacoes, "Cidade Alta")) && final.arquivo.endsWith(".mp4"));
   assert.ok((final.tamanhoBytes ?? 0) > 50_000);
   const tecnico = await sondar(final.arquivo!);
@@ -246,7 +250,7 @@ test("exportação final: MP4 H.264 + AAC em 1080×1920 na pasta Exportações, 
 
   const historico = app.edicao.exportacoes(projetoId);
   assert.deepEqual(historico.map((e) => [e.tipo, e.estado]), [["final", "concluida"], ["previa", "concluida"]], "mais recente primeiro");
-  assert.equal(readdirSync(path.dirname(final.arquivo!)).length, 1);
+  assert.deepEqual(readdirSync(path.dirname(final.arquivo!)).sort(), [path.basename(final.arquivo!), "relatorios"]);
   assert.equal(readdirSync(caminhos.temporarios).filter((nome) => /^render-/.test(nome)).length, 0, "nenhum arquivo temporário de render sobra");
 });
 
@@ -276,7 +280,7 @@ test("cancelamento seguro, fila de tarefas e falha com nova tentativa", async ()
   const [a, b] = await Promise.all([primeira.conclusao, segunda.conclusao]);
   app.eventos.off("render:progresso", cancelar);
   assert.deepEqual([a.estado, a.arquivo, b.estado], ["cancelada", null, "cancelada"]);
-  assert.equal(readdirSync(path.join(caminhos.exportacoes, "Cidade Alta")).length, 1, "o cancelamento não deixa arquivo na pasta de exportações");
+  assert.equal(readdirSync(path.join(caminhos.exportacoes, "Cidade Alta")).filter((nome) => nome.endsWith(".mp4")).length, 1, "o cancelamento não deixa arquivo na pasta de exportações");
   assert.equal(readdirSync(caminhos.temporarios).filter((nome) => /^render-/.test(nome)).length, 0);
 
   // Falha: um arquivo de origem que sumiu. São feitas duas tentativas e o erro fica registrado.
