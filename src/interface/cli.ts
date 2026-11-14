@@ -6,6 +6,7 @@ import { ErroAplicacao } from "../dominio/erros.ts";
 import type { PlanoDeEdicao } from "../dominio/producao.ts";
 import type { RelatorioDeQualidade } from "../dominio/qualidade.ts";
 import type { Exportacao, Operacao, VersaoDaTimeline } from "../dominio/timeline.ts";
+import { caminhosPadrao } from "../infra/caminhos.ts";
 import { Aplicacao } from "../nucleo/aplicacao.ts";
 
 const AJUDA = `IA Editora de Vídeo
@@ -53,6 +54,7 @@ Comandos:
   aprendizado desativar <id>       Desativa um aprendizado
   aprendizado ativar <id>          Ativa um aprendizado por decisão do usuário
   aprendizado excluir <id>         Exclui um aprendizado
+  pastas                           Mostra, em JSON, onde ficam os dados e as mídias
   backup                           Grava uma cópia de segurança
   backup listar                    Lista as cópias de segurança
   backup restaurar <nome>          Restaura uma cópia (o estado atual é guardado antes)
@@ -423,8 +425,8 @@ async function executar(app: Aplicacao, argumentos: string[]): Promise<number> {
     return 0;
   }
 
-  if (comando === "backup" && !acao) {
-    console.log(`Cópia gravada em ${app.copiaDeSeguranca().pasta}`);
+  if (comando === "backup" && (!acao || acao === "pre-atualizacao")) {
+    console.log(`Cópia gravada em ${app.copiaDeSeguranca(acao === "pre-atualizacao" ? "pre-atualizacao" : "manual").pasta}`);
     return 0;
   }
 
@@ -443,6 +445,12 @@ async function executar(app: Aplicacao, argumentos: string[]): Promise<number> {
 
   console.log(AJUDA);
   return comando ? 1 : 0;
+}
+
+// "pastas" só informa onde ficam os dados e as mídias, sem abrir a aplicação (usado pelos scripts de instalação).
+if (process.argv[2] === "pastas") {
+  console.log(JSON.stringify(caminhosPadrao()));
+  process.exit(0);
 }
 
 const app = new Aplicacao();
