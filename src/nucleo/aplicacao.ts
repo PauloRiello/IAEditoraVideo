@@ -2,10 +2,12 @@
 // de entrada para qualquer interface (linha de comando hoje, janela gráfica depois).
 
 import { EventEmitter } from "node:events";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { NaoEncontrado } from "../dominio/erros.ts";
+import { ErroAplicacao, NaoEncontrado } from "../dominio/erros.ts";
 import { ORDEM_ETAPAS } from "../dominio/pipeline.ts";
+import type { ConfiguracaoProvedor } from "../dominio/provedores.ts";
+import type { ConfiguracaoDoProjeto } from "../dominio/tipos.ts";
 import {
   copiaValida, criarCopia, isolarArquivo, listarCopias, restaurarArquivos, rotacionar, validarCopia,
   type Copia, type MotivoCopia,
@@ -13,6 +15,8 @@ import {
 import { abrirBanco, BancoCorrompido, VERSAO_ESQUEMA, type Banco } from "../infra/banco.ts";
 import { caminhosPadrao, garantirPastas, type Caminhos } from "../infra/caminhos.ts";
 import { carregarConfiguracoes, CONFIGURACOES_PADRAO, salvarConfiguracoes, type Configuracoes } from "../infra/configuracoes.ts";
+import { arquivoDeCredenciais, carregarCredenciais, salvarCredenciais } from "../infra/credenciais.ts";
+import { ServicoAtividades } from "../servicos/atividades.ts";
 import { ServicoAcervo } from "../servicos/acervo.ts";
 import { ServicoAprendizado } from "../servicos/aprendizado.ts";
 import { ServicoEstilos } from "../servicos/estilos.ts";
@@ -20,11 +24,13 @@ import { ServicoIndice } from "../servicos/indice.ts";
 import { ServicoMemoria } from "../servicos/memoria.ts";
 import { ServicoPerfis } from "../servicos/perfis.ts";
 import { ServicoProjetos } from "../servicos/projetos.ts";
-import { criarRegistroProvedores, type RegistroProvedores } from "../servicos/provedores.ts";
+import { criarRegistroProvedores, provedoresConfigurados, type RegistroProvedores } from "../servicos/provedores.ts";
 import { ServicoDeQualidade } from "../servicos/qualidade.ts";
 import { ServicoTimeline } from "../servicos/timeline.ts";
 import { Edicao } from "./edicao.ts";
 import { Feedback } from "./feedback.ts";
+import { Fluxo } from "./fluxo.ts";
+import { Tarefas } from "./tarefas.ts";
 import { Qualidade } from "./qualidade.ts";
 import { detectarHardware, GerenciadorVram, type Hardware } from "../servicos/recursos.ts";
 import { Orquestrador } from "./orquestrador.ts";
@@ -32,6 +38,8 @@ import { Producao } from "./producao.ts";
 import { AnaliseDeReferencias } from "./referencias.ts";
 
 export interface Situacao {
+  /** Versão do programa (package.json). */
+  versao: string;
   versaoEsquema: number;
   pastaDados: string;
   projetos: number;
@@ -71,6 +79,12 @@ export class Aplicacao {
   catalogoDeQualidade!: ServicoDeQualidade;
   /** Controle de qualidade: verificação da timeline e dos arquivos exportados, relatórios e exceções. */
   qualidade!: Qualidade;
+  /** Histórico de atividades da aplicação e dos projetos. */
+  atividades!: ServicoAtividades;
+  /** Trabalhos demorados em segundo plano, com estado e progresso. */
+  tarefas: Tarefas;
+  /** Ações do fluxo de trabalho de um projeto, usadas pela interface gráfica. */
+  fluxo!: Fluxo;
   hardware: Hardware;
   vram: GerenciadorVram;
   orquestrador: Orquestrador;
@@ -87,6 +101,13 @@ export class Aplicacao {
     this.orquestrador = new Orquestrador(this.banco, this.eventos);
     this.hardware = detectarHardware(path.join(caminhos.programa, "config", "local.aceleracao.json"));
     this.vram = new GerenciadorVram(this.hardware.gpu, this.configuracoes.processamento.margemVramMB);
+    this.tarefas = new Tarefas(this.eventos, (projetoId) => {
+      try {
+        return this.projetos.obter(projetoId).nome;
+      } catch {
+        return "projeto removido";
+      }
+    });
     this.montarServicos();
 
     const interrompidas = this.orquestrador.recuperarInterrompidas();
@@ -145,7 +166,8 @@ export class Aplicacao {
     this.acervo = new ServicoAcervo(this.banco);
     // Perfis do usuário (pasta de dados) prevalecem sobre os que acompanham o programa.
     this.perfis = new ServicoPerfis([this.caminhos.perfis, path.join(this.caminhos.dados, "perfis")]);
-    this.provedores = criarRegistroProvedores(this.configuracoes.ia, this.configuracoes.ia.provedores);
+    this.provedores = criarRegistroProvedores(this.configuracoes.ia, this.configuracoes.ia.provedores, this.chaves());
+    this.atividades = new ServicoAtividades(this.banco);
     this.orquestrador.usarBanco(this.banco);
     // Estilos do usuário (pasta de dados) prevalecem sobre os que acompanham o programa.
     this.estilos = new ServicoEstilos([path.join(this.caminhos.programa, "IA", "Estilos"), path.join(this.caminhos.dados, "estilos")]);
@@ -169,6 +191,76 @@ export class Aplicacao {
       caminhos: this.caminhos, configuracoes: this.configuracoes, acervo: this.acervo, aprendizado: this.aprendizado,
       perfis: this.perfis, provedores: this.provedores, vram: this.vram,
     });
+    this.fluxo = new Fluxo({
+      caminhos: this.caminhos, eventos: this.eventos, projetos: this.projetos, perfis: this.perfis, acervo: this.acervo, atividades: this.atividades,
+      tarefas: this.tarefas, producao: this.producao, edicao: this.edicao, referencias: this.referencias, feedback: this.feedback,
+    });
+  }
+
+  // --- Provedores de IA (todos opcionais) e credenciais ------------------------------------
+
+  private chaves(): Record<string, string> {
+    return carregarCredenciais(arquivoDeCredenciais(this.caminhos.configuracoes));
+  }
+
+  /** Reaplica política e provedores depois de uma mudança nas configurações. */
+  private recarregarProvedores(): void {
+    this.salvarConfiguracoes();
+    this.provedores.redefinir(this.configuracoes.ia, provedoresConfigurados(this.configuracoes.ia.provedores, this.chaves()));
+  }
+
+  /** Provedores configurados, ativos ou não. A chave nunca é devolvida: só a informação de que existe. */
+  provedoresConfigurados(): (ConfiguracaoProvedor & { temChave: boolean })[] {
+    const chaves = this.chaves();
+    return this.configuracoes.ia.provedores.map((p) => ({ ...p, temChave: Boolean(chaves[p.id] || (p.variavelChave && process.env[p.variavelChave])) }));
+  }
+
+  /**
+   * Cria ou altera um provedor. `chave`: texto guarda a chave no cofre; `null` apaga a
+   * chave guardada; omitida, mantém a que houver. A chave nunca vai para as configurações.
+   */
+  salvarProvedor(config: ConfiguracaoProvedor, chave?: string | null): void {
+    const id = config.id.trim();
+    if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(id)) throw new ErroAplicacao("provedor-invalido", "O identificador do provedor deve ter letras minúsculas, números e hífens.");
+    let url: URL;
+    try {
+      url = new URL(config.urlBase);
+    } catch {
+      throw new ErroAplicacao("provedor-invalido", "O endereço do provedor não é válido.");
+    }
+    if (!["http:", "https:"].includes(url.protocol)) throw new ErroAplicacao("provedor-invalido", "O endereço do provedor deve começar com http:// ou https://.");
+    if (!config.modelo.trim()) throw new ErroAplicacao("provedor-invalido", "Informe o modelo que o provedor deve usar.");
+    const limpo: ConfiguracaoProvedor = {
+      id, nome: config.nome.trim() || id, tipo: "compativel-openai", origem: config.origem === "local" ? "local" : "externo", urlBase: config.urlBase.trim(), modelo: config.modelo.trim(),
+      capacidades: config.capacidades.filter((c) => ["texto", "visao"].includes(c)), ativo: Boolean(config.ativo),
+      ...(config.variavelChave ? { variavelChave: config.variavelChave } : {}), ...(config.exigeChave ? { exigeChave: true } : {}),
+    };
+    if (chave !== undefined) {
+      const chaves = this.chaves();
+      if (chave === null || chave === "") delete chaves[id];
+      else chaves[id] = chave.trim();
+      salvarCredenciais(arquivoDeCredenciais(this.caminhos.configuracoes), chaves);
+    }
+    this.configuracoes.ia.provedores = [...this.configuracoes.ia.provedores.filter((p) => p.id !== id), limpo];
+    this.recarregarProvedores();
+  }
+
+  /** Remove um provedor e a chave guardada dele. */
+  removerProvedor(id: string): void {
+    const chaves = this.chaves();
+    if (chaves[id]) {
+      delete chaves[id];
+      salvarCredenciais(arquivoDeCredenciais(this.caminhos.configuracoes), chaves);
+    }
+    this.configuracoes.ia.provedores = this.configuracoes.ia.provedores.filter((p) => p.id !== id);
+    this.recarregarProvedores();
+  }
+
+  /** Define se provedores externos podem ser usados e se os locais têm preferência. */
+  definirPoliticaIA(politica: { preferirLocal?: boolean; permitirExternos?: boolean }): void {
+    if (politica.preferirLocal !== undefined) this.configuracoes.ia.preferirLocal = Boolean(politica.preferirLocal);
+    if (politica.permitirExternos !== undefined) this.configuracoes.ia.permitirExternos = Boolean(politica.permitirExternos);
+    this.recarregarProvedores();
   }
 
   private copiaAutomatica(): void {
@@ -182,10 +274,10 @@ export class Aplicacao {
   }
 
   /** Cria um projeto usando o perfil e o formato padrão quando não informados. */
-  criarProjeto(nome: string, perfilId?: string, formatoId?: string) {
+  criarProjeto(nome: string, perfilId?: string, formatoId?: string, configuracao?: Partial<ConfiguracaoDoProjeto>) {
     const perfil = this.perfis.obter(perfilId ?? this.configuracoes.perfilPadrao);
     const formato = this.perfis.formato(perfil.id, formatoId);
-    return this.projetos.criar({ nome, perfil: perfil.id, formato: formato.id });
+    return this.projetos.criar({ nome, perfil: perfil.id, formato: formato.id, configuracao });
   }
 
   /** Aprendizados que valem para um projeto: os do perfil dele mais os perfis adicionais pedidos. */
@@ -241,8 +333,18 @@ export class Aplicacao {
     return anterior;
   }
 
+  /** Versão do programa, lida do package.json. */
+  versao(): string {
+    try {
+      return (JSON.parse(readFileSync(path.join(this.caminhos.programa, "package.json"), "utf8")) as { version: string }).version;
+    } catch {
+      return "desconhecida";
+    }
+  }
+
   async situacao(): Promise<Situacao> {
     return {
+      versao: this.versao(),
       versaoEsquema: VERSAO_ESQUEMA,
       pastaDados: this.caminhos.dados,
       projetos: this.projetos.listar().length,

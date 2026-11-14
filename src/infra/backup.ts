@@ -1,7 +1,7 @@
 // Cópias de segurança: criação, listagem, validação, restauração e rotação.
 // Cada cópia é uma pasta com o banco e o arquivo de configurações.
 
-import { copyFileSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync } from "node:fs";
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { copiarBanco, VERSAO_ESQUEMA, type Banco } from "./banco.ts";
@@ -9,7 +9,9 @@ import type { Caminhos } from "./caminhos.ts";
 
 const ARQUIVO_BANCO = "editora.db";
 const ARQUIVO_CONFIGURACOES = "configuracoes.json";
-const MOTIVOS = ["manual", "automatica", "pre-migracao", "pre-restauracao"] as const;
+const MOTIVOS = ["manual", "automatica", "pre-migracao", "pre-restauracao", "pre-atualizacao"] as const;
+/** Pastas de dados com personalizações do usuário (pequenos arquivos JSON), copiadas junto com o banco. */
+const PASTAS_DO_USUARIO = ["perfis", "estilos", "qualidade", "presets"];
 
 export type MotivoCopia = (typeof MOTIVOS)[number];
 
@@ -44,6 +46,11 @@ export function criarCopia(banco: Banco, caminhos: Caminhos, motivo: MotivoCopia
   mkdirSync(pasta, { recursive: true });
   copiarBanco(banco, path.join(pasta, ARQUIVO_BANCO));
   if (existsSync(caminhos.configuracoes)) copyFileSync(caminhos.configuracoes, path.join(pasta, ARQUIVO_CONFIGURACOES));
+  // Perfis, estilos, destinos e presets criados pelo usuário. As chaves de API não entram na cópia.
+  for (const nomeDaPasta of PASTAS_DO_USUARIO) {
+    const origem = path.join(caminhos.dados, nomeDaPasta);
+    if (existsSync(origem)) cpSync(origem, path.join(pasta, nomeDaPasta), { recursive: true });
+  }
   return interpretar(caminhos.backups, nome) as Copia;
 }
 
@@ -87,7 +94,12 @@ export function restaurarArquivos(caminhos: Caminhos, copia: Copia, incluirConfi
   removerBanco(caminhos.banco);
   copyFileSync(path.join(copia.pasta, ARQUIVO_BANCO), caminhos.banco);
   const configuracoes = path.join(copia.pasta, ARQUIVO_CONFIGURACOES);
-  if (incluirConfiguracoes && existsSync(configuracoes)) copyFileSync(configuracoes, caminhos.configuracoes);
+  if (!incluirConfiguracoes) return;
+  if (existsSync(configuracoes)) copyFileSync(configuracoes, caminhos.configuracoes);
+  for (const nomeDaPasta of PASTAS_DO_USUARIO) {
+    const origem = path.join(copia.pasta, nomeDaPasta);
+    if (existsSync(origem)) cpSync(origem, path.join(caminhos.dados, nomeDaPasta), { recursive: true });
+  }
 }
 
 /** Mantém só as `manter` cópias automáticas mais recentes. As demais (manuais e de proteção) nunca são apagadas. */

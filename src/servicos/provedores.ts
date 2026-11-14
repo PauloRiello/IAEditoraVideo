@@ -22,6 +22,17 @@ export class RegistroProvedores {
     this.provedores.set(provedor.id, provedor);
   }
 
+  /** Troca a política e todos os provedores de uma vez (as configurações mudaram). Quem já tem o registro passa a ver os novos. */
+  redefinir(politica: PoliticaIA, provedores: ProvedorIA[]): void {
+    this.politica = politica;
+    this.provedores = new Map(provedores.map((p) => [p.id, p]));
+  }
+
+  /** O provedor pode ser usado com a política atual? Externos dependem da autorização do usuário. */
+  permitido(provedor: ProvedorIA): boolean {
+    return provedor.origem === "local" || this.politica.permitirExternos;
+  }
+
   listar(): ProvedorIA[] {
     return [...this.provedores.values()];
   }
@@ -43,10 +54,10 @@ export class RegistroProvedores {
     throw new CapacidadeIndisponivel(capacidade);
   }
 
-  async situacao(): Promise<{ id: string; nome: string; origem: string; capacidades: Capacidade[]; disponivel: boolean }[]> {
+  async situacao(): Promise<{ id: string; nome: string; origem: string; capacidades: Capacidade[]; disponivel: boolean; permitido: boolean; modelo?: string }[]> {
     return Promise.all(
       this.listar().map(async (p) => ({
-        id: p.id, nome: p.nome, origem: p.origem, capacidades: p.capacidades, disponivel: await p.disponivel(),
+        id: p.id, nome: p.nome, origem: p.origem, capacidades: p.capacidades, disponivel: await p.disponivel(), permitido: this.permitido(p), modelo: p.modelo,
       })),
     );
   }
@@ -64,8 +75,11 @@ export class ProvedorCompativelOpenAI implements ProvedorIA {
   modelo: string;
   private config: ConfiguracaoProvedor;
   private ambiente: NodeJS.ProcessEnv;
+  private chaveGuardada: string | undefined;
 
-  constructor(config: ConfiguracaoProvedor, ambiente: NodeJS.ProcessEnv = process.env) {
+  /** `chaveGuardada` vem do cofre de credenciais e tem prioridade sobre a variável de ambiente. */
+  constructor(config: ConfiguracaoProvedor, ambiente: NodeJS.ProcessEnv = process.env, chaveGuardada?: string) {
+    this.chaveGuardada = chaveGuardada || undefined;
     this.id = config.id;
     this.nome = config.nome;
     this.origem = config.origem;
@@ -75,8 +89,12 @@ export class ProvedorCompativelOpenAI implements ProvedorIA {
     this.ambiente = ambiente;
   }
 
+  private chave(): string | undefined {
+    return this.chaveGuardada ?? (this.config.variavelChave ? this.ambiente[this.config.variavelChave] : undefined);
+  }
+
   private cabecalhos(): Record<string, string> {
-    const chave = this.config.variavelChave ? this.ambiente[this.config.variavelChave] : undefined;
+    const chave = this.chave();
     return { "content-type": "application/json", ...(chave ? { authorization: `Bearer ${chave}` } : {}) };
   }
 
@@ -85,7 +103,7 @@ export class ProvedorCompativelOpenAI implements ProvedorIA {
   }
 
   async disponivel(): Promise<boolean> {
-    if (this.config.variavelChave && !this.ambiente[this.config.variavelChave]) return false;
+    if ((this.config.variavelChave || this.config.exigeChave) && !this.chave()) return false;
     try {
       const resposta = await fetch(this.url("/models"), { headers: this.cabecalhos(), signal: AbortSignal.timeout(3000) });
       return resposta.ok;
@@ -124,10 +142,15 @@ export class ProvedorCompativelOpenAI implements ProvedorIA {
 }
 
 /** Cria o registro a partir das configurações. Provedores inativos são ignorados. */
-export function criarRegistroProvedores(politica: PoliticaIA, configurados: ConfiguracaoProvedor[]): RegistroProvedores {
+export function criarRegistroProvedores(politica: PoliticaIA, configurados: ConfiguracaoProvedor[], chaves: Record<string, string> = {}): RegistroProvedores {
   const registro = new RegistroProvedores(politica);
-  for (const config of configurados) {
-    if (config.ativo && config.tipo === "compativel-openai") registro.registrar(new ProvedorCompativelOpenAI(config));
-  }
+  registro.redefinir(politica, provedoresConfigurados(configurados, chaves));
   return registro;
+}
+
+/** Instancia os provedores ativos das configurações, cada um com a chave do cofre, se houver. */
+export function provedoresConfigurados(configurados: ConfiguracaoProvedor[], chaves: Record<string, string> = {}): ProvedorIA[] {
+  return configurados
+    .filter((config) => config.ativo && config.tipo === "compativel-openai")
+    .map((config) => new ProvedorCompativelOpenAI(config, process.env, chaves[config.id]));
 }

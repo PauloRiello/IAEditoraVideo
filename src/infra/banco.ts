@@ -284,6 +284,18 @@ export const MIGRACOES: string[] = [
   CREATE INDEX relatorios_exportacao ON relatorios_de_qualidade (exportacao_id);
   ALTER TABLE exportacoes ADD COLUMN preset TEXT;
   `,
+  // v8 — configuração de cada projeto (objetivo, público, formato, estilo, nível de automação) e histórico de atividades
+  `
+  ALTER TABLE projetos ADD COLUMN configuracao TEXT NOT NULL DEFAULT '{}';
+  CREATE TABLE atividades (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    projeto_id TEXT REFERENCES projetos(id) ON DELETE CASCADE,
+    tipo TEXT NOT NULL,
+    descricao TEXT NOT NULL,
+    criado_em TEXT NOT NULL
+  );
+  CREATE INDEX atividades_projeto ON atividades (projeto_id, id);
+  `,
 ];
 
 export const VERSAO_ESQUEMA = MIGRACOES.length;

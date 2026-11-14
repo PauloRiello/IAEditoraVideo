@@ -289,6 +289,7 @@ export class Edicao {
         } catch (erro) {
           if (erro instanceof RenderCancelado) throw erro;
           ultimoErro = erro instanceof Error ? erro.message : String(erro);
+          if (process.env.IAEV_DEPURAR) console.error(`[render ${id}] tentativa ${tentativa} falhou: ${ultimoErro}`);
         }
       }
       if (!tamanho) return emitir(timelines.atualizarExportacao(id, { estado: "falhou", erro: ultimoErro.slice(0, 500), concluidoEm: agora() }));

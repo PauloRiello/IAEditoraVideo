@@ -1,0 +1,57 @@
+{
+  "id": "educacao",
+  "nome": "Educação",
+  "descricao": "Aulas, tutoriais e conteúdo explicativo, com clareza acima de ritmo.",
+  "formatoPadrao": "horizontal-1080",
+  "formatos": [
+    {
+      "id": "horizontal-1080",
+      "nome": "Horizontal 16:9 (YouTube, institucional)",
+      "largura": 1920,
+      "altura": 1080,
+      "fps": 30
+    },
+    {
+      "id": "vertical-1080",
+      "nome": "Vertical 9:16 (Instagram Reels, TikTok, Shorts)",
+      "largura": 1080,
+      "altura": 1920,
+      "fps": 30,
+      "duracaoMaximaSeg": 90
+    },
+    {
+      "id": "quadrado-1080",
+      "nome": "Quadrado 1:1 (feed)",
+      "largura": 1080,
+      "altura": 1080,
+      "fps": 30
+    }
+  ],
+  "diretrizes": [
+    "Uma ideia por trecho, na ordem em que o conteúdo é ensinado.",
+    "Manter na tela o tempo necessário para ler e entender; evitar cortes no meio de uma explicação.",
+    "Fala clara em primeiro plano; trilha discreta ou ausente.",
+    "Legendas e textos de apoio para termos e passos importantes.",
+    "Efeitos só quando ajudam a entender o conteúdo."
+  ],
+  "analise": {
+    "estrutura": "livre",
+    "palavrasDeCta": [
+      "discord",
+      "inscreva",
+      "siga",
+      "segue",
+      "link",
+      "acesse",
+      "entre",
+      "conecte",
+      "baixe",
+      "compre",
+      "garanta",
+      "subscribe",
+      "follow",
+      "join",
+      "connect"
+    ]
+  }
+}

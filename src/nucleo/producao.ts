@@ -11,7 +11,7 @@ import { AgenteDeArquivos, EXTENSOES_DE_VIDEO } from "../../Pipeline/ingestion/a
 import { ErroAplicacao, NaoEncontrado } from "../dominio/erros.ts";
 import type { Observacao, VersaoPlano } from "../dominio/memoria.ts";
 import type { Agente, AnaliseDeConteudo, ArquivoBruto, Briefing, EntradaDoIndice, PlanoDeEdicao, ResultadoDaPesquisa, Roteiro } from "../dominio/producao.ts";
-import type { Midia } from "../dominio/tipos.ts";
+import type { FormatoSaida, Midia, Projeto } from "../dominio/tipos.ts";
 import type { ServicoAprendizado } from "../servicos/aprendizado.ts";
 import type { ServicoEstilos } from "../servicos/estilos.ts";
 import type { ServicoIndice } from "../servicos/indice.ts";
@@ -65,7 +65,7 @@ export class Producao implements Agente {
    */
   importarBrutos(projetoId: string): Midia[] {
     const projeto = this.d.projetos.obter(projetoId);
-    const propria = path.join(this.d.caminhos.brutos, projeto.nome);
+    const propria = path.join(this.d.caminhos.brutos, projeto.configuracao.pasta || projeto.nome);
     const raiz = existsSync(propria) ? propria : this.d.caminhos.brutos;
     const conhecidos = new Set(this.d.projetos.midias(projetoId, "bruto").map((m) => m.caminho));
     const novas: Midia[] = [];
@@ -81,13 +81,18 @@ export class Producao implements Agente {
   }
 
   /** Examina, analisa e indexa os vídeos brutos do projeto. Arquivos já analisados são reaproveitados, salvo `refazer`. */
-  async analisarBrutos(projetoId: string, opcoes: { refazer?: boolean; transcrever?: boolean } = {}): Promise<BrutoAnalisado[]> {
+  async analisarBrutos(
+    projetoId: string,
+    opcoes: { refazer?: boolean; transcrever?: boolean; aoAvancar?: (arquivo: string, feitos: number, total: number) => void } = {},
+  ): Promise<BrutoAnalisado[]> {
     const projeto = this.d.projetos.obter(projetoId);
-    const formato = this.d.perfis.formato(projeto.perfil, projeto.formato);
+    const formato = this.formatoDoProjeto(projeto);
     const transcrever = opcoes.transcrever === false ? undefined : criarTranscritor(this.d, "analise-de-bruto", projetoId);
     const resultados: BrutoAnalisado[] = [];
+    const midias = this.d.projetos.midias(projetoId, "bruto");
 
-    for (const midia of this.d.projetos.midias(projetoId, "bruto")) {
+    for (const [posicao, midia] of midias.entries()) {
+      opcoes.aoAvancar?.(midia.caminho, posicao, midias.length);
       const anterior = opcoes.refazer ? null : this.analisado(midia);
       if (anterior) { resultados.push(anterior); continue; }
 
@@ -108,8 +113,25 @@ export class Producao implements Agente {
     return resultados;
   }
 
+  /**
+   * Formato de saída do projeto: o do perfil, com a resolução e a taxa de quadros que o
+   * usuário tiver escolhido na configuração do projeto.
+   */
+  formatoDoProjeto(projeto: Projeto): FormatoSaida {
+    const base = this.d.perfis.formato(projeto.perfil, projeto.formato);
+    const { largura, altura, fps } = projeto.configuracao;
+    if (largura === null || altura === null) return { ...base, fps: fps ?? base.fps };
+    const proporcao = largura === altura ? "Quadrado" : altura > largura ? "Vertical" : "Horizontal";
+    // O limite de duração do formato do perfil só vale se a orientação escolhida for a mesma.
+    const mesmaOrientacao = Math.sign(base.altura - base.largura) === Math.sign(altura - largura);
+    return {
+      id: `${largura}x${altura}`, nome: `${proporcao} ${largura}×${altura}`, largura, altura, fps: fps ?? base.fps,
+      ...(mesmaOrientacao && base.duracaoMaximaSeg ? { duracaoMaximaSeg: base.duracaoMaximaSeg } : {}),
+    };
+  }
+
   /** Última análise gravada de uma mídia, se houver. */
-  private analisado(midia: Midia): BrutoAnalisado | null {
+  analisado(midia: Midia): BrutoAnalisado | null {
     const arquivo = this.d.acervo.analises({ midiaId: midia.id }, "arquivo")[0]?.resultado as ArquivoBruto | undefined;
     if (!arquivo) return null;
     const conteudo = (this.d.acervo.analises({ midiaId: midia.id }, "conteudo")[0]?.resultado as AnaliseDeConteudo | undefined) ?? null;
@@ -135,7 +157,7 @@ export class Producao implements Agente {
 
     const plano = this.agentes.planejamento.planejar({
       perfil: this.d.perfis.obter(projeto.perfil),
-      formato: this.d.perfis.formato(projeto.perfil, projeto.formato),
+      formato: this.formatoDoProjeto(projeto),
       briefing,
       materiais,
       aprendizados: this.d.aprendizado.consultar({ projetoId, perfis: [projeto.perfil] }).aplicaveis,

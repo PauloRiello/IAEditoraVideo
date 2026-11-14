@@ -39,7 +39,7 @@ test("a aplicação abre sem nenhum provedor de IA e cria a estrutura de pastas"
     const s = await app.situacao();
     assert.equal(s.provedores.length, 0);
     assert.equal(s.versaoEsquema, VERSAO_ESQUEMA);
-    assert.deepEqual(s.perfis.sort(), ["documentario", "fivem", "geral", "institucional", "publicidade", "redes-sociais", "redm", "youtube"]);
+    assert.deepEqual(s.perfis.sort(), ["documentario", "educacao", "fivem", "geral", "institucional", "publicidade", "redes-sociais", "redm", "youtube"]);
     for (const nome of ["Videos Brutos", "Referências", "Exportações"]) {
       assert.ok(existsSync(path.join(pasta, "biblioteca", nome)), nome);
     }

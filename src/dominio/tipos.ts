@@ -49,11 +49,43 @@ export interface ConfiguracaoDeAnalise {
   tiposDeConteudo?: TipoDeConteudo[];
 }
 
+/**
+ * Quanto a aplicação faz sozinha em um projeto. A aprovação do plano pelo usuário é exigida
+ * em todos os níveis, e a exportação final é sempre pedida por ele.
+ * - "sugestao": cada passo é pedido pelo usuário.
+ * - "assistido": gera o plano depois da análise e monta a timeline depois da aprovação.
+ * - "automatico": além disso, gera a prévia logo após montar.
+ */
+export type NivelDeIntervencao = "sugestao" | "assistido" | "automatico";
+
+/** O que o usuário definiu para o projeto. Campos vazios não são preenchidos por suposição. */
+export interface ConfiguracaoDoProjeto {
+  objetivo: string;
+  publico: string;
+  plataforma: string;
+  /** Texto da chamada para ação. Vazio: o vídeo não terá chamada para ação. */
+  cta: string;
+  /** Fatos verdadeiros que podem aparecer no vídeo. */
+  fatos: string[];
+  /** Resolução e taxa de quadros escolhidas. Nulos: valem as do formato do perfil. */
+  largura: number | null;
+  altura: number | null;
+  fps: number | null;
+  /** Duração desejada do vídeo, em segundos. */
+  duracaoSeg: number | null;
+  /** Estilos de edição (IA/Estilos). */
+  estilos: string[];
+  intervencao: NivelDeIntervencao;
+  /** Subpasta de Videos Brutos/ com o material do projeto. Vazio: a pasta com o nome do projeto. */
+  pasta: string;
+}
+
 export interface Projeto {
   id: string;
   nome: string;
   perfil: string;
   formato: string;
+  configuracao: ConfiguracaoDoProjeto;
   criadoEm: string;
   atualizadoEm: string;
 }
@@ -75,4 +107,32 @@ export interface Feedback {
   nota: number;
   comentario: string;
   criadoEm: string;
+}
+
+/** Registro do que aconteceu na aplicação, para o histórico do painel e dos projetos. */
+export interface Atividade {
+  id: number;
+  projetoId: string | null;
+  /** Assunto: "projeto", "material", "analise", "plano", "edicao", "render", "avaliacao", "aprendizado", "sistema". */
+  tipo: string;
+  descricao: string;
+  criadoEm: string;
+}
+
+export type EstadoDaTarefa = "na-fila" | "executando" | "concluida" | "falhou" | "cancelada";
+
+/** Trabalho demorado em segundo plano (análises, transcrição, render), com estado e progresso. */
+export interface Tarefa {
+  id: string;
+  tipo: "analise-de-brutos" | "analise-de-referencias" | "roteiro" | "previa" | "exportacao";
+  titulo: string;
+  projetoId: string | null;
+  estado: EstadoDaTarefa;
+  /** De 0 a 1; nulo quando não dá para medir. */
+  progresso: number | null;
+  /** O que está sendo feito agora, em palavras. */
+  etapa: string;
+  erro: string | null;
+  criadaEm: string;
+  concluidaEm: string | null;
 }

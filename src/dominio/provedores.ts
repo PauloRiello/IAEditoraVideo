@@ -42,7 +42,12 @@ export interface ConfiguracaoProvedor {
   urlBase: string;
   modelo: string;
   capacidades: Capacidade[];
-  /** Nome da variável de ambiente que guarda a chave. A chave nunca é gravada em arquivo. */
+  /** Nome da variável de ambiente que guarda a chave, quando ela vem do ambiente. */
   variavelChave?: string;
+  /**
+   * O serviço exige chave. Ela vem da variável de ambiente ou do cofre de credenciais da
+   * pasta de dados; nunca é gravada neste arquivo de configurações.
+   */
+  exigeChave?: boolean;
   ativo: boolean;
 }

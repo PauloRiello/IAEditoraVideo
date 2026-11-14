@@ -1,6 +1,6 @@
 // Onde cada tipo de arquivo fica. Código, dados da aplicação e mídias do usuário são separados.
 
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -49,19 +49,33 @@ export function montarCaminhos(dados: string, biblioteca: string, programa = PRO
   };
 }
 
+/** Arquivo gravado pelo instalador com as pastas escolhidas pelo usuário. Fica fora do Git. */
+export const arquivoDaInstalacao = (programa = PROGRAMA): string => path.join(programa, "config", "local.instalacao.json");
+
+/** Pastas escolhidas na instalação, se a aplicação foi instalada pelo instalador. */
+export function instalacaoRegistrada(programa = PROGRAMA): { dados?: string; biblioteca?: string } {
+  try {
+    return existsSync(arquivoDaInstalacao(programa)) ? (JSON.parse(readFileSync(arquivoDaInstalacao(programa), "utf8")) as { dados?: string; biblioteca?: string }) : {};
+  } catch {
+    return {};
+  }
+}
+
 /**
- * Caminhos padrão.
- * - Desenvolvimento: tudo dentro do repositório (dados em Dados/, fora do Git).
- * - Instalado (IAEV_INSTALADO=1): dados em %LOCALAPPDATA% e mídias em Documentos.
- * As variáveis IAEV_DADOS e IAEV_BIBLIOTECA têm prioridade sobre os dois modos.
+ * Caminhos padrão, nesta ordem de prioridade:
+ * 1. As variáveis IAEV_DADOS e IAEV_BIBLIOTECA.
+ * 2. As pastas gravadas pelo instalador em config/local.instalacao.json.
+ * 3. Instalado (IAEV_INSTALADO=1): dados em %LOCALAPPDATA% e mídias em Documentos.
+ * 4. Desenvolvimento: tudo dentro do repositório (dados em Dados/, fora do Git).
  */
 export function caminhosPadrao(ambiente: NodeJS.ProcessEnv = process.env): Caminhos {
   const instalado = ambiente.IAEV_INSTALADO === "1";
+  const registrada = instalacaoRegistrada();
   const dadosPadrao = instalado
     ? path.join(ambiente.LOCALAPPDATA ?? path.join(os.homedir(), ".local", "share"), "IAEditoraVideo")
     : path.join(PROGRAMA, "Dados");
   const bibliotecaPadrao = instalado ? path.join(os.homedir(), "Documents", "IA Editora de Vídeo") : PROGRAMA;
-  return montarCaminhos(ambiente.IAEV_DADOS ?? dadosPadrao, ambiente.IAEV_BIBLIOTECA ?? bibliotecaPadrao);
+  return montarCaminhos(ambiente.IAEV_DADOS ?? registrada.dados ?? dadosPadrao, ambiente.IAEV_BIBLIOTECA ?? registrada.biblioteca ?? bibliotecaPadrao);
 }
 
 /** Cria as pastas que faltam. Nunca apaga nem altera o que já existe. */
