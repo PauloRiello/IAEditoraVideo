@@ -10,7 +10,14 @@ import {
 
 const pendencias = [];
 let falhaEssencial = false;
-const passo = (texto) => console.log(`\n-> ${texto}`);
+// As cinco partes da configuração, com a porcentagem já feita. Partes longas (pacotes npm e
+// Python) não informam o próprio andamento: a porcentagem avança quando cada uma termina.
+const PARTES = 5;
+let parte = 0;
+const passo = (texto) => {
+  parte += 1;
+  console.log(`\n-> ${String(Math.round(((parte - 1) / PARTES) * 100)).padStart(3)}% | ${texto}`);
+};
 const feito = (texto) => console.log(`   [OK]    ${texto}`);
 const pendente = (texto) => {
   pendencias.push(texto);
@@ -99,7 +106,7 @@ if (existsSync(binLocal("remotion"))) {
 }
 
 // Resumo ---------------------------------------------------------------------
-console.log("\n== Resumo da configuração ==");
+console.log("\n== 100% | Resumo da configuração ==");
 if (falhaEssencial) console.log("  Há falhas essenciais acima. Corrija e rode `npm run setup` de novo.");
 else console.log("  Ambiente configurado.");
 for (const item of pendencias) console.log(`  Pendência: ${item}`);

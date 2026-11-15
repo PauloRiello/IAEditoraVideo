@@ -97,8 +97,22 @@ export function etiqueta(texto, tipo = "") {
   return h(`span.etiqueta${tipo ? `.${tipo}` : ""}`, {}, texto);
 }
 
+/** Barra de progresso com a porcentagem em número ao lado. Atualize com `atualizarBarra`. */
 export function barra(fracao) {
-  return h(`div.barra${fracao === null || fracao === undefined ? ".indefinida" : ""}`, {}, h("i", { style: `width:${Math.round((fracao ?? 0) * 100)}%` }));
+  const no = h("div.progresso", {}, h("div.barra", {}, h("i")), h("span.porcento"));
+  return atualizarBarra(no, fracao);
+}
+
+/** Atualiza uma barra criada por `barra` (ou qualquer elemento que contenha uma). */
+export function atualizarBarra(no, fracao) {
+  const alvo = no?.classList?.contains("progresso") ? no : no?.querySelector?.(".progresso");
+  if (!alvo) return no;
+  const porcento = Math.max(0, Math.min(100, Math.floor((Number(fracao) || 0) * 100)));
+  alvo.querySelector(".barra > i").style.width = `${porcento}%`;
+  alvo.querySelector(".porcento").textContent = `${porcento}%`;
+  alvo.setAttribute("role", "progressbar");
+  alvo.setAttribute("aria-valuenow", String(porcento));
+  return no;
 }
 
 export function campo(rotulo, controle, ajuda) {
@@ -233,7 +247,7 @@ export function areaDeEnvio({ texto, aceitos, destino, aoTerminar }) {
       const progresso = barra(0);
       por(limpar(estado), h("p", { style: "margin-top:10px" }, `Enviando ${arquivo.name} (${n + 1} de ${lista.length})…`), progresso);
       try {
-        await enviar(destino(arquivo), arquivo, (fracao) => { progresso.firstChild.style.width = `${Math.round(fracao * 100)}%`; });
+        await enviar(destino(arquivo), arquivo, (fracao) => atualizarBarra(progresso, fracao));
         enviados += 1;
       } catch (erro) {
         aviso(erro.message, "erro");

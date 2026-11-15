@@ -83,7 +83,7 @@ export class Producao implements Agente {
   /** Examina, analisa e indexa os vídeos brutos do projeto. Arquivos já analisados são reaproveitados, salvo `refazer`. */
   async analisarBrutos(
     projetoId: string,
-    opcoes: { refazer?: boolean; transcrever?: boolean; aoAvancar?: (arquivo: string, feitos: number, total: number) => void } = {},
+    opcoes: { refazer?: boolean; transcrever?: boolean; aoAvancar?: (etapa: string, fracao: number) => void } = {},
   ): Promise<BrutoAnalisado[]> {
     const projeto = this.d.projetos.obter(projetoId);
     const formato = this.formatoDoProjeto(projeto);
@@ -92,7 +92,9 @@ export class Producao implements Agente {
     const midias = this.d.projetos.midias(projetoId, "bruto");
 
     for (const [posicao, midia] of midias.entries()) {
-      opcoes.aoAvancar?.(midia.caminho, posicao, midias.length);
+      // Progresso: cada vídeo é uma fatia igual do total, e a fatia avança com as etapas dele.
+      const avancar = (etapa: string, fracao: number) => opcoes.aoAvancar?.(`${path.basename(midia.caminho)} (${posicao + 1} de ${midias.length}): ${etapa}`, (posicao + fracao) / midias.length);
+      avancar("lendo o arquivo", 0);
       const anterior = opcoes.refazer ? null : this.analisado(midia);
       if (anterior) { resultados.push(anterior); continue; }
 
@@ -104,6 +106,7 @@ export class Producao implements Agente {
           pastaDeMiniaturas: path.join(this.d.caminhos.projetos, projetoId, "miniaturas", midia.id),
           transcrever,
           provedores: this.d.provedores,
+          aoAvancar: (etapa, fracao) => avancar(etapa, 0.08 + 0.92 * fracao),
         });
         this.d.acervo.registrarAnalise({ midiaId: midia.id }, "conteudo", conteudo);
       }

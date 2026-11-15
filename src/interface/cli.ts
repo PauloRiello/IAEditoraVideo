@@ -109,6 +109,33 @@ function mostrarExportacao(e: Exportacao): void {
   if (e.erro) console.log(`  Erro: ${e.erro}`);
 }
 
+/**
+ * Mostra o andamento com porcentagem. No terminal, numa única linha que se atualiza; fora
+ * dele (registro, outro programa lendo a saída), uma linha a cada ponto percentual.
+ */
+function progresso() {
+  const terminal = Boolean(process.stdout.isTTY);
+  let ultimaLinha = "", ultimoPorcento = -1;
+  return {
+    mostrar(etapa: string, fracao: number): void {
+      const porcento = Math.max(0, Math.min(100, Math.floor(fracao * 100)));
+      const linha = `  ${String(porcento).padStart(3)}%  ${etapa}`;
+      if (terminal) {
+        if (linha === ultimaLinha) return;
+        const largura = Math.max(40, (process.stdout.columns || 100) - 1);
+        process.stdout.write(`\r${linha.length > largura ? `${linha.slice(0, largura - 1)}…` : linha.padEnd(largura)}`);
+      } else if (porcento !== ultimoPorcento) console.log(linha);
+      ultimaLinha = linha;
+      ultimoPorcento = porcento;
+    },
+    fim(): void {
+      if (terminal && ultimaLinha) process.stdout.write("\n");
+      ultimaLinha = "";
+      ultimoPorcento = -1;
+    },
+  };
+}
+
 async function executar(app: Aplicacao, argumentos: string[]): Promise<number> {
   const [comando, acao, ...resto] = argumentos;
 
@@ -158,7 +185,11 @@ async function executar(app: Aplicacao, argumentos: string[]): Promise<number> {
   }
 
   if (comando === "brutos" && acao === "analisar" && resto[0]) {
-    for (const b of await app.producao.analisarBrutos(resto[0])) {
+    const andamento = progresso();
+    const analisados = await app.producao.analisarBrutos(resto[0], { aoAvancar: (etapa, fracao) => andamento.mostrar(etapa, fracao) });
+    andamento.mostrar("Análise concluída", 1);
+    andamento.fim();
+    for (const b of analisados) {
       const t = b.arquivo.tecnico;
       console.log(`${b.arquivo.nome}: ${t ? `${t.largura}x${t.altura}, ${t.fps} quadros/s, ${t.duracaoSeg.toFixed(1)} s, ${b.arquivo.formato}/${t.codecVideo}` : "não lido"} — ${b.arquivo.integridade}`);
       if (b.conteudo) console.log(`  ${b.conteudo.cenas.length} cena(s), ${b.conteudo.momentosDeAcao.length} momento(s) de ação, ${b.conteudo.destaques.length} destaque(s), ${b.conteudo.transcricao?.segmentos.length ?? 0} fala(s)`);
@@ -242,12 +273,10 @@ async function executar(app: Aplicacao, argumentos: string[]): Promise<number> {
   }
 
   if ((comando === "previa" || comando === "exportar") && acao) {
-    let ultimo = -1;
-    app.eventos.on("render:progresso", (p: { fase: string; progresso: number }) => {
-      const passo = Math.floor(p.progresso * 10);
-      if (passo !== ultimo) { ultimo = passo; console.log(`  ${p.fase}: ${passo * 10}%`); }
-      if (p.fase === "conferindo") console.log("  conferindo o arquivo exportado...");
-    });
+    const andamento = progresso();
+    const fases: Record<string, string> = { preparando: "Preparando os trechos", renderizando: "Renderizando", conferindo: "Conferindo o arquivo exportado" };
+    app.eventos.on("render:progresso", (p: { fase: string; progresso: number }) => andamento.mostrar(fases[p.fase] ?? p.fase, p.progresso));
+    app.eventos.on("render:atualizado", (e: Exportacao) => { if (e.estado !== "na-fila" && e.estado !== "renderizando") { andamento.mostrar("Concluído", 1); andamento.fim(); } });
     // Ctrl+C cancela o render com segurança, sem deixar arquivo pela metade.
     const opcao = (nome: string) => resto.flatMap((valor, i) => (valor === `--${nome}` && resto[i + 1] ? [resto[i + 1]] : []))[0];
     const tarefa = comando === "previa" ? app.edicao.previa(acao) : app.edicao.exportar(acao, { preset: opcao("preset"), perfilDeQualidade: opcao("destino") });
@@ -399,9 +428,12 @@ async function executar(app: Aplicacao, argumentos: string[]): Promise<number> {
 
   if (comando === "referencias" && acao === "analisar" && resto[0]) {
     const alvos = resto[0] === "todas" ? app.acervo.referencias().filter((r) => r.caminho) : [app.acervo.referencia(resto[0])];
-    for (const alvo of alvos) {
-      console.log(`Analisando "${alvo.titulo}"...`);
-      const { relatorio, arquivoMarkdown, aprendizados } = await app.referencias.analisar(alvo.id);
+    for (const [posicao, alvo] of alvos.entries()) {
+      console.log(`Analisando "${alvo.titulo}" (${posicao + 1} de ${alvos.length})`);
+      const andamento = progresso();
+      const { relatorio, arquivoMarkdown, aprendizados } = await app.referencias.analisar(alvo.id, { aoAvancar: (etapa, fracao) => andamento.mostrar(etapa, fracao) });
+      andamento.mostrar("concluído", 1);
+      andamento.fim();
       const ativos = aprendizados.filter((a) => a.estado === "ativo").length;
       console.log(`  ${relatorio.regras.length} regra(s), confiança geral ${Math.round(relatorio.confiancaGeral * 100)}%; ${ativos} aprendizado(s) já ativo(s), ${aprendizados.length - ativos} candidato(s)`);
       for (const limitacao of relatorio.limitacoes) console.log(`  Limitação: ${limitacao}`);
@@ -440,17 +472,24 @@ async function executar(app: Aplicacao, argumentos: string[]): Promise<number> {
       return 0;
     }
     if (acao === "instalar") {
-      let ultimo = "";
-      const estado = await app.iaLocal.instalar(resto[0] ?? null, (etapa, fracao) => {
-        const linha = `${etapa}${fracao === null ? "" : `: ${Math.floor(fracao * 20) * 5}%`}`;
-        if (linha !== ultimo) { ultimo = linha; console.log(`  ${linha}`); }
-      });
+      const andamento = progresso();
+      let estado;
+      try {
+        estado = await app.iaLocal.instalar(resto[0] ?? null, (etapa, fracao) => andamento.mostrar(etapa, fracao));
+      } finally {
+        andamento.fim();
+      }
       console.log(`IA local instalada: ${estado.modelo?.nome}. Para conferir: npm run app -- ia-local testar`);
       return 0;
     }
     if (acao === "testar") {
-      console.log("Ligando a IA local (a primeira vez pode levar um ou dois minutos)...");
-      const r = await app.iaLocal.testar();
+      const andamento = progresso();
+      let r;
+      try {
+        r = await app.iaLocal.testar((etapa, fracao) => andamento.mostrar(etapa, fracao));
+      } finally {
+        andamento.fim();
+      }
       console.log(`Texto: ${r.texto.trim().slice(0, 200)}`);
       console.log(`Imagem: ${r.imagem.trim().slice(0, 200)}`);
       console.log(`${r.enxergou ? "A IA local enxergou a imagem de teste" : "A IA local respondeu, mas não reconheceu a cor da imagem de teste"} — ${r.segundos} s, ${r.dispositivo === "gpu" ? "na placa de vídeo" : "no processador"}.`);

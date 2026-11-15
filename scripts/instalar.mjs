@@ -20,7 +20,11 @@ const argumentos = process.argv.slice(2);
 const opcao = (nome) => (argumentos.includes(`--${nome}`) ? argumentos[argumentos.indexOf(`--${nome}`) + 1] : null);
 const tem = (nome) => argumentos.includes(`--${nome}`);
 const arquivoDaInstalacao = path.join(RAIZ, "config", "local.instalacao.json");
-const passo = (texto) => dizer(`\n== ${texto} ==`);
+// Cada etapa mostra quanto da instalação inteira já foi feito ("2 de 6" = 17% concluído).
+const passo = (texto) => {
+  const [, atual, total] = /^(\d+) de (\d+)/.exec(texto) ?? [];
+  dizer(`\n== ${atual ? `${String(Math.round(((atual - 1) / total) * 100)).padStart(3)}% | ` : ""}${texto} ==`);
+};
 
 dizer("IA Editora de Vídeo — instalação");
 dizer(`Pasta do programa: ${RAIZ}`);
@@ -142,6 +146,6 @@ else if (WINDOWS) {
   }
 } else dizer("Neste sistema o atalho não é criado. Abra a aplicação com: npm run iniciar");
 
-dizer("\nInstalação concluída.");
+dizer("\n== 100% | Instalação concluída. ==");
 dizer(WINDOWS ? "Para abrir: use o atalho \"IA Editora de Video\" (ou windows\\Iniciar.cmd)." : "Para abrir: npm run iniciar");
 if (pendencias) dizer("Atenção: há pendências na verificação das ferramentas, listadas acima.");

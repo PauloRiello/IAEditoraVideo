@@ -3,6 +3,14 @@
 Como fazer um vídeo do começo ao fim na IA Editora de Vídeo. Tudo é feito pela janela da
 aplicação; nada precisa ser digitado em linha de comando.
 
+## Andamento
+
+Tudo o que leva tempo mostra a porcentagem e o que está sendo feito naquele momento:
+análises (vídeo por vídeo, etapa por etapa), transcrição, prévias, exportações, a
+instalação da IA local e o seu teste. O andamento aparece no canto inferior esquerdo, no
+Painel e na própria tela da tarefa. Se a instalação da IA local cair no meio, ao tentar de
+novo ela continua de onde parou.
+
 ## Visão geral da janela
 
 | Área | Para que serve |

@@ -117,13 +117,15 @@ export class Fluxo {
     this.importarBrutos(projetoId);
     return this.d.tarefas.iniciar({ tipo: "analise-de-brutos", titulo: `Análise dos vídeos brutos de ${projeto.nome}`, projetoId }, async (informar) => {
       const analisados = await this.d.producao.analisarBrutos(projetoId, {
-        ...opcoes, aoAvancar: (arquivo, feitos, total) => informar(`Analisando ${path.basename(arquivo)} (${feitos + 1} de ${total})`, total ? feitos / total : null),
+        // Os últimos 5% ficam para gravar e, se for o caso, gerar o plano.
+        ...opcoes, aoAvancar: (etapa, fracao) => informar(`Analisando ${etapa}`, fracao * 0.95),
       });
+      informar("Gravando a análise", 0.95);
       const comProblema = analisados.filter((b) => b.arquivo.integridade !== "integro").length;
       this.registrar("analise", `${analisados.length} vídeo(s) bruto(s) analisado(s)${comProblema ? `, ${comProblema} com problema` : ""}.`, projetoId);
       const atual = this.d.projetos.obter(projetoId);
       if (atual.configuracao.intervencao !== "sugestao" && atual.configuracao.objetivo && analisados.some((b) => b.conteudo) && !this.temPlano(projetoId)) {
-        informar("Gerando o plano de edição");
+        informar("Gerando o plano de edição", 0.97);
         this.planejar(projetoId);
       }
     });
@@ -136,9 +138,11 @@ export class Fluxo {
     return this.d.tarefas.iniciar({ tipo: "analise-de-referencias", titulo, projetoId: null }, async (informar) => {
       const falhas: string[] = [];
       for (const [posicao, referencia] of referencias.entries()) {
-        informar(`Analisando ${referencia.titulo} (${posicao + 1} de ${referencias.length})`, posicao / referencias.length);
+        const avancar = (etapa: string, fracao: number) => informar(`Analisando ${referencia.titulo} (${posicao + 1} de ${referencias.length}): ${etapa}`, (posicao + fracao) / referencias.length);
+        avancar("começando", 0);
         try {
-          const resultado = await this.d.referencias.analisar(referencia.id, opcoes);
+          const resultado = await this.d.referencias.analisar(referencia.id, { ...opcoes, aoAvancar: (etapa, fracao) => avancar(etapa, fracao * 0.95) });
+          avancar("gravando o relatório", 0.97);
           this.registrar("analise", `Referência "${referencia.titulo}" analisada: ${resultado.relatorio.regras.length} regra(s) de edição identificada(s).`);
         } catch (erro) {
           falhas.push(`${referencia.titulo}: ${erro instanceof Error ? erro.message : String(erro)}`);

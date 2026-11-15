@@ -1,6 +1,6 @@
 // Aba "Edição": montar a timeline, ver as faixas, ajustar itens, gerar e assistir à prévia.
 
-import { agir, api, aviso, barra, campo, confirmar, dialogo, enviar, escolha, etiqueta, h, limpar, nomeDoArquivo, quando, tempo, por } from "/nucleo.js";
+import { agir, api, atualizarBarra, aviso, barra, campo, confirmar, dialogo, enviar, escolha, etiqueta, h, limpar, nomeDoArquivo, quando, tempo, por } from "/nucleo.js";
 
 const FAIXAS = [["video", "Vídeo"], ["sobreposicao", "Sobreposição"], ["texto", "Textos"], ["legenda", "Legendas"], ["audio", "Áudio"]];
 const faixaDe = (item) => (item.tipo === "texto" || item.tipo === "legenda" || item.tipo === "audio" ? item.tipo : item.camada === 0 ? "video" : "sobreposicao");
@@ -220,8 +220,7 @@ export async function aba(raiz, estado) {
     aoEvento: (nome, e) => {
       if (nome === "render:progresso") {
         progresso.set(e.id, e.progresso);
-        const fracao = area.querySelector(".visor + .linha .barra > i");
-        if (fracao) fracao.style.width = `${Math.round(e.progresso * 100)}%`;
+        atualizarBarra(area.querySelector(".visor + .linha .progresso"), e.progresso);
       } else if (nome === "render:atualizado" && e.tipo === "previa" && e.estado !== "renderizando") {
         if (e.estado !== "na-fila") progresso.delete(e.id);
         api(`/api/projetos/${id}/exportacoes`).then((lista) => { exportacoes = lista; desenhar(); estado.recarregarProjeto().catch(() => undefined); }).catch(() => undefined);

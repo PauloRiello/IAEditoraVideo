@@ -1,6 +1,6 @@
 // Aba "Material e análise": vídeos brutos (envio, análise, cenas, transcrição, pesquisa) e referências do projeto.
 
-import { agir, api, areaDeEnvio, aviso, dialogo, escolha, etiqueta, h, limpar, markdown, quando, tamanho, tempo, por } from "/nucleo.js";
+import { agir, api, areaDeEnvio, atualizarBarra, aviso, barra, dialogo, escolha, etiqueta, h, limpar, markdown, quando, tamanho, tempo, por } from "/nucleo.js";
 
 const INTEGRIDADE = { integro: ["Íntegro", "bom"], "com-erros": ["Com erros", "alerta"], ilegivel: ["Ilegível", "ruim"] };
 
@@ -47,6 +47,7 @@ export async function aba(raiz, estado) {
   const tabela = h("div"), referencias = h("div"), resultados = h("div"), botoes = h("div.linha");
   const transcrever = h("input", { type: "checkbox", checked: true });
   let analisando = false;
+  let tarefaAtual = null; // análise em andamento, com etapa e porcentagem
 
   const analisar = (refazer) => (evento) => agir(evento, async () => {
     await api(`/api/projetos/${id}/brutos/analisar`, { metodo: "POST", corpo: { transcrever: transcrever.checked, refazer } });
@@ -62,7 +63,7 @@ export async function aba(raiz, estado) {
     por(limpar(botoes), 
       h("label.marca-campo", { title: "Usa o Whisper neste computador. Desmarque para uma análise mais rápida, sem as falas." }, transcrever, "Transcrever as falas"),
       h("span.espaco"),
-      analisando ? h("span.suave", {}, "Análise em andamento…") : [
+      analisando ? h("div.andamento-da-analise", { style: "flex:1;max-width:460px" }, h("small", {}, tarefaAtual?.etapa || "Análise em andamento"), barra(tarefaAtual?.progresso ?? 0)) : [
         ultimos.length > pendentes ? h("button", { aoClicar: analisar(true) }, "Analisar tudo de novo") : null,
         pendentes || ultimos.length === 0 ? h("button.principal", { disabled: ultimos.length === 0, aoClicar: analisar(false) }, pendentes ? `Analisar ${pendentes} vídeo(s)` : "Analisar vídeos") : h("span.suave", {}, "Todos os vídeos já foram analisados."),
       ],
@@ -138,12 +139,20 @@ export async function aba(raiz, estado) {
       h("div", { style: "margin-top:14px" }, referencias)),
   );
   await Promise.all([carregarBrutos(), carregarReferencias()]);
+  // Aberta no meio de uma análise: mostra o andamento dela.
+  tarefaAtual = (await api("/api/tarefas")).find((t) => t.tipo === "analise-de-brutos" && t.projetoId === id && (t.estado === "na-fila" || t.estado === "executando")) ?? null;
+  if (tarefaAtual) { analisando = true; desenharBotoes([]); }
 
   return {
     aoEvento: (nome, dados) => {
       if (nome !== "tarefa:atualizada" || !dados.tipo.startsWith("analise")) return;
       const ativa = dados.estado === "na-fila" || dados.estado === "executando";
-      if (dados.tipo === "analise-de-brutos") analisando = ativa;
+      if (dados.tipo === "analise-de-brutos") {
+        analisando = ativa;
+        tarefaAtual = ativa ? dados : null;
+        const caixa = raiz.querySelector(".andamento-da-analise");
+        if (ativa && caixa) { caixa.querySelector("small").textContent = dados.etapa; atualizarBarra(caixa, dados.progresso); return; }
+      }
       if (!ativa) { carregarBrutos().catch(() => undefined); carregarReferencias().catch(() => undefined); estado.recarregarProjeto().catch(() => undefined); } else desenharBotoes([]);
     },
   };

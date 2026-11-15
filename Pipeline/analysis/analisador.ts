@@ -24,13 +24,19 @@ export interface ContextoDeAnalise {
   transcrever?: (arquivo: string) => Promise<Transcricao>;
   /** Pasta onde os quadros-chave são gravados quando há modelo visual. */
   pastaDeQuadros?: string;
+  /** Informa a etapa em andamento e a fração já feita (0 a 1). */
+  aoAvancar?: (etapa: string, fracao: number) => void;
 }
 
 export async function analisarReferencia(arquivo: string, contexto: ContextoDeAnalise): Promise<RelatorioReferencia> {
   const limitacoes: string[] = [];
   const modelosUsados: string[] = [];
+  const avancar = contexto.aoAvancar ?? (() => undefined);
+  avancar("lendo o arquivo", 0.02);
   const tecnico = await sondar(arquivo);
+  avancar("medindo a imagem", 0.06);
   const visual = await medirVisual(arquivo, tecnico);
+  avancar("medindo o som", 0.32);
 
   // --- Áudio e fala -------------------------------------------------------------
   let audio: AnaliseAudio | null = null;
@@ -45,6 +51,7 @@ export async function analisarReferencia(arquivo: string, contexto: ContextoDeAn
       limitacoes.push("A fala não foi transcrita: o Whisper não está disponível.");
     } else {
       try {
+        avancar("transcrevendo as falas", 0.42);
         transcricao = await contexto.transcrever(arquivo);
         fala = estimado(transcricao, "transcrição pelo Whisper, com filtro de voz", transcricao.segmentos.length ? 0.8 : 0.7);
         modelosUsados.push("whisper: transcrição");
@@ -68,6 +75,7 @@ const motivo = (erro instanceof Error ? erro.message : String(erro)).split(/\r?\
   const narrativa = narrativaPorMedicao(contexto.perfil, tecnico, visual, medicaoAudio, transcricao);
   const tiposDeConteudo = reconhecerTipos(contexto.perfil, sinaisMedidos(visual, medicaoAudio, transcricao, tecnico), transcricao);
 
+  avancar("interpretando enquadramentos e tipografia", 0.62);
   const leitura = await leituraVisualPorModelo(
     contexto.provedores,
     async () => {
@@ -93,6 +101,7 @@ const motivo = (erro instanceof Error ? erro.message : String(erro)).split(/\r?\
     leituraVisual: Object.fromEntries(Object.entries(leitura).map(([chave, c]) => [chave, c.valor])),
     transcricao: transcricao?.segmentos.slice(0, 80) ?? null,
   };
+  avancar("interpretando a narrativa", 0.82);
   const sugeridas = await narrativaPorModelo(contexto.provedores, narrativa, resumo, limitacoes, modelosUsados);
   // Uma regra sugerida pelo modelo não substitui uma regra medida sobre o mesmo assunto.
   for (const regra of sugeridas) if (!regras.some((r) => r.categoria === regra.categoria && r.chave === regra.chave)) regras.push(regra);

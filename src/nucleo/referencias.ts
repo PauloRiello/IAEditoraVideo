@@ -91,7 +91,7 @@ export class AnaliseDeReferencias {
    * referência havia ensinado, sem contar em dobro. Uma única referência só gera
    * aprendizados candidatos: eles passam a valer quando outra fonte os confirma.
    */
-  async analisar(referenciaId: string, opcoes: { perfil?: string; transcrever?: boolean } = {}): Promise<ResultadoDaAnalise> {
+  async analisar(referenciaId: string, opcoes: { perfil?: string; transcrever?: boolean; aoAvancar?: (etapa: string, fracao: number) => void } = {}): Promise<ResultadoDaAnalise> {
     const { acervo, aprendizado, caminhos, configuracoes } = this.d;
     const referencia = acervo.referencia(referenciaId);
     if (!referencia.caminho || !existsSync(referencia.caminho)) throw new Error(`A referência "${referencia.titulo}" não tem arquivo local para analisar.`);
@@ -103,6 +103,7 @@ export class AnaliseDeReferencias {
       referenciaId: referencia.id,
       perfil,
       pastaDeQuadros: path.join(pasta, "quadros"),
+      aoAvancar: opcoes.aoAvancar,
       provedores: {
         selecionar: async (capacidade: Capacidade) => {
           const provedor = await this.d.provedores.selecionar(capacidade);

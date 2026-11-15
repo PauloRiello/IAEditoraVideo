@@ -50,6 +50,11 @@ instalada, não depende de nenhum outro programa aberto nem de internet para edi
 7. **Abra a aplicação** pelo atalho **IA Editora de Video**, criado na Área de Trabalho e
    no Menu Iniciar (ou por `windows\Iniciar.cmd`).
 
+Cada etapa mostra a porcentagem da instalação inteira já feita. Duas partes, a dos pacotes
+npm e a do Python, não informam o próprio andamento: nelas a porcentagem só avança quando a
+parte termina, e podem ficar alguns minutos paradas. O download da IA local mostra a
+porcentagem continuamente, com os GB já baixados.
+
 O instalador pode ser executado de novo a qualquer momento, por exemplo para reparar a
 instalação: ele só instala o que falta, não apaga nem sobrescreve o que já existe e
 mantém as pastas de dados e de vídeos escolhidas na primeira vez.

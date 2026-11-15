@@ -181,6 +181,13 @@ test("análise em segundo plano, com eventos ao vivo; no nível assistido o plan
   assert.match(recebido, /event: tarefa:atualizada\ndata: \{[^\n]*"estado":"executando"/);
   assert.match(recebido, /event: tarefa:atualizada\ndata: \{[^\n]*"estado":"concluida"/);
   assert.match(recebido, /event: atividade\ndata: /);
+  // Toda tarefa em andamento informa a porcentagem, e ela avança durante a análise, não só ao fim de cada vídeo.
+  const andamento = [...recebido.matchAll(/event: tarefa:atualizada\ndata: (.*)\n/g)].map((m) => JSON.parse(m[1]) as { id: string; estado: string; progresso: number | null; etapa: string }).filter((t) => t.id === tarefa.dados.id);
+  assert.ok(andamento.every((t) => typeof t.progresso === "number" && t.progresso >= 0 && t.progresso <= 1), "nenhum aviso sem porcentagem");
+  const fracoes = andamento.filter((t) => t.estado === "executando").map((t) => t.progresso as number);
+  assert.ok(fracoes.every((f, i) => i === 0 || f >= fracoes[i - 1]), "a porcentagem só avança");
+  assert.ok(new Set(fracoes.map((f) => Math.floor(f * 100))).size >= 8, `a porcentagem avança em vários passos: ${fracoes.map((f) => Math.floor(f * 100)).join(", ")}`);
+  assert.ok(andamento.some((t) => /\(1 de 3\): medindo o som/.test(t.etapa)), "a etapa diz o que está sendo feito em cada vídeo");
 
   const concluida = (await pedir("/api/tarefas")).dados.find((t: { id: string }) => t.id === tarefa.dados.id);
   assert.deepEqual([concluida.estado, concluida.erro, concluida.progresso], ["concluida", null, 1]);

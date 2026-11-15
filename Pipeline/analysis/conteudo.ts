@@ -19,6 +19,8 @@ export interface ContextoDeConteudo {
   pastaDeMiniaturas: string;
   transcrever?: (arquivo: string) => Promise<Transcricao>;
   provedores?: SeletorDeProvedores;
+  /** Informa a etapa em andamento e a fração já feita deste vídeo (0 a 1). */
+  aoAvancar?: (etapa: string, fracao: number) => void;
 }
 
 const sobrepoe = (a: { inicioSeg: number; fimSeg: number }, b: { inicioSeg: number; fimSeg: number }) => a.inicioSeg < b.fimSeg && b.inicioSeg < a.fimSeg;
@@ -41,8 +43,12 @@ export class AgenteDeConteudo implements Agente {
   async analisar(midiaId: string, arquivo: ArquivoBruto, contexto: ContextoDeConteudo): Promise<AnaliseDeConteudo> {
     if (!arquivo.tecnico) throw new Error(`O arquivo ${arquivo.nome} não pôde ser lido e não tem conteúdo a analisar.`);
     const limitacoes: string[] = [];
+    const avancar = contexto.aoAvancar ?? (() => undefined);
+    avancar("medindo a imagem", 0.02);
     const visual = await medirVisual(arquivo.caminho, arquivo.tecnico);
+    avancar("medindo o som", 0.3);
     const audio = arquivo.tecnico.temAudio ? await medirAudio(arquivo.caminho, visual.cortesSeg) : null;
+    avancar("transcrevendo as falas", 0.42);
 
     let transcricao: Transcricao | null = null;
     if (audio?.audivel && contexto.transcrever) {
@@ -113,6 +119,7 @@ export class AgenteDeConteudo implements Agente {
 
     // Miniaturas: uma por cena, até 24 por arquivo, espalhadas pelo vídeo.
     const comMiniatura = cenas.length <= MAXIMO_DE_MINIATURAS ? cenas : Array.from({ length: MAXIMO_DE_MINIATURAS }, (_, k) => cenas[Math.floor((k * cenas.length) / MAXIMO_DE_MINIATURAS)]);
+    avancar("separando as cenas", 0.62);
     const miniaturas = await extrairQuadros(arquivo.caminho, comMiniatura.map((c) => arredondar((c.inicioSeg + c.fimSeg) / 2)), contexto.pastaDeMiniaturas, 320);
     comMiniatura.forEach((cena, k) => (cena.miniatura = miniaturas[k]));
 
@@ -123,8 +130,11 @@ export class AgenteDeConteudo implements Agente {
       humor: naoAvaliado("requer modelo de linguagem; nenhum provedor com a capacidade \"texto\" está disponível"),
       limitacoes,
     };
+    avancar("identificando personagens e elementos", 0.72);
     await this.lerElementosVisuais(analise, comMiniatura.slice(0, 8), contexto.provedores);
+    avancar("avaliando o humor das falas", 0.9);
     await this.lerHumor(analise, contexto.provedores);
+    avancar("concluído", 1);
     return analise;
   }
 

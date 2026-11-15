@@ -524,8 +524,7 @@ export const ROTAS: Rota[] = [
     atender: ({ app }) => {
       semTrabalhoEmAndamento(app, "testar a IA local");
       return app.tarefas.iniciar({ tipo: "instalacao-ia-local", titulo: "Teste da IA local", projetoId: null }, async (informar) => {
-        informar("Ligando a IA local", null);
-        const r = await app.iaLocal.testar();
+        const r = await app.iaLocal.testar(informar);
         if (!r.enxergou) throw new Error(`A IA local respondeu, mas não reconheceu a imagem de teste (resposta: ${r.imagem.trim().slice(0, 120)}).`);
         app.fluxo.registrar("sistema", `IA local testada: respondeu e enxergou a imagem de teste em ${r.segundos} s, ${r.dispositivo === "gpu" ? "na placa de vídeo" : "no processador"}.`);
       }).tarefa;

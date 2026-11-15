@@ -33,6 +33,11 @@ que não foi avaliado aparece como "não avaliado", nunca como um palpite.
   render de teste do Remotion usou NVENC. Uma exportação completa pela GPU ainda não foi
   conferida. Sem GPU, tudo roda pelo processador.
 
+## Andamento
+
+- A instalação dos pacotes npm e Python não informa o próprio andamento: a porcentagem do
+  instalador avança só quando cada parte termina.
+
 ## Interface
 
 - **Prévia não é ao vivo.** A prévia é um vídeo renderizado em resolução reduzida; depois

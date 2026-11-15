@@ -1,6 +1,6 @@
 // Configurações: preferências gerais, transcrição, provedores de IA (todos opcionais), computador, pastas e cópias de segurança.
 
-import { agir, api, aviso, barra, campo, confirmar, dialogo, escolha, etiqueta, h, limpar, quando, por } from "/nucleo.js";
+import { agir, api, atualizarBarra, aviso, barra, campo, confirmar, dialogo, escolha, etiqueta, h, limpar, quando, por } from "/nucleo.js";
 
 const MOTIVOS = { manual: "Manual", automatica: "Automática", "pre-migracao": "Antes de atualizar o banco", "pre-restauracao": "Antes de uma restauração", "pre-atualizacao": "Antes de atualizar o programa" };
 
@@ -184,9 +184,9 @@ export async function mostrar(raiz, contexto) {
       const ativa = dados.estado === "na-fila" || dados.estado === "executando";
       instalando = ativa ? dados : null;
       if (ativa) {
-        const caixa = area.querySelector(".nota .barra > i");
-        const etapa = area.querySelector(".nota small");
-        if (caixa && etapa && dados.estado === "executando") { caixa.style.width = `${Math.round((dados.progresso ?? 0) * 100)}%`; etapa.textContent = dados.etapa; return; }
+        const caixa = area.querySelector(".nota .progresso");
+        const etapa = caixa?.parentElement?.querySelector("small");
+        if (caixa && etapa && dados.estado === "executando") { atualizarBarra(caixa, dados.progresso); etapa.textContent = dados.etapa; return; }
         desenhar();
       } else carregar().catch(() => undefined);
     },

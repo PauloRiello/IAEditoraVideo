@@ -331,6 +331,26 @@ modelo de verdade ainda não rodaram; falta o **Testar** no Windows.
   - O HyperFrames continua sem renderizar no Windows de teste; o erro persistiu com pouca
     memória descartada como causa. A aplicação desenha o cartão pelo Remotion.
 
+### Ajuste — porcentagem em tudo o que leva tempo
+
+Pedido do usuário: a instalação da IA local não mostrava a porcentagem; tudo o que for
+feito precisa mostrá-la.
+
+- Janela: toda barra de progresso mostra o número (`barra`/`atualizarBarra`). A aba
+  Material e análise ganhou a barra da análise em andamento.
+- Tarefas nunca ficam sem porcentagem: começam em 0%, um aviso sem fração mantém a
+  anterior e os avisos frequentes são limitados a cinco por segundo.
+- A análise avança dentro de cada vídeo (imagem, som, falas, cenas, personagens, humor), e
+  não só ao fim de cada arquivo; o mesmo nas referências.
+- IA local: o download mostra "1,2 GB de 2,5 GB" e a porcentagem, continua de onde parou
+  se a conexão cair, e o teste mostra as etapas.
+- Linha de comando e instalador: uma linha que se atualiza com a porcentagem, e o
+  cabeçalho de cada etapa do instalador mostra a porcentagem da instalação inteira.
+- **Testes:** 89, todos passando, com um teste novo de download interrompido e retomado e a
+  conferência de que a análise informa a porcentagem em vários passos. A porcentagem foi
+  vista na janela, no navegador, durante uma análise real (0% a 95% em 11 passos).
+- **Pendência:** a instalação dos pacotes npm e Python não informa o próprio andamento.
+
 ## Próximas etapas (não iniciadas)
 
 A confirmar com o usuário. Sugestão: validação em Windows real com vídeos reais.

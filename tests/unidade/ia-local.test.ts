@@ -28,6 +28,9 @@ process.env.IAEV_MOTOR_REGISTRO = registro;
 const sha = (dados: Buffer) => createHash("sha256").update(dados).digest("hex");
 const publicados = new Map<string, Buffer>();
 const pedidosAoServidor: string[] = [];
+const intervalosPedidos: string[] = [];
+/** Arquivos cuja próxima entrega cai no meio: caminho → bytes entregues antes de cortar a conexão. */
+const cortar = new Map<string, number>();
 let servidor: http.Server;
 let endereco = "";
 let catalogo = "";
@@ -81,8 +84,18 @@ before(async () => {
     pedidosAoServidor.push(pedido.url ?? "");
     const dados = publicados.get(pedido.url ?? "");
     if (!dados) { resposta.writeHead(404); resposta.end(); return; }
-    resposta.writeHead(200, { "content-length": dados.length });
-    resposta.end(dados);
+    const intervalo = /^bytes=(\d+)-$/.exec(String(pedido.headers.range ?? ""));
+    if (intervalo) intervalosPedidos.push(`${pedido.url} ${pedido.headers.range}`);
+    const inicio = intervalo ? Number(intervalo[1]) : 0;
+    const parte = dados.subarray(inicio);
+    resposta.writeHead(intervalo ? 206 : 200, { "content-length": parte.length, ...(intervalo ? { "content-range": `bytes ${inicio}-${dados.length - 1}/${dados.length}` } : {}) });
+    const corte = cortar.get(pedido.url ?? "");
+    if (corte !== undefined) {
+      cortar.delete(pedido.url ?? "");
+      resposta.write(parte.subarray(0, corte), () => setTimeout(() => resposta.destroy(), 50)); // a conexão cai no meio
+      return;
+    }
+    resposta.end(parte);
   });
   await new Promise<void>((r) => servidor.listen(0, "127.0.0.1", () => r()));
   endereco = `http://127.0.0.1:${(servidor.address() as { port: number }).port}`;
@@ -122,6 +135,25 @@ test("instalação: baixa conferindo a soma de verificação, desempacota e não
   const antes = pedidosAoServidor.length;
   await ia.instalar("smolvlm-256m");
   assert.equal(pedidosAoServidor.length, antes, "repetir a instalação não baixa nada");
+});
+
+test("download interrompido continua de onde parou, e o progresso mostra quanto já foi baixado", async () => {
+  const caminho = path.join(caminhos.modelos, "ia-local", "smolvlm-256m", "modelo.gguf");
+  rmSync(caminho);
+  cortar.set("/modelos/smolvlm-256m/modelo.gguf", 1024 * 1024);
+  const { ia } = novaIA();
+  await assert.rejects(ia.instalar("smolvlm-256m"), (e: unknown) => e instanceof ErroAplicacao && e.codigo === "download-falhou" && /continua de onde parou/.test(e.message));
+  assert.equal(readFileSync(`${caminho}.parcial`).length, 1024 * 1024, "a parte baixada fica guardada");
+
+  const etapas: [string, number][] = [];
+  await ia.instalar("smolvlm-256m", (etapa, fracao) => etapas.push([etapa, fracao]));
+  assert.ok(intervalosPedidos.includes("/modelos/smolvlm-256m/modelo.gguf bytes=1048576-"), "pede só o que falta");
+  assert.ok(readFileSync(caminho).equals(publicados.get("/modelos/smolvlm-256m/modelo.gguf") as Buffer), "o arquivo final é idêntico ao publicado");
+  assert.ok(!existsSync(`${caminho}.parcial`));
+  const doModelo = etapas.filter(([e]) => /Baixando o modelo/.test(e));
+  assert.match(doModelo[0][0], /: 1 MB de 3 MB$/, "começa mostrando o que já tinha sido baixado");
+  assert.match(doModelo.at(-1)?.[0] ?? "", /: 3 MB de 3 MB$/);
+  assert.ok(etapas.every(([, f]) => typeof f === "number" && f >= 0 && f <= 1), "toda etapa tem porcentagem");
 });
 
 test("arquivo diferente do publicado é descartado, e com um arquivo faltando a IA local não se dá por instalada", async () => {

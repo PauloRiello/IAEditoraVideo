@@ -1,6 +1,6 @@
 // Aba "Exportação": preset, destino, conferência de qualidade, exportação final, relatórios e histórico.
 
-import { agir, api, aviso, barra, campo, confirmar, dialogo, escolha, etiqueta, h, limpar, nomeDoArquivo, perguntar, quando, tamanho, tempo, por } from "/nucleo.js";
+import { agir, api, atualizarBarra, aviso, barra, campo, confirmar, dialogo, escolha, etiqueta, h, limpar, nomeDoArquivo, perguntar, quando, tamanho, tempo, por } from "/nucleo.js";
 
 const SITUACOES = { aprovado: ["Aprovado", "bom"], "aprovado-com-ressalvas": ["Aprovado com ressalvas", "bom"], pendente: ["Pendente: precisa da sua decisão", "alerta"], reprovado: ["Reprovado", "ruim"] };
 const GRAVIDADES = { obrigatoria: ["Obrigatória", "ruim"], importante: ["Importante", "alerta"], recomendacao: ["Recomendação", "info"] };
@@ -98,8 +98,7 @@ export async function aba(raiz, estado) {
     aoEvento: (nome, e) => {
       if (nome === "render:progresso") {
         progresso.set(e.id, e.progresso);
-        const fracao = andamento.querySelector(`[data-exportacao="${e.id}"] .barra > i`);
-        if (fracao) fracao.style.width = `${Math.round(e.progresso * 100)}%`;
+        atualizarBarra(andamento.querySelector(`[data-exportacao="${e.id}"] .progresso`), e.progresso);
       } else if (nome === "render:atualizado" && e.estado !== "renderizando") {
         if (e.estado !== "na-fila") progresso.delete(e.id);
         carregar().catch(() => undefined);

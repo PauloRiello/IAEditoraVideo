@@ -6,7 +6,7 @@
 
 import { spawn, type ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";
-import { createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import path from "node:path";
 import { Readable } from "node:stream";
@@ -85,7 +85,8 @@ export interface OpcoesDaIALocal {
   esperaParaLigarSeg?: number;
 }
 
-export type AoProgredir = (etapa: string, fracao: number | null) => void;
+/** Etapa em andamento e fração já feita do total (0 a 1). */
+export type AoProgredir = (etapa: string, fracao: number) => void;
 
 const MB = 1024 * 1024;
 const EXECUTAVEL = process.platform === "win32" ? "llama-server.exe" : "llama-server";
@@ -114,35 +115,51 @@ function procurar(pasta: string, nome: string): string | null {
   return null;
 }
 
-/** Baixa um arquivo conferindo tamanho e SHA-256. Só recebe o nome final se estiver íntegro. */
-async function baixar(url: string, destino: string, esperado: ArquivoBaixavel, aoProgredir: (fracao: number) => void, sinal?: AbortSignal): Promise<void> {
-  if (existsSync(destino) && statSync(destino).size === esperado.tamanho) return; // já baixado e conferido antes
+/** Tamanho legível: "850 MB" ou "2,5 GB". */
+export const tamanhoLegivel = (bytes: number): string => (bytes >= 1024 * MB ? `${(bytes / (1024 * MB)).toFixed(1).replace(".", ",")} GB` : `${Math.round(bytes / MB)} MB`);
+
+/**
+ * Baixa um arquivo conferindo tamanho e SHA-256. Só recebe o nome final se estiver íntegro.
+ * Se um download anterior parou no meio, continua de onde parou (quando o servidor permite).
+ * `aoProgredir` recebe os bytes já baixados, com avisos limitados a alguns por segundo.
+ */
+async function baixar(url: string, destino: string, esperado: ArquivoBaixavel, aoProgredir: (bytes: number) => void, sinal?: AbortSignal): Promise<void> {
+  if (existsSync(destino) && statSync(destino).size === esperado.tamanho) { aoProgredir(esperado.tamanho); return; } // já baixado e conferido antes
   mkdirSync(path.dirname(destino), { recursive: true });
   const parcial = `${destino}.parcial`;
+  let jaTem = existsSync(parcial) ? statSync(parcial).size : 0;
+  if (jaTem >= esperado.tamanho) { rmSync(parcial, { force: true }); jaTem = 0; }
   let resposta: Response;
   try {
-    resposta = await fetch(url, { signal: sinal, redirect: "follow" });
+    resposta = await fetch(url, { signal: sinal, redirect: "follow", headers: jaTem ? { range: `bytes=${jaTem}-` } : {} });
   } catch (erro) {
-    throw new ErroAplicacao("sem-conexao", `Não foi possível baixar ${esperado.arquivo}: sem conexão com ${new URL(url).host} (${erro instanceof Error ? erro.message : erro}).`);
+    if (sinal?.aborted) throw new ErroAplicacao("cancelado", "Instalação cancelada. O que já foi baixado fica guardado para continuar depois.");
+    throw new ErroAplicacao("sem-conexao", `Não foi possível baixar ${esperado.arquivo}: sem conexão com ${new URL(url).host} (${erro instanceof Error ? erro.message : erro}). O que já foi baixado fica guardado para continuar depois.`);
   }
+  if (jaTem && resposta.status !== 206) jaTem = 0; // o servidor não continua downloads: recomeça
   if (!resposta.ok || !resposta.body) throw new ErroAplicacao("download-falhou", `Não foi possível baixar ${esperado.arquivo}: o servidor respondeu ${resposta.status}.`);
+  // A soma de verificação cobre o arquivo inteiro: a parte já baixada entra na conta primeiro.
   const hash = createHash("sha256");
-  let recebidos = 0;
-  const saida = createWriteStream(parcial);
+  if (jaTem) for await (const pedaco of createReadStream(parcial) as AsyncIterable<Buffer>) hash.update(pedaco);
+  let recebidos = jaTem;
+  let ultimoAviso = 0;
+  aoProgredir(recebidos);
+  const saida = createWriteStream(parcial, { flags: jaTem ? "a" : "w" });
   try {
     for await (const pedaco of Readable.fromWeb(resposta.body as never) as AsyncIterable<Buffer>) {
       hash.update(pedaco);
       recebidos += pedaco.length;
       if (!saida.write(pedaco)) await new Promise<void>((r) => saida.once("drain", () => r()));
-      aoProgredir(Math.min(1, recebidos / esperado.tamanho));
+      if (Date.now() - ultimoAviso >= 250) { ultimoAviso = Date.now(); aoProgredir(Math.min(recebidos, esperado.tamanho)); }
     }
     await new Promise<void>((resolver, rejeitar) => saida.end((erro?: Error | null) => (erro ? rejeitar(erro) : resolver())));
   } catch (erro) {
     saida.destroy();
-    rmSync(parcial, { force: true });
-    if (sinal?.aborted) throw new ErroAplicacao("cancelado", "Instalação cancelada.");
-    throw new ErroAplicacao("download-falhou", `O download de ${esperado.arquivo} foi interrompido (${erro instanceof Error ? erro.message : erro}). Tente de novo.`);
+    // A parte baixada fica guardada: a próxima tentativa continua dela.
+    if (sinal?.aborted) throw new ErroAplicacao("cancelado", "Instalação cancelada. O que já foi baixado fica guardado para continuar depois.");
+    throw new ErroAplicacao("download-falhou", `O download de ${esperado.arquivo} foi interrompido em ${tamanhoLegivel(recebidos)} de ${tamanhoLegivel(esperado.tamanho)} (${erro instanceof Error ? erro.message : erro}). Tente de novo: ele continua de onde parou.`);
   }
+  aoProgredir(Math.min(recebidos, esperado.tamanho));
   const soma = hash.digest("hex");
   if (recebidos !== esperado.tamanho || soma !== esperado.sha256) {
     rmSync(parcial, { force: true });
@@ -301,8 +318,8 @@ export class IALocal {
       let executavel = existsSync(pastaDoMotor) ? procurar(pastaDoMotor, EXECUTAVEL) : null;
       if (!executavel) {
         const pacote = path.join(this.base, "downloads", variante.arquivo);
-        await baixar(`${this.o.origens?.motor ?? motor.endereco}${variante.arquivo}`, pacote, variante, (f) => aoProgredir(`Baixando o motor de IA (${Math.round(variante.tamanho / MB)} MB)`, (f * variante.tamanho) / total), sinal);
-        aoProgredir("Preparando o motor de IA", null);
+        await baixar(`${this.o.origens?.motor ?? motor.endereco}${variante.arquivo}`, pacote, variante, (bytes) => aoProgredir(`Baixando o motor de IA: ${tamanhoLegivel(bytes)} de ${tamanhoLegivel(variante.tamanho)}`, bytes / total), sinal);
+        aoProgredir("Preparando o motor de IA", variante.tamanho / total);
         const temporaria = `${pastaDoMotor}.parcial`;
         rmSync(temporaria, { recursive: true, force: true });
         await desempacotar(pacote, temporaria);
@@ -321,7 +338,8 @@ export class IALocal {
       for (const parte of [modelo.modelo, modelo.visao]) {
         const url = this.o.origens?.modelos?.(modelo, parte.arquivo) ?? `https://huggingface.co/${modelo.repositorio}/resolve/${modelo.revisao}/${parte.arquivo}`;
         const destino = path.join(pastaDoModelo, parte.arquivo);
-        await baixar(url, destino, parte, (f) => aoProgredir(`Baixando o modelo ${modelo.nome} (${Math.round(total / MB)} MB no total)`, (feito + f * parte.tamanho) / total), sinal);
+        const nome = parte === modelo.modelo ? `o modelo ${modelo.nome}` : "a parte de visão do modelo";
+        await baixar(url, destino, parte, (bytes) => aoProgredir(`Baixando ${nome}: ${tamanhoLegivel(bytes)} de ${tamanhoLegivel(parte.tamanho)}`, (feito + bytes) / total), sinal);
         feito += parte.tamanho;
       }
       await this.parar(); // o modelo pode ter mudado
@@ -466,15 +484,20 @@ export class IALocal {
   }
 
   /** Confere de ponta a ponta: liga o motor, faz uma pergunta de texto e uma com imagem. */
-  async testar(): Promise<{ texto: string; imagem: string; enxergou: boolean; dispositivo: "gpu" | "cpu" | null; segundos: number }> {
+  async testar(aoProgredir: AoProgredir = () => undefined): Promise<{ texto: string; imagem: string; enxergou: boolean; dispositivo: "gpu" | "cpu" | null; segundos: number }> {
     const inicio = Date.now();
+    aoProgredir("Ligando a IA local (a primeira vez pode levar um ou dois minutos)", 0.05);
+    await this.ligar();
     const pasta = path.join(this.o.caminhos.temporarios, "ia-local-teste");
     mkdirSync(pasta, { recursive: true });
     const arquivo = path.join(pasta, "teste.png");
     writeFileSync(arquivo, imagemDeTeste());
     try {
+      aoProgredir("Fazendo uma pergunta de texto", 0.5);
       const texto = await this.usar((p) => p.gerarTexto({ mensagem: 'Responda só com JSON no formato {"resposta": "..."}: quanto é 2 + 3?' }));
+      aoProgredir("Mostrando uma imagem de teste", 0.75);
       const imagem = await this.usar((p) => p.descreverImagens({ instrucao: 'Responda só com JSON no formato {"cor": "..."} dizendo a cor do quadrado no centro da imagem, em português.', imagens: [arquivo] }));
+      aoProgredir("Teste concluído", 1);
       return { texto, imagem, enxergou: /vermelh|red/i.test(imagem), dispositivo: this.dispositivo, segundos: Math.round((Date.now() - inicio) / 100) / 10 };
     } finally {
       rmSync(pasta, { recursive: true, force: true });

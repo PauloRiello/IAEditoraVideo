@@ -81,6 +81,11 @@ Leia [docs/ARQUITETURA.md](docs/ARQUITETURA.md) antes de alterar a estrutura e
   licença que permite uso comercial. O motor só atende `127.0.0.1`, liga sob demanda,
   reserva a placa pelo `GerenciadorVram` e desliga sem uso. Nada é baixado sem pedido do
   usuário. O que o modelo interpreta é sempre `estimado`.
+- **Todo trabalho demorado mostra a porcentagem.** Tarefas, renders, downloads e o
+  instalador informam etapa e fração (0 a 1) do começo ao fim; o andamento nunca fica sem
+  número. Na janela, use `barra()` e `atualizarBarra()` (`src/interface/web/nucleo.js`); na
+  linha de comando, `progresso()` (`src/interface/cli.ts`). Downloads grandes continuam de
+  onde pararam.
 - **Feedback ensina com cautela.** Correção de um projeto fica candidata no perfil; rejeição
   sem aspecto apontado não ensina nada; métricas são sinal fraco, nunca criam regra e nunca
   são inventadas ([docs/FEEDBACK.md](docs/FEEDBACK.md)).

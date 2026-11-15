@@ -14,6 +14,7 @@ export interface TarefaIniciada {
   conclusao: Promise<Tarefa>;
 }
 
+/** Informa a etapa e a fração feita (0 a 1). Sem fração, mantém a anterior: a porcentagem nunca some. */
 type Informar = (etapa: string, progresso?: number | null) => void;
 
 const LIMITE = 60;
@@ -30,7 +31,7 @@ export class Tarefas {
       const emAndamento = e.estado === "na-fila" || e.estado === "renderizando";
       this.espelhar(e, {
         titulo: `${e.tipo === "previa" ? "Prévia" : "Exportação"} de ${nomeDoProjeto(e.projetoId)} (timeline v${e.versaoDaTimeline})`,
-        estado: e.estado === "renderizando" ? "executando" : e.estado, progresso: emAndamento ? e.progresso : null,
+        estado: e.estado === "renderizando" ? "executando" : e.estado, progresso: emAndamento ? (e.progresso ?? 0) : e.estado === "concluida" ? 1 : null,
         etapa: e.estado === "na-fila" ? "Na fila" : e.estado === "renderizando" ? "Renderizando" : "", erro: e.erro, concluidaEm: e.concluidoEm,
       });
     });
@@ -68,9 +69,19 @@ export class Tarefas {
   /** Põe um trabalho na fila. Um trabalho roda por vez, na ordem de chegada. */
   iniciar(dados: Pick<Tarefa, "tipo" | "titulo" | "projetoId">, trabalho: (informar: Informar) => Promise<unknown>): TarefaIniciada {
     this.contador += 1;
-    const tarefa = this.guardar({ id: `tarefa-${this.contador}`, ...dados, estado: "na-fila", progresso: null, etapa: "Na fila", erro: null, criadaEm: agora(), concluidaEm: null });
+    const tarefa = this.guardar({ id: `tarefa-${this.contador}`, ...dados, estado: "na-fila", progresso: 0, etapa: "Na fila", erro: null, criadaEm: agora(), concluidaEm: null });
     this.publicar(tarefa);
-    const informar: Informar = (etapa, progresso = null) => { this.publicar(Object.assign(tarefa, { etapa, progresso })); };
+    // Muitos avisos seguidos (um download, por exemplo) viram no máximo um a cada 200 ms, salvo mudança de etapa.
+    let ultimoAviso = 0;
+    const informar: Informar = (etapa, progresso) => {
+      const fracao = progresso === null || progresso === undefined ? tarefa.progresso : Math.max(0, Math.min(1, progresso));
+      const mudouEtapa = etapa !== tarefa.etapa;
+      Object.assign(tarefa, { etapa, progresso: fracao });
+      if (mudouEtapa || Date.now() - ultimoAviso >= 200) {
+        ultimoAviso = Date.now();
+        this.publicar(tarefa);
+      }
+    };
     const conclusao = this.fila.then(async () => {
       this.publicar(Object.assign(tarefa, { estado: "executando", etapa: "Iniciando" }));
       try {
