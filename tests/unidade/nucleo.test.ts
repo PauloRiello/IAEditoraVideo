@@ -37,7 +37,8 @@ test("a aplicação abre sem nenhum provedor de IA e cria a estrutura de pastas"
   const app = new Aplicacao(caminhosDe(pasta));
   try {
     const s = await app.situacao();
-    assert.equal(s.provedores.length, 0);
+    // Só a IA local aparece, e indisponível: ela não vem instalada e nada é baixado sem pedido.
+    assert.deepEqual(s.provedores.map((p) => [p.id, p.origem, p.disponivel]), [["ia-local", "local", false]]);
     assert.equal(s.versaoEsquema, VERSAO_ESQUEMA);
     assert.deepEqual(s.perfis.sort(), ["documentario", "educacao", "fivem", "geral", "institucional", "publicidade", "redes-sociais", "redm", "youtube"]);
     for (const nome of ["Videos Brutos", "Referências", "Exportações"]) {

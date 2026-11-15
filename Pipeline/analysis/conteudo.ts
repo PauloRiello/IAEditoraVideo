@@ -134,7 +134,7 @@ export class AgenteDeConteudo implements Agente {
     try {
       provedor = await (provedores?.selecionar("visao") ?? Promise.reject(new Error("sem provedores")));
     } catch {
-      analise.limitacoes.push("Personagens e elementos visuais não foram identificados: nenhum modelo visual disponível.");
+      analise.limitacoes.push("Personagens e elementos visuais não foram identificados: nenhum modelo visual disponível. Instale a IA local em Configurações para avaliar.");
       return;
     }
     try {
@@ -168,7 +168,7 @@ export class AgenteDeConteudo implements Agente {
     try {
       provedor = await (provedores?.selecionar("texto") ?? Promise.reject(new Error("sem provedores")));
     } catch {
-      analise.limitacoes.push("Humor não foi avaliado: nenhum modelo de linguagem disponível.");
+      analise.limitacoes.push("Humor não foi avaliado: nenhum modelo de linguagem disponível. Instale a IA local em Configurações para avaliar.");
       return;
     }
     try {

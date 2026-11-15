@@ -6,6 +6,7 @@
 //         --sugerir-dados <pasta>  --sugerir-biblioteca <pasta>   sugestão para a primeira instalação
 //         --padrao (não pergunta nada)
 //         --sem-atalho  --sem-verificar  --sem-configurar (pula a instalação de dependências)
+//         --ia-local [modelo]  instala a IA local sem perguntar   --sem-ia-local  não instala
 
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
@@ -27,7 +28,7 @@ const [maior, menor] = process.versions.node.split(".").map(Number);
 if (maior < 22 || (maior === 22 && menor < 20)) falhar(`o Node.js instalado (${process.versions.node}) é antigo demais.`, "instale o Node.js 22.20 ou mais recente (no Windows: winget install OpenJS.NodeJS.LTS) e execute a instalação de novo.");
 
 // 1. Pastas -------------------------------------------------------------------
-passo("1 de 5: pastas");
+passo("1 de 6: pastas");
 const existente = existsSync(arquivoDaInstalacao) ? lerJson(arquivoDaInstalacao) : {};
 const padrao = {
   dados: path.join(process.env.LOCALAPPDATA ?? path.join(os.homedir(), ".local", "share"), "IAEditoraVideo"),
@@ -62,7 +63,7 @@ dizer(`Dados da aplicação (banco, configurações, cópias de segurança): ${e
 dizer(`Vídeos brutos, referências e exportações: ${escolha.biblioteca}`);
 
 // 2. Dependências --------------------------------------------------------------
-passo("2 de 5: dependências (pode levar vários minutos na primeira vez)");
+passo("2 de 6: dependências (pode levar vários minutos na primeira vez)");
 if (tem("sem-configurar")) dizer("Etapa pulada a pedido (--sem-configurar).");
 else {
   const setup = spawnSync(process.execPath, [path.join(RAIZ, "scripts", "configurar_ambiente.mjs")], { cwd: RAIZ, stdio: "inherit", windowsHide: true });
@@ -70,7 +71,7 @@ else {
 }
 
 // 3. Verificação das ferramentas ---------------------------------------------------
-passo("3 de 5: verificação das ferramentas");
+passo("3 de 6: verificação das ferramentas");
 let pendencias = false;
 if (tem("sem-verificar")) dizer("Etapa pulada a pedido (--sem-verificar).");
 else {
@@ -80,13 +81,44 @@ else {
 }
 
 // 4. Banco e pastas da aplicação -----------------------------------------------------
-passo("4 de 5: banco de dados e pastas");
+passo("4 de 6: banco de dados e pastas");
 const abertura = cli(["situacao"]);
 if (!abertura.ok) falhar(`a aplicação não abriu (${(abertura.erro || abertura.saida).split("\n").slice(-1)[0]}).`, "execute a instalação de novo. Se continuar, envie esta mensagem a quem mantém o programa.");
 dizer(abertura.saida.split("\n").filter((linha) => /^(Esquema|Projetos|Dados|Aviso)/i.test(linha.trim())).join("\n") || "Banco pronto.");
 
 // 5. Atalho -------------------------------------------------------------------------------
-passo("5 de 5: atalho");
+passo("5 de 6: IA local (opcional)");
+// Modelo aberto de visão e linguagem que roda neste computador. Sem ele a aplicação funciona,
+// mas deixa sem avaliar personagens, humor, enquadramentos e narrativa.
+let iaLocal = false;
+const situacaoDaIA = cli(["ia-local", "estado"]);
+if (situacaoDaIA.saida.startsWith("IA local instalada")) {
+  dizer(situacaoDaIA.saida.split("\n")[0]);
+} else if (tem("sem-ia-local") || (tem("padrao") && !tem("ia-local"))) {
+  dizer("Etapa pulada. Para instalar depois: Configurações > IA local, na janela da aplicação.");
+} else if (tem("ia-local") || !process.stdin.isTTY) {
+  iaLocal = tem("ia-local");
+  if (!iaLocal) dizer("Etapa pulada (instalação sem perguntas). Para instalar depois: Configurações > IA local.");
+} else {
+  dizer("A IA local interpreta personagens, humor, enquadramentos e narrativa sem internet e sem custo.");
+  dizer("O download é de cerca de 3 GB, uma única vez.");
+  const leitor = createInterface({ input: process.stdin, output: process.stdout });
+  const resposta = (await leitor.question("Instalar a IA local agora? [S/n]: ")).trim().toLowerCase();
+  leitor.close();
+  iaLocal = resposta === "" || resposta.startsWith("s");
+  if (!iaLocal) dizer("Etapa pulada. Para instalar depois: Configurações > IA local, na janela da aplicação.");
+}
+if (iaLocal) {
+  const modelo = opcao("ia-local") && !opcao("ia-local").startsWith("--") ? [opcao("ia-local")] : [];
+  const instalacao = spawnSync(process.execPath, ["--disable-warning=ExperimentalWarning", path.join(RAIZ, "src", "interface", "cli.ts"), "ia-local", "instalar", ...modelo], { cwd: RAIZ, stdio: "inherit", windowsHide: true });
+  if (instalacao.status === 0) dizer("IA local instalada.");
+  else {
+    pendencias = true;
+    dizer("A IA local não foi instalada (veja a mensagem acima). A aplicação funciona sem ela; tente de novo em Configurações > IA local.");
+  }
+}
+
+passo("6 de 6: atalho");
 const iniciar = path.join(RAIZ, "scripts", "iniciar.mjs");
 if (tem("sem-atalho")) dizer("Etapa pulada a pedido (--sem-atalho).");
 else if (WINDOWS) {

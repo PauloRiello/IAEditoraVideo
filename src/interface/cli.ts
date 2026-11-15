@@ -54,6 +54,10 @@ Comandos:
   aprendizado desativar <id>       Desativa um aprendizado
   aprendizado ativar <id>          Ativa um aprendizado por decisão do usuário
   aprendizado excluir <id>         Exclui um aprendizado
+  ia-local [estado]                Mostra a situação da IA local (modelo que roda neste computador)
+  ia-local instalar [modelo]       Baixa e confere o motor e o modelo (padrão: o recomendado)
+  ia-local testar                  Liga a IA local e faz uma pergunta de texto e uma com imagem
+  ia-local remover                 Apaga o motor e o modelo da IA local
   pastas                           Mostra, em JSON, onde ficam os dados e as mídias
   backup                           Grava uma cópia de segurança
   backup listar                    Lista as cópias de segurança
@@ -423,6 +427,41 @@ async function executar(app: Aplicacao, argumentos: string[]): Promise<number> {
     else app.aprendizado.excluir(id);
     console.log(`Aprendizado #${id}: ${acao} concluído.`);
     return 0;
+  }
+
+  if (comando === "ia-local") {
+    const mb = (n: number) => `${(n / 1024).toFixed(1)} GB`;
+    if (!acao || acao === "estado") {
+      const e = app.iaLocal.estado();
+      console.log(e.instalada ? `IA local instalada: ${e.modelo?.nome} (licença ${e.modelo?.licenca}), motor ${e.motor?.versao} — ${e.motor?.descricao}` : "IA local não instalada.");
+      console.log(`Uso: ${e.ativa ? "ativa" : "desativada nas configurações"}. Agora: ${e.ligada ? `ligada (${e.dispositivo === "gpu" ? "placa de vídeo" : "processador"})` : "desligada (liga sozinha quando precisar)"}.`);
+      for (const m of e.modelos) console.log(`  ${m.id.padEnd(12)} ${m.nome}, ${mb(m.tamanhoMB)}${m.id === e.recomendado ? " (recomendado para este computador)" : ""}${m.adequado ? "" : " (pesado para este computador)"}`);
+      if (e.erro) console.log(`Último problema: ${e.erro}`);
+      return 0;
+    }
+    if (acao === "instalar") {
+      let ultimo = "";
+      const estado = await app.iaLocal.instalar(resto[0] ?? null, (etapa, fracao) => {
+        const linha = `${etapa}${fracao === null ? "" : `: ${Math.floor(fracao * 20) * 5}%`}`;
+        if (linha !== ultimo) { ultimo = linha; console.log(`  ${linha}`); }
+      });
+      console.log(`IA local instalada: ${estado.modelo?.nome}. Para conferir: npm run app -- ia-local testar`);
+      return 0;
+    }
+    if (acao === "testar") {
+      console.log("Ligando a IA local (a primeira vez pode levar um ou dois minutos)...");
+      const r = await app.iaLocal.testar();
+      console.log(`Texto: ${r.texto.trim().slice(0, 200)}`);
+      console.log(`Imagem: ${r.imagem.trim().slice(0, 200)}`);
+      console.log(`${r.enxergou ? "A IA local enxergou a imagem de teste" : "A IA local respondeu, mas não reconheceu a cor da imagem de teste"} — ${r.segundos} s, ${r.dispositivo === "gpu" ? "na placa de vídeo" : "no processador"}.`);
+      await app.iaLocal.parar();
+      return r.enxergou ? 0 : 1;
+    }
+    if (acao === "remover") {
+      await app.iaLocal.remover();
+      console.log("IA local removida.");
+      return 0;
+    }
   }
 
   if (comando === "backup" && (!acao || acao === "pre-atualizacao")) {

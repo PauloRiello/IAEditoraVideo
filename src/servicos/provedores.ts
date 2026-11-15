@@ -76,9 +76,14 @@ export class ProvedorCompativelOpenAI implements ProvedorIA {
   private config: ConfiguracaoProvedor;
   private ambiente: NodeJS.ProcessEnv;
   private chaveGuardada: string | undefined;
+  private extras: Record<string, unknown>;
 
-  /** `chaveGuardada` vem do cofre de credenciais e tem prioridade sobre a variável de ambiente. */
-  constructor(config: ConfiguracaoProvedor, ambiente: NodeJS.ProcessEnv = process.env, chaveGuardada?: string) {
+  /**
+   * `chaveGuardada` vem do cofre de credenciais e tem prioridade sobre a variável de ambiente.
+   * `extras` são campos acrescentados a cada pedido (por exemplo, pedir resposta em JSON).
+   */
+  constructor(config: ConfiguracaoProvedor, ambiente: NodeJS.ProcessEnv = process.env, chaveGuardada?: string, extras: Record<string, unknown> = {}) {
+    this.extras = extras;
     this.chaveGuardada = chaveGuardada || undefined;
     this.id = config.id;
     this.nome = config.nome;
@@ -131,7 +136,7 @@ export class ProvedorCompativelOpenAI implements ProvedorIA {
     const resposta = await fetch(this.url("/chat/completions"), {
       method: "POST",
       headers: this.cabecalhos(),
-      body: JSON.stringify({ model: this.config.modelo, temperature: temperatura, messages: mensagens }),
+      body: JSON.stringify({ ...this.extras, model: this.config.modelo, temperature: temperatura, messages: mensagens }),
     });
     if (!resposta.ok) throw new Error(`Provedor "${this.id}" respondeu ${resposta.status}.`);
     const corpo = (await resposta.json()) as { choices?: { message?: { content?: string } }[] };

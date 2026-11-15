@@ -71,6 +71,7 @@ test("instalar: configura as pastas escolhidas, prepara o banco e pode ser repet
   const r = script("instalar", "--padrao", "--sugerir-dados", dados, "--sugerir-biblioteca", biblioteca, "--sem-configurar", "--sem-verificar", "--sem-atalho");
   assert.equal(r.codigo, 0, r.saida);
   assert.match(r.saida, /Instalação concluída/);
+  assert.match(r.saida, /5 de 6: IA local \(opcional\) ==\n.*Etapa pulada/, "sem perguntas, a IA local (3 GB) não é baixada");
   assert.deepEqual(JSON.parse(readFileSync(path.join(instalacao, "config", "local.instalacao.json"), "utf8")), { dados, biblioteca });
   assert.ok(existsSync(path.join(dados, "banco", "editora.db")), "o banco fica na pasta de dados, fora do programa");
   for (const pasta of ["Videos Brutos", "Referências", "Exportações"]) assert.ok(existsSync(path.join(biblioteca, pasta)), pasta);

@@ -25,7 +25,8 @@ import { ServicoIndice } from "../servicos/indice.ts";
 import { ServicoMemoria } from "../servicos/memoria.ts";
 import { ServicoPerfis } from "../servicos/perfis.ts";
 import { ServicoProjetos } from "../servicos/projetos.ts";
-import { criarRegistroProvedores, provedoresConfigurados, type RegistroProvedores } from "../servicos/provedores.ts";
+import { IALocal, ProvedorIALocal } from "../servicos/ia-local.ts";
+import { provedoresConfigurados, RegistroProvedores } from "../servicos/provedores.ts";
 import { ServicoDeQualidade } from "../servicos/qualidade.ts";
 import { ServicoTimeline } from "../servicos/timeline.ts";
 import { Edicao } from "./edicao.ts";
@@ -88,6 +89,9 @@ export class Aplicacao {
   fluxo!: Fluxo;
   hardware: Hardware;
   vram: GerenciadorVram;
+  /** IA local: modelo aberto de visão e linguagem que roda neste computador, sem internet. */
+  iaLocal: IALocal;
+  private provedorLocal: ProvedorIALocal;
   orquestrador: Orquestrador;
   private banco: Banco;
   private aberta = true;
@@ -102,6 +106,8 @@ export class Aplicacao {
     this.orquestrador = new Orquestrador(this.banco, this.eventos);
     this.hardware = detectarHardware(path.join(caminhos.programa, "config", "local.aceleracao.json"));
     this.vram = new GerenciadorVram(this.hardware.gpu, this.configuracoes.processamento.margemVramMB);
+    this.iaLocal = new IALocal({ caminhos, hardware: this.hardware, vram: this.vram, configuracao: () => this.configuracoes.ia.local });
+    this.provedorLocal = new ProvedorIALocal(this.iaLocal);
     this.tarefas = new Tarefas(this.eventos, (projetoId) => {
       try {
         return this.projetos.obter(projetoId).nome;
@@ -170,7 +176,8 @@ export class Aplicacao {
     this.acervo = new ServicoAcervo(this.banco);
     // Perfis do usuário (pasta de dados) prevalecem sobre os que acompanham o programa.
     this.perfis = new ServicoPerfis([this.caminhos.perfis, path.join(this.caminhos.dados, "perfis")]);
-    this.provedores = criarRegistroProvedores(this.configuracoes.ia, this.configuracoes.ia.provedores, this.chaves());
+    this.provedores = new RegistroProvedores(this.configuracoes.ia);
+    this.provedores.redefinir(this.configuracoes.ia, this.todosOsProvedores());
     this.atividades = new ServicoAtividades(this.banco);
     this.orquestrador.usarBanco(this.banco);
     // Estilos do usuário (pasta de dados) prevalecem sobre os que acompanham o programa.
@@ -208,9 +215,24 @@ export class Aplicacao {
   }
 
   /** Reaplica política e provedores depois de uma mudança nas configurações. */
+  /** Provedores configurados pelo usuário e, por último, a IA local (usada quando instalada e ativa). */
+  private todosOsProvedores() {
+    return [...provedoresConfigurados(this.configuracoes.ia.provedores, this.chaves()), this.provedorLocal];
+  }
+
   private recarregarProvedores(): void {
     this.salvarConfiguracoes();
-    this.provedores.redefinir(this.configuracoes.ia, provedoresConfigurados(this.configuracoes.ia.provedores, this.chaves()));
+    this.provedores.redefinir(this.configuracoes.ia, this.todosOsProvedores());
+  }
+
+  /** Liga ou desliga o uso da IA local, escolhe o modelo e o tempo até desligar sozinha. */
+  definirIALocal(opcoes: { ativa?: boolean; modelo?: string | null; desligarAposMin?: number }): void {
+    const local = this.configuracoes.ia.local;
+    if (opcoes.ativa !== undefined) local.ativa = Boolean(opcoes.ativa);
+    if (opcoes.modelo !== undefined) local.modelo = opcoes.modelo || null;
+    if (opcoes.desligarAposMin !== undefined && Number.isFinite(Number(opcoes.desligarAposMin))) local.desligarAposMin = Math.min(120, Math.max(1, Number(opcoes.desligarAposMin)));
+    if (!local.ativa) void this.iaLocal.parar();
+    this.recarregarProvedores();
   }
 
   /** Provedores configurados, ativos ou não. A chave nunca é devolvida: só a informação de que existe. */
@@ -372,6 +394,8 @@ export class Aplicacao {
     if (!this.aberta) return;
     this.aberta = false;
     void this.edicao.cancelarTudo().catch(() => undefined);
+    this.iaLocal.cancelarInstalacao();
+    void this.iaLocal.parar().catch(() => undefined);
     this.eventos.removeAllListeners();
     this.banco.close();
   }

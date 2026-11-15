@@ -19,7 +19,9 @@ que não foi avaliado aparece como "não avaliado", nunca como um palpite.
   file descriptor to ICU data received", do navegador próprio dele. A aplicação contorna
   o problema, mas não o elimina. O `hyperframes doctor` não aponta a causa (ele não abre o
   navegador). Uma pista não confirmada: o computador do teste tinha só 1,2 GB de memória
-  livre de 15,7 GB. Outra: o Node.js 26, mais novo que o 22 usado no desenvolvimento.
+  livre de 15,7 GB, mas o erro continuou depois de fechar os outros programas, então a
+  memória provavelmente não é a causa. A pista que resta: o Node.js 26, mais novo que o 22
+  usado no desenvolvimento.
 - **Não há instalador único (.exe).** A instalação é feita por um script que usa o winget
   para instalar Node.js, Git, FFmpeg e Python. Exige internet e Windows 10 ou 11 com winget.
 - **A janela é uma janela do Edge ou do Chrome.** A interface é uma página servida pela

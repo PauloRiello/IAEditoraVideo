@@ -175,7 +175,7 @@ export async function leituraVisualPorModelo(provedores: SeletorDeProvedores | u
   try {
     provedor = await (provedores?.selecionar("visao") ?? Promise.reject(new Error("sem provedores")));
   } catch {
-    limitacoes.push("Enquadramentos, efeitos, tipografia, legendas na imagem e animações não foram avaliados: nenhum modelo visual disponível.");
+    limitacoes.push("Enquadramentos, efeitos, tipografia, legendas na imagem e animações não foram avaliados: nenhum modelo visual disponível. Instale a IA local em Configurações para avaliar.");
     return vazio();
   }
   try {
@@ -209,7 +209,7 @@ export async function narrativaPorModelo(
   try {
     provedor = await (provedores?.selecionar("texto") ?? Promise.reject(new Error("sem provedores")));
   } catch {
-    limitacoes.push("Desenvolvimento, suspense, humor e emoção não foram avaliados: nenhum modelo de linguagem disponível.");
+    limitacoes.push("Desenvolvimento, suspense, humor e emoção não foram avaliados: nenhum modelo de linguagem disponível. Instale a IA local em Configurações para avaliar.");
     return [];
   }
   const itens = ["hook", "desenvolvimento", "progressao", "suspense", "humor", "emocao", "climax", "encerramento", "cta"] as const;

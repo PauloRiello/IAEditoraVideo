@@ -124,7 +124,7 @@ export type EstadoDaTarefa = "na-fila" | "executando" | "concluida" | "falhou" |
 /** Trabalho demorado em segundo plano (análises, transcrição, render), com estado e progresso. */
 export interface Tarefa {
   id: string;
-  tipo: "analise-de-brutos" | "analise-de-referencias" | "roteiro" | "previa" | "exportacao";
+  tipo: "analise-de-brutos" | "analise-de-referencias" | "roteiro" | "previa" | "exportacao" | "instalacao-ia-local";
   titulo: string;
   projetoId: string | null;
   estado: EstadoDaTarefa;

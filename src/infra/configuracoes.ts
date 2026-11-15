@@ -13,6 +13,15 @@ export interface Configuracoes {
     /** Permite enviar dados a provedores externos. Desligado por padrão. */
     permitirExternos: boolean;
     provedores: ConfiguracaoProvedor[];
+    /** IA local: modelo aberto que roda neste computador, operado pela própria aplicação. */
+    local: {
+      /** Usar a IA local quando estiver instalada. */
+      ativa: boolean;
+      /** Modelo escolhido; nulo = o recomendado para este computador. */
+      modelo: string | null;
+      /** Desliga o motor depois de tantos minutos sem uso, para liberar memória. */
+      desligarAposMin: number;
+    };
   };
   processamento: {
     /** VRAM mantida livre para o sistema e outros programas. */
@@ -35,7 +44,7 @@ export interface Configuracoes {
 
 export const CONFIGURACOES_PADRAO: Configuracoes = {
   perfilPadrao: "geral",
-  ia: { preferirLocal: true, permitirExternos: false, provedores: [] },
+  ia: { preferirLocal: true, permitirExternos: false, provedores: [], local: { ativa: true, modelo: null, desligarAposMin: 5 } },
   processamento: { margemVramMB: 1024 },
   transcricao: { modelo: "small", idioma: "" },
   backup: { automatico: true, intervaloHoras: 24, manter: 10 },
@@ -50,7 +59,7 @@ export function carregarConfiguracoes(arquivo: string): Configuracoes {
   return {
     ...CONFIGURACOES_PADRAO,
     ...salvas,
-    ia: { ...CONFIGURACOES_PADRAO.ia, ...salvas.ia },
+    ia: { ...CONFIGURACOES_PADRAO.ia, ...salvas.ia, local: { ...CONFIGURACOES_PADRAO.ia.local, ...salvas.ia?.local } },
     processamento: { ...CONFIGURACOES_PADRAO.processamento, ...salvas.processamento },
     transcricao: { ...CONFIGURACOES_PADRAO.transcricao, ...salvas.transcricao },
     backup: { ...CONFIGURACOES_PADRAO.backup, ...salvas.backup },

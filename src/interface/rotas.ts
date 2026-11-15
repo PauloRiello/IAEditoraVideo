@@ -36,11 +36,11 @@ const RECURSOS = [
   { recurso: "Prévia, renderização e exportação", local: true, modelo: "Não usa" },
   { recurso: "Controle de qualidade", local: true, modelo: "Não usa" },
   { recurso: "Memória, feedback e aprendizado", local: true, modelo: "Não usa" },
-  { recurso: "Roteiro", local: true, modelo: "Sem modelo: estrutura com os fatos do material. Com modelo de linguagem: texto de narração redigido." },
-  { recurso: "Personagens e elementos visuais nos vídeos brutos", local: false, modelo: "Exige modelo de visão (local ou externo). Sem ele, fica como não avaliado." },
-  { recurso: "Humor nas falas dos vídeos brutos", local: false, modelo: "Exige modelo de linguagem (local ou externo). Sem ele, fica como não avaliado." },
-  { recurso: "Enquadramentos, tipografia e animações das referências", local: false, modelo: "Exige modelo de visão (local ou externo). Sem ele, fica como não avaliado." },
-  { recurso: "Desenvolvimento, suspense e emoção das referências", local: false, modelo: "Exige modelo de linguagem (local ou externo). Sem ele, fica como não avaliado." },
+  { recurso: "Roteiro", local: true, modelo: "Sem modelo: estrutura com os fatos do material. Com a IA local ou outro modelo de linguagem: texto de narração redigido." },
+  { recurso: "Personagens e elementos visuais nos vídeos brutos", local: false, modelo: "Exige modelo de visão: a IA local (instalável aqui, sem internet) ou um provedor. Sem ele, fica como não avaliado." },
+  { recurso: "Humor nas falas dos vídeos brutos", local: false, modelo: "Exige modelo de linguagem: a IA local (instalável aqui, sem internet) ou um provedor. Sem ele, fica como não avaliado." },
+  { recurso: "Enquadramentos, tipografia e animações das referências", local: false, modelo: "Exige modelo de visão: a IA local (instalável aqui, sem internet) ou um provedor. Sem ele, fica como não avaliado." },
+  { recurso: "Desenvolvimento, suspense e emoção das referências", local: false, modelo: "Exige modelo de linguagem: a IA local (instalável aqui, sem internet) ou um provedor. Sem ele, fica como não avaliado." },
 ];
 
 const texto = (valor: unknown): string => (typeof valor === "string" ? valor : "");
@@ -498,6 +498,48 @@ export const ROTAS: Rota[] = [
     },
   },
   { metodo: "DELETE", caminho: "/api/ia/provedores/:id", atender: ({ app, p }) => { app.removerProvedor(p.id); app.fluxo.registrar("sistema", `Provedor de IA "${p.id}" removido.`); return configuracoes(app); } },
+  // --- IA local ---------------------------------------------------------------------------------------------
+  { metodo: "GET", caminho: "/api/ia/local", atender: ({ app }) => app.iaLocal.estado() },
+  {
+    metodo: "PUT", caminho: "/api/ia/local",
+    atender: ({ app, corpo }) => {
+      app.definirIALocal({ ativa: corpo.ativa as boolean | undefined, modelo: corpo.modelo === undefined ? undefined : (texto(corpo.modelo) || null), desligarAposMin: numero(corpo.desligarAposMin) });
+      return app.iaLocal.estado();
+    },
+  },
+  {
+    metodo: "POST", caminho: "/api/ia/local/instalar",
+    atender: ({ app, corpo }) => {
+      const modelo = texto(corpo.modelo) || app.configuracoes.ia.local.modelo || null;
+      return app.tarefas.iniciar({ tipo: "instalacao-ia-local", titulo: "Instalação da IA local", projetoId: null }, async (informar) => {
+        const estado = await app.iaLocal.instalar(modelo, informar);
+        app.definirIALocal({ ativa: true, modelo: estado.modelo?.id ?? null });
+        app.fluxo.registrar("sistema", `IA local instalada: ${estado.modelo?.nome}.`);
+      }).tarefa;
+    },
+  },
+  { metodo: "POST", caminho: "/api/ia/local/cancelar", atender: ({ app }) => { app.iaLocal.cancelarInstalacao(); } },
+  {
+    metodo: "POST", caminho: "/api/ia/local/testar",
+    atender: ({ app }) => {
+      semTrabalhoEmAndamento(app, "testar a IA local");
+      return app.tarefas.iniciar({ tipo: "instalacao-ia-local", titulo: "Teste da IA local", projetoId: null }, async (informar) => {
+        informar("Ligando a IA local", null);
+        const r = await app.iaLocal.testar();
+        if (!r.enxergou) throw new Error(`A IA local respondeu, mas não reconheceu a imagem de teste (resposta: ${r.imagem.trim().slice(0, 120)}).`);
+        app.fluxo.registrar("sistema", `IA local testada: respondeu e enxergou a imagem de teste em ${r.segundos} s, ${r.dispositivo === "gpu" ? "na placa de vídeo" : "no processador"}.`);
+      }).tarefa;
+    },
+  },
+  {
+    metodo: "DELETE", caminho: "/api/ia/local",
+    atender: async ({ app }) => {
+      semTrabalhoEmAndamento(app, "remover a IA local");
+      await app.iaLocal.remover();
+      app.fluxo.registrar("sistema", "IA local removida.");
+      return app.iaLocal.estado();
+    },
+  },
   { metodo: "GET", caminho: "/api/backups", atender: ({ app }) => app.copias() },
   { metodo: "POST", caminho: "/api/backups", atender: ({ app }) => { const copia = app.copiaDeSeguranca("manual"); app.fluxo.registrar("sistema", `Cópia de segurança criada: ${copia.nome}.`); return app.copias(); } },
   {

@@ -1,13 +1,13 @@
 // Configurações: preferências gerais, transcrição, provedores de IA (todos opcionais), computador, pastas e cópias de segurança.
 
-import { agir, api, aviso, campo, confirmar, dialogo, escolha, etiqueta, h, limpar, quando, por } from "/nucleo.js";
+import { agir, api, aviso, barra, campo, confirmar, dialogo, escolha, etiqueta, h, limpar, quando, por } from "/nucleo.js";
 
 const MOTIVOS = { manual: "Manual", automatica: "Automática", "pre-migracao": "Antes de atualizar o banco", "pre-restauracao": "Antes de uma restauração", "pre-atualizacao": "Antes de atualizar o programa" };
 
 export async function mostrar(raiz, contexto) {
   const { catalogo } = contexto;
   const area = h("div");
-  let c = null, copias = [];
+  let c = null, copias = [], local = null, instalando = null;
 
   const salvar = (corpo, sucesso = "Configuração salva.") => (evento) => agir(evento, async () => { c = await api("/api/configuracoes", { metodo: "PUT", corpo }); desenhar(); }, sucesso);
 
@@ -125,13 +125,70 @@ export async function mostrar(raiz, contexto) {
           h("td", { style: "text-align:right" }, h("button.pequeno", { aoClicar: restaurar(copia) }, "Restaurar")))))));
   }
 
+  function iaLocal() {
+    const gb = (mb) => `${(mb / 1024).toFixed(1)} GB`;
+    const modelo = escolha(local.modelos.map((m) => [m.id, `${m.nome} — ${gb(m.tamanhoMB)}${m.id === local.recomendado ? " (recomendado para este computador)" : m.adequado ? "" : " (pesado para este computador)"}`]), local.modelo?.id ?? local.recomendado);
+    const descricao = h("div.ajuda");
+    const atualizar = () => {
+      const m = local.modelos.find((x) => x.id === modelo.value);
+      limpar(descricao).append(`${m.descricao} Licença ${m.licenca}. `, h("a", { href: m.origem, target: "_blank", rel: "noopener" }, "Origem do modelo"));
+    };
+    modelo.addEventListener("change", atualizar);
+    atualizar();
+    const instalar = (e) => agir(e, async () => {
+      instalando = await api("/api/ia/local/instalar", { metodo: "POST", corpo: { modelo: modelo.value } });
+      desenhar();
+    }, "Instalação iniciada. Pode continuar usando a aplicação.");
+    const remover = async (e) => {
+      if (await confirmar("Remover a IA local?", "O motor e o modelo são apagados deste computador. As interpretações já feitas continuam nos projetos. Para usar de novo, será preciso baixar outra vez.", { rotulo: "Remover", perigo: true })) {
+        await agir(e.target, async () => { local = await api("/api/ia/local", { metodo: "DELETE" }); desenhar(); }, "IA local removida.");
+      }
+    };
+    const situacao = !local.instalada ? etiqueta("Não instalada")
+      : !local.ativa ? etiqueta("Instalada, desativada", "alerta")
+      : local.ligada ? etiqueta(`Ligada agora (${local.dispositivo === "gpu" ? "placa de vídeo" : "processador"})`, "bom")
+      : etiqueta("Instalada, liga sozinha quando precisar", "bom");
+    return h("section.bloco", {}, h("h2", {}, "IA local", situacao),
+      h("p", {}, "Um modelo aberto de visão e linguagem que roda neste computador, sem internet e sem custo. Ele interpreta os personagens e elementos das cenas, o humor das falas, os enquadramentos, a tipografia e a narrativa das referências, e redige o roteiro. Nada é enviado para fora."),
+      local.instalada ? h("dl.chaves", {}, h("dt", {}, "Modelo"), h("dd", {}, `${local.modelo.nome} (licença ${local.modelo.licenca})`), h("dt", {}, "Motor"), h("dd", {}, `llama.cpp ${local.motor.versao} — ${local.motor.descricao}`)) : null,
+      local.erro ? h("div.nota.erro", { style: "margin-top:10px" }, `Último problema: ${local.erro}`) : null,
+      instalando ? h("div.nota", { style: "margin-top:12px" }, h("strong", {}, instalando.titulo), h("div", {}, h("small", {}, instalando.etapa || "Aguardando"), barra(instalando.estado === "executando" ? instalando.progresso : 0)),
+        h("button.pequeno", { style: "margin-top:8px", aoClicar: (e) => agir(e, () => api("/api/ia/local/cancelar", { metodo: "POST" })) }, "Cancelar")) : null,
+      h("div.formulario", { style: "margin-top:12px" }, campo(local.instalada ? "Trocar o modelo" : "Modelo", modelo, descricao)),
+      h("div.linha", { style: "margin-top:12px" },
+        h("button.principal", { disabled: Boolean(instalando), aoClicar: instalar }, !local.instalada ? "Instalar a IA local" : modelo.value === local.modelo?.id ? "Conferir e reparar" : "Instalar este modelo"),
+        local.instalada ? [
+          h("button", { disabled: Boolean(instalando), title: "Liga a IA local e faz uma pergunta de texto e uma com imagem", aoClicar: (e) => agir(e, async () => { instalando = await api("/api/ia/local/testar", { metodo: "POST" }); desenhar(); }) }, "Testar"),
+          h("label.marca-campo", {}, h("input", { type: "checkbox", checked: local.ativa, aoMudar: (e) => agir(e, async () => { local = await api("/api/ia/local", { metodo: "PUT", corpo: { ativa: e.target.checked } }); desenhar(); }) }), "Usar a IA local nas análises"),
+          h("span.espaco"), h("button.perigo", { aoClicar: remover }, "Remover"),
+        ] : null),
+      h("p.ajuda", { style: "margin-top:10px" }, "O download acontece uma vez (cerca de 3 GB para o modelo recomendado). Cada arquivo é conferido pela soma de verificação publicada. A IA local desliga sozinha depois de alguns minutos sem uso, para devolver a memória."));
+  }
+
   function desenhar() {
-    por(limpar(area), geral(), ia(), computador(), seguranca(),
+    por(limpar(area), geral(), iaLocal(), ia(), computador(), seguranca(),
       h("section.bloco", {}, h("h2", {}, "Sobre"), h("p", {}, `IA Editora de Vídeo, versão ${c.versao}. Roda neste computador, com memória própria, sem depender de nenhum outro programa aberto.`),
         h("p.suave", {}, "Para atualizar, use o atalho Atualizar (ou o comando de atualização): ele faz uma cópia de segurança antes e preserva projetos, aprendizados e exportações.")));
   }
-  const carregar = async () => { [c, copias] = await Promise.all([api("/api/configuracoes"), api("/api/backups")]); desenhar(); };
+  const carregar = async () => {
+    [c, copias, local] = await Promise.all([api("/api/configuracoes"), api("/api/backups"), api("/api/ia/local")]);
+    instalando = (await api("/api/tarefas")).find((t) => t.tipo === "instalacao-ia-local" && (t.estado === "na-fila" || t.estado === "executando")) ?? null;
+    desenhar();
+  };
 
   por(raiz, h("div.cabecalho", {}, h("div", {}, h("h1", {}, "Configurações"), h("div.subtitulo", {}, "Preferências, modelos, provedores de IA opcionais, recursos do computador e cópias de segurança."))), area);
   await carregar();
+  return {
+    aoEvento: (nome, dados) => {
+      if (nome !== "tarefa:atualizada" || dados.tipo !== "instalacao-ia-local") return;
+      const ativa = dados.estado === "na-fila" || dados.estado === "executando";
+      instalando = ativa ? dados : null;
+      if (ativa) {
+        const caixa = area.querySelector(".nota .barra > i");
+        const etapa = area.querySelector(".nota small");
+        if (caixa && etapa && dados.estado === "executando") { caixa.style.width = `${Math.round((dados.progresso ?? 0) * 100)}%`; etapa.textContent = dados.etapa; return; }
+        desenhar();
+      } else carregar().catch(() => undefined);
+    },
+  };
 }
