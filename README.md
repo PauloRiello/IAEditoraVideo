@@ -44,6 +44,14 @@ IAEditoraVideo/
 
 A arquitetura está detalhada em [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
 
+## IA local
+
+A aplicação pode instalar uma **IA local**: um modelo aberto de visão e linguagem
+(Qwen3-VL, licença Apache 2.0) que roda no próprio computador pelo motor llama.cpp, sem
+internet e sem custo. Ela interpreta personagens, humor, enquadramentos e narrativa, e
+redige o roteiro. É opcional: sem ela, essas leituras ficam como "não avaliado". Detalhes
+em [docs/USO.md](docs/USO.md#ia-local-opcional-recomendada).
+
 ## Ferramentas
 
 | Ferramenta | Função |

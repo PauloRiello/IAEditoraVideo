@@ -76,6 +76,11 @@ Leia [docs/ARQUITETURA.md](docs/ARQUITETURA.md) antes de alterar a estrutura e
   alternativo (processador; outro navegador; cartão desenhado pelo Remotion), e a troca é
   registrada. Ter o driver não prova que a placa funciona: confira carregando as bibliotecas
   (`Pipeline/transcription/gpu.py`).
+- **IA local é modelo aberto, operado pela aplicação.** Motor e modelos têm versão, tamanho e
+  SHA-256 fixados em `IA/Local/`; arquivo que não confere é descartado. Só modelos com
+  licença que permite uso comercial. O motor só atende `127.0.0.1`, liga sob demanda,
+  reserva a placa pelo `GerenciadorVram` e desliga sem uso. Nada é baixado sem pedido do
+  usuário. O que o modelo interpreta é sempre `estimado`.
 - **Feedback ensina com cautela.** Correção de um projeto fica candidata no perfil; rejeição
   sem aspecto apontado não ensina nada; métricas são sinal fraco, nunca criam regra e nunca
   são inventadas ([docs/FEEDBACK.md](docs/FEEDBACK.md)).
@@ -119,7 +124,7 @@ Antes de concluir uma alteração: `npm run typecheck` e `npm test`.
 |---|---|
 | `src/dominio/` | Tipos e contratos, sem E/S |
 | `src/nucleo/` | `Aplicacao` (ciclo de vida), `Orquestrador` (pipeline), análise de referências, Agente Coordenador (`producao.ts`), edição e exportação (`edicao.ts`), relatórios de qualidade e exceções (`qualidade.ts`), feedback e métricas (`feedback.ts`), fluxo de trabalho da janela (`fluxo.ts`), tarefas em segundo plano (`tarefas.ts`) |
-| `src/servicos/` | Projetos, memória, aprendizado, acervo, índice de pesquisa, timeline, comparação de versões, estilos, perfis, perfis de qualidade e presets, atividades, provedores de IA, recursos |
+| `src/servicos/` | Projetos, memória, aprendizado, acervo, índice de pesquisa, timeline, comparação de versões, estilos, perfis, perfis de qualidade e presets, atividades, provedores de IA, IA local, recursos |
 | `src/infra/` | Banco SQLite, cópias de segurança, caminhos, configurações, credenciais, instância em execução |
 | `src/interface/` | Servidor local (`servidor.ts`), rotas (`rotas.ts`), ponto de entrada da janela (`principal.ts`), linha de comando (`cli.ts`) |
 | `src/interface/web/` | Página da janela: `app.js`, `nucleo.js`, `estilo.css` e uma tela por arquivo em `telas/` |
@@ -128,6 +133,7 @@ Antes de concluir uma alteração: `npm run typecheck` e `npm test`.
 | `IA/Estilos/` | Estilos de edição em JSON (10 estilos) |
 | `IA/Qualidade/` | Perfis de qualidade por destino em JSON (6 destinos) |
 | `IA/Exportacao/` | Presets de exportação em JSON (7 presets) |
+| `IA/Local/` | Motor (llama.cpp) e modelos (Qwen3-VL) da IA local, com versão, tamanho e SHA-256 fixados |
 | `exemplos/` | Exemplos executáveis de uso da aplicação |
 | `tests/unidade/` | Testes da aplicação (referências, produção, edição, qualidade e interface geram vídeos com o FFmpeg e renderizam de verdade; `ciclo.test.ts` instala, abre, atualiza e restaura uma cópia do programa em pasta temporária; a suíte leva cerca de 2 min) |
 | `tests/smoke/` | Composições mínimas usadas pelos verificadores |

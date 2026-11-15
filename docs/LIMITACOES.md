@@ -45,9 +45,18 @@ que não foi avaliado aparece como "não avaliado", nunca como um palpite.
 
 ## Análise e edição
 
-- **Sem modelo de linguagem ou de visão**, ficam como não avaliados: personagens e
+- **Sem a IA local nem outro modelo**, ficam como não avaliados: personagens e
   elementos visuais, humor, enquadramentos, tipografia e animações das referências,
   desenvolvimento, suspense e emoção. O roteiro vira uma estrutura com os fatos.
+- **IA local testada só com motor simulado.** O ambiente de desenvolvimento não permite
+  executar o motor baixado. Os downloads e as somas de verificação foram conferidos com os
+  arquivos reais, e todo o funcionamento foi testado com um motor simulado que fala o
+  mesmo protocolo. Falta rodar o motor e o modelo de verdade, no Windows (`Testar`, em
+  Configurações → IA local).
+- **Qualidade da IA local.** Um modelo de 4 bilhões de parâmetros erra mais que modelos
+  grandes de serviços pagos: pode deixar de ver elementos pequenos ou confundir o tom de
+  uma fala. Por isso o que ele interpreta é sempre marcado como estimativa. No processador,
+  cada vídeo leva bem mais tempo que na placa de vídeo.
 - **Poucos efeitos e transições**, de propósito: corte, entrada gradual, fade final, zoom
   lento, correção de cor e barras de cinema. O HyperFrames é usado só no cartão final.
 - **Legendas** não são quebradas em frases curtas nem animadas palavra a palavra.

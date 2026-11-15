@@ -43,7 +43,11 @@ instalada, não depende de nenhum outro programa aberto nem de internet para edi
 5. **Verificação.** Cada ferramenta é testada (Node, Python, FFmpeg, FFprobe, GPU, GSAP,
    Remotion, HyperFrames, Whisper, yt-dlp). O resumo diz o que passou. Um aviso não impede
    o uso; ele indica qual recurso pode não funcionar.
-6. **Abra a aplicação** pelo atalho **IA Editora de Video**, criado na Área de Trabalho e
+6. **IA local (opcional).** O instalador pergunta se você quer instalar a IA local, um
+   modelo que interpreta as cenas e as falas sem internet (cerca de 3 GB, uma única vez).
+   Aperte Enter para instalar ou responda `n` para deixar para depois; dá para instalar
+   pela janela, em **Configurações → IA local**.
+7. **Abra a aplicação** pelo atalho **IA Editora de Video**, criado na Área de Trabalho e
    no Menu Iniciar (ou por `windows\Iniciar.cmd`).
 
 O instalador pode ser executado de novo a qualquer momento, por exemplo para reparar a
@@ -117,6 +121,8 @@ npm run iniciar
 | "a aplicação ainda não foi instalada nesta pasta" ao abrir | Execute `windows\Instalar.cmd` |
 | A janela não abre sozinha | O inicializador mostra um endereço: copie-o para o navegador |
 | "a aplicação fechou logo ao iniciar" | A mensagem indica o arquivo de registro (`aplicacao.log`) e mostra as últimas linhas |
+| A IA local não instala ("sem conexão" ou "download foi interrompido") | Confira a internet e clique em Instalar de novo: o que já foi baixado e conferido não é baixado outra vez |
+| A IA local não liga ("não pôde ser ligada") | A mensagem traz o motivo. Feche outros programas e use **Testar** de novo; se persistir, troque para o modelo 2B |
 | Verificação do Whisper com aviso sobre a placa de vídeo | A transcrição funciona pelo processador. Para usar a placa NVIDIA, execute o instalador de novo: ele instala as bibliotecas CUDA (download de cerca de 1 GB) |
 | Verificação do HyperFrames com aviso | A aplicação funciona: usa outro navegador para o cartão final ou o desenha pelo Remotion. Feche outros programas e repita só essa verificação, na pasta do programa: `node scripts\verificar\hyperframes.mjs`. Não use `npx hyperframes`: ele pode baixar outra versão, diferente da que o programa usa |
 | O primeiro render demora mais | Na primeira vez o programa prepara a composição (cerca de 40 s) e pode baixar o navegador de render |

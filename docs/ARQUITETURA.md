@@ -93,6 +93,7 @@ processamento executa ferramentas audiovisuais.
 | Aprendizado | `src/servicos/aprendizado.ts` | Feedback e aprendizados com evidências, confiança, escopo e revisão | Implementado; extração automática pendente |
 | Controle de qualidade | `Pipeline/quality-control/verificador.ts`, `src/nucleo/qualidade.ts` | Agente de Qualidade: verificações técnicas, visuais, de áudio e do destino, com FFmpeg e FFprobe; relatórios, situação final e exceções aceitas | Implementado |
 | Perfis de qualidade e presets | `src/servicos/qualidade.ts`, `IA/Qualidade/`, `IA/Exportacao/` | Critérios por destino e presets de exportação, com substituição pelos arquivos do usuário | Implementado (6 destinos, 7 presets) |
+| IA local | `src/servicos/ia-local.ts`, `IA/Local/` | Baixar e conferir o motor (llama.cpp) e o modelo (Qwen3-VL), ligar sob demanda na placa de vídeo ou no processador, desligar sem uso; entra como provedor local de texto e visão | Implementado; motor real não executado no ambiente de desenvolvimento |
 | Provedores de IA | `src/servicos/provedores.ts` | Registrar provedores, aplicar a política local/externo e selecionar por capacidade; texto e leitura de imagens | Implementado |
 | Recursos do computador | `src/servicos/recursos.ts` | Ler CPU, RAM e GPU; decidir GPU ou CPU por modelo conforme a VRAM | Implementado |
 | Perfis de especialização | `src/servicos/perfis.ts`, `IA/Perfis/` | Carregar e combinar perfis e formatos de saída | Implementado (9 perfis) |
@@ -261,13 +262,26 @@ Node.js 22.20 ou mais recente, Python 3.11 ou mais recente, FFmpeg com FFprobe e
 abrir a janela: Microsoft Edge, Chrome ou outro navegador atual. As bibliotecas do
 programa (pacotes npm e Python) são instaladas por `npm run setup`, acionado pelo instalador.
 
+**IA local (baixada pela aplicação, a pedido do usuário):**
+
+| Componente | Versão | Licença | Por que este |
+|---|---|---|---|
+| Motor llama.cpp (`llama-server`) | b12400, fixada | MIT | Programa único, sem instalação, com API compatível com a da OpenAI (a camada de provedores já fala essa língua), entende imagens e roda por Vulkan (NVIDIA, AMD ou Intel), Metal ou processador. Fica na pasta de dados; não é dependência npm |
+| Modelo Qwen3-VL 4B Instruct (Q4_K_M) | revisão fixada | Apache 2.0 | Visão e linguagem num só modelo, bom em português, cabe em 4 GB de placa de vídeo; licença permite uso comercial |
+| Modelo Qwen3-VL 2B Instruct (Q8_0) | revisão fixada | Apache 2.0 | Alternativa para computadores mais fracos |
+
+Cada arquivo tem tamanho e SHA-256 registrados em `IA/Local/`; um arquivo que não confere é
+descartado. Foram descartados: Ollama (exige instalar e manter um serviço do sistema),
+modelos com licença não comercial e treinar um modelo próprio (exige dados e
+processamento que não existem no projeto).
+
 **Opcionais ou futuras (não instaladas):**
 
 | Dependência | Para quê |
 |---|---|
 | Electron e electron-builder | Só se for necessário um instalador único (.exe) com janela própria |
 | Python embutido | Distribuir Whisper e yt-dlp sem exigir Python instalado |
-| Servidor de modelo local (Ollama, LM Studio, llama.cpp) | Opcional: leituras por modelo de linguagem ou de visão sem serviço externo; detectado em Configurações |
+| Outro servidor de modelo local (Ollama, LM Studio) | Opcional, para quem já usa um; detectado em Configurações. A IA local já cobre o caso comum |
 
 ## 12. Decisões em aberto
 

@@ -129,9 +129,46 @@ Na área **Aprendizado**:
 
 A memória fica no banco local do seu computador. Detalhes em [MEMORIA.md](MEMORIA.md).
 
+## IA local (opcional, recomendada)
+
+A **IA local** é um modelo aberto de visão e linguagem que roda no seu computador, sem
+internet e sem custo. Com ela, a aplicação passa a interpretar o que antes ficava como
+"não avaliado":
+
+- os personagens e elementos das cenas dos vídeos brutos;
+- o humor das falas;
+- os enquadramentos, a tipografia, as legendas na imagem e as animações das referências;
+- o desenvolvimento, o suspense e a emoção das referências;
+- e o roteiro, que passa a vir com texto de narração redigido.
+
+Para instalar: **Configurações → IA local → Instalar a IA local**. O modelo recomendado
+para o seu computador já vem escolhido. São cerca de 3 GB baixados uma única vez, e cada
+arquivo é conferido pela soma de verificação publicada. Depois, use **Testar**: a IA local
+responde a uma pergunta e diz a cor de uma imagem de teste. Análises feitas antes da
+instalação não mudam sozinhas: use **Analisar tudo de novo**.
+
+| Modelo | Tamanho | Para quem |
+|---|---|---|
+| Qwen3-VL 4B (recomendado) | 2,7 GB | Placa de vídeo com 4 GB ou mais, ou 16 GB de memória |
+| Qwen3-VL 2B | 2,1 GB | Computadores sem placa de vídeo ou com pouca memória |
+
+Como ela funciona:
+
+- Liga sozinha quando uma análise precisa e desliga depois de alguns minutos sem uso,
+  devolvendo a memória.
+- Usa a placa de vídeo quando há memória livre nela; senão, o processador, mais devagar.
+- Nada é enviado para fora do computador.
+- Tudo o que ela interpreta fica marcado como **estimativa** nos relatórios, nunca como medição.
+- Pode ser desativada sem apagar, ou removida, na mesma tela.
+
+Os modelos são de terceiros (família Qwen3-VL, licença Apache 2.0) e o motor é o
+llama.cpp (licença MIT). A aplicação não treina um modelo próprio: ela usa esses modelos
+abertos e continua aprendendo com você pela memória e pelo feedback.
+
 ## Provedores de IA (opcionais)
 
-A aplicação funciona inteira sem nenhum provedor de IA. Em **Configurações →
+A aplicação funciona inteira sem nenhum provedor de IA, e a IA local cobre as
+interpretações sem serviço externo. Provedores servem para quem já usa outro modelo. Em **Configurações →
 Inteligência artificial** há uma tabela com o que funciona localmente e o que depende de
 um modelo de linguagem ou de visão.
 

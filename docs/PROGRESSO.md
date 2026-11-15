@@ -289,6 +289,48 @@ janela pelo Edge ainda não foram executados em um Windows real.
   - O instalador baixa o ramo principal do GitHub: o código desta etapa precisa estar nele.
   - Sem instalador único (.exe); prévia não é ao vivo; timeline sem arrastar e soltar.
 
+## Etapa 11 — IA local ✅ (com ressalva)
+
+Pedido do usuário: interpretar localmente o que ficava como "nenhum modelo visual" e
+"nenhum modelo de linguagem", sem depender de serviço externo.
+
+Ressalva: o ambiente de desenvolvimento não permite executar o motor baixado. O motor e o
+modelo de verdade ainda não rodaram; falta o **Testar** no Windows.
+
+- Decisão: em vez de treinar um modelo próprio (inviável sem dados e processamento em
+  grande escala), a aplicação opera um modelo aberto no computador do usuário. Motor
+  llama.cpp `llama-server` b12400 (MIT) e modelos Qwen3-VL 4B e 2B (Apache 2.0), com
+  versões, tamanhos e SHA-256 fixados em `IA/Local/`. Ollama foi descartado por exigir um
+  serviço do sistema; modelos de licença não comercial também.
+- `src/servicos/ia-local.ts`:
+  - baixa e confere cada arquivo, desempacota o motor e escolhe o modelo pelo computador;
+  - liga o motor só quando uma análise precisa e só para `127.0.0.1`;
+  - usa a placa de vídeo se couber no `GerenciadorVram`, senão o processador, e liga de
+    novo pelo processador se a placa falhar;
+  - desliga sozinho sem uso e ao fechar a aplicação.
+- A IA local entra como provedor local de texto e de visão, depois dos provedores do
+  usuário. As análises de vídeos brutos e de referências e o roteiro passam a usá-la sem
+  mudança: o que ela interpreta fica marcado como `estimado`.
+- Janela: seção **Configurações → IA local** (instalar com progresso, testar, trocar o
+  modelo, desativar, remover). Linha de comando: `ia-local estado | instalar | testar | remover`.
+  Instalador: etapa opcional "5 de 6: IA local", com a resposta padrão "sim".
+- As mensagens de "não avaliado" passaram a indicar onde instalar a IA local.
+- **Testes:** 88 testes de unidade, todos passando — 7 novos (`ia-local.test.ts`), com um
+  motor simulado que fala o protocolo do llama-server:
+  - recomendação do modelo pelo computador;
+  - download conferido e sem repetição; arquivo adulterado descartado;
+  - liga sob demanda, reserva e devolve a placa, resposta em JSON, imagens embutidas,
+    desligamento sozinho;
+  - troca para o processador quando a placa falha ou está ocupada;
+  - uso real na análise de um vídeo pela aplicação.
+  Os arquivos publicados do motor (Windows, Linux e macOS) e dos modelos foram baixados ou
+  consultados para registrar os tamanhos e as somas.
+- **Pendências:**
+  - Rodar o motor e o Qwen3-VL de verdade no Windows (**Configurações → IA local → Testar**)
+    e avaliar a qualidade das interpretações em vídeos reais.
+  - O HyperFrames continua sem renderizar no Windows de teste; o erro persistiu com pouca
+    memória descartada como causa. A aplicação desenha o cartão pelo Remotion.
+
 ## Próximas etapas (não iniciadas)
 
 A confirmar com o usuário. Sugestão: validação em Windows real com vídeos reais.
