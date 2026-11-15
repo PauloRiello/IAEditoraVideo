@@ -118,7 +118,7 @@ npm run iniciar
 | A janela não abre sozinha | O inicializador mostra um endereço: copie-o para o navegador |
 | "a aplicação fechou logo ao iniciar" | A mensagem indica o arquivo de registro (`aplicacao.log`) e mostra as últimas linhas |
 | Verificação do Whisper com aviso sobre a placa de vídeo | A transcrição funciona pelo processador. Para usar a placa NVIDIA, execute o instalador de novo: ele instala as bibliotecas CUDA (download de cerca de 1 GB) |
-| Verificação do HyperFrames com aviso | A aplicação funciona: usa outro navegador para o cartão final ou o desenha pelo Remotion. Para tentar corrigir: `npx hyperframes browser ensure --force` |
+| Verificação do HyperFrames com aviso | A aplicação funciona: usa outro navegador para o cartão final ou o desenha pelo Remotion. Feche outros programas e repita só essa verificação, na pasta do programa: `node scripts\verificar\hyperframes.mjs`. Não use `npx hyperframes`: ele pode baixar outra versão, diferente da que o programa usa |
 | O primeiro render demora mais | Na primeira vez o programa prepara a composição (cerca de 40 s) e pode baixar o navegador de render |
 | A primeira transcrição demora | O modelo do Whisper é baixado uma vez; depois funciona sem internet |
 

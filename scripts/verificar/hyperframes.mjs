@@ -44,7 +44,7 @@ if (r.conferir(existsSync(hyperframes), `hyperframes ${versaoPacote("hyperframes
         }
       }
       if (!render.ok) {
-        r.aviso(`O HyperFrames não conseguiu renderizar (${primeiraFalha}), nem com as alternativas (${alternativas.map(([nome]) => nome).join("; ") || "nenhuma disponível"}). A aplicação continua funcionando: o cartão final é desenhado pelo Remotion. Para tentar corrigir: npx hyperframes browser ensure --force`);
+        r.aviso(`O HyperFrames não conseguiu renderizar (${primeiraFalha}), nem com as alternativas (${alternativas.map(([nome]) => nome).join("; ") || "nenhuma disponível"}). A aplicação continua funcionando: o cartão final é desenhado pelo Remotion. Feche outros programas (pouca memória livre pode impedir o navegador de abrir) e rode esta verificação de novo; na pasta do programa: node scripts/verificar/hyperframes.mjs`);
         return;
       }
     }
