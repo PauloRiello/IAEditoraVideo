@@ -50,7 +50,9 @@ export async function analisarReferencia(arquivo: string, contexto: ContextoDeAn
         modelosUsados.push("whisper: transcrição");
       } catch (erro) {
         fala = naoAvaliado(`a transcrição falhou: ${erro instanceof Error ? erro.message : erro}`);
-        limitacoes.push("A fala não foi transcrita: a execução do Whisper falhou.");
+const motivo = (erro instanceof Error ? erro.message : String(erro)).split(/\r?\n/).filter(Boolean).slice(-2).join(" ").slice(0, 300);
+        console.error(`${new Date().toISOString()} Transcrição falhou em ${arquivo}: ${motivo}`);
+        limitacoes.push(`A fala não foi transcrita: a execução do Whisper falhou (${motivo}).`);
       }
     }
     const { audivel: _audivel, estouro: _estouro, ...medido } = medicaoAudio;

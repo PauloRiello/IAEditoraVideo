@@ -6,5 +6,5 @@ import { spawn } from "node:child_process";
 export function abrirPasta(pasta: string): void {
   if (process.env.IAEV_SEM_JANELAS === "1") return; // testes e servidores sem área de trabalho
   const comando = process.platform === "win32" ? "explorer.exe" : process.platform === "darwin" ? "open" : "xdg-open";
-  spawn(comando, [pasta], { detached: true, stdio: "ignore" }).on("error", () => undefined).unref();
+  spawn(comando, [pasta], { detached: true, stdio: "ignore", windowsHide: true }).on("error", () => undefined).unref();
 }

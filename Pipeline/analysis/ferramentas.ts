@@ -8,7 +8,7 @@ import type { DadosTecnicos } from "../../src/dominio/analise.ts";
 /** Executa um programa e devolve código de saída, saída padrão e mensagens de erro, sem lançar exceção. */
 export function executarDetalhado(comando: string, argumentos: string[], ambiente?: NodeJS.ProcessEnv): Promise<{ codigo: number; saida: Buffer; erro: string }> {
   return new Promise((resolver) => {
-    const processo = spawn(comando, argumentos, { stdio: ["ignore", "pipe", "pipe"], env: ambiente ?? process.env });
+    const processo = spawn(comando, argumentos, { stdio: ["ignore", "pipe", "pipe"], env: ambiente ?? process.env, windowsHide: true }); // no Windows, sem janela de prompt
     const saida: Buffer[] = [];
     let erro = "";
     processo.stdout.on("data", (bloco: Buffer) => saida.push(bloco));
