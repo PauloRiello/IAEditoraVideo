@@ -58,9 +58,12 @@ que não foi avaliado aparece como "não avaliado", nunca como um palpite.
   arquivos reais, e todo o funcionamento foi testado com um motor simulado que fala o
   mesmo protocolo. Falta rodar o motor e o modelo de verdade, no Windows (`Testar`, em
   Configurações → IA local).
-- **Janelas do prompt no Windows.** A aplicação passou a abrir com um console invisível,
+- **Janelas do prompt no Windows.** A aplicação tenta abrir com um console invisível,
   herdado pelo Remotion, pelo FFmpeg e pelo navegador de render, para que nenhuma janela
-  apareça na prévia e na exportação. A correção ainda não foi conferida no Windows.
+  apareça na prévia e na exportação. Na primeira versão dessa correção, a aplicação deixou
+  de abrir no Windows de teste. Agora, se o console invisível não der sinal de vida em 20 s,
+  a aplicação abre do jeito anterior (e as janelas podem voltar a aparecer). O registro diz
+  qual dos dois foi usado. Ainda não conferido no Windows.
 - **Qualidade da IA local.** Um modelo de 4 bilhões de parâmetros erra mais que modelos
   grandes de serviços pagos: pode deixar de ver elementos pequenos ou confundir o tom de
   uma fala. Por isso o que ele interpreta é sempre marcado como estimativa. No processador,

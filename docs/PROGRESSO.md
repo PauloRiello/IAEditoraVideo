@@ -383,6 +383,18 @@ organizar o roteiro, e janelas do prompt que continuavam abrindo na prévia.
   vídeos reais; a identidade visual da marca e a referência por link (pedido anterior)
   ainda não começaram.
 
+### Correção — a aplicação não abria no Windows depois do console invisível
+
+- Relato do usuário: depois da atualização anterior, o app não abria mais. A causa exata
+  não pôde ser vista (o atalho fecha a janela do inicializador e o erro sumia); o que mudou
+  foi a abertura com console invisível pelo PowerShell.
+- O inicializador agora tenta o console invisível com um sinal de vida
+  (`scripts/lib/abrir-oculta.mjs` grava um marcador antes de carregar a aplicação) e, se ele
+  não aparecer em 20 s ou o processo morrer, abre do jeito anterior, que funcionava.
+- Erros ao carregar a aplicação vão para o registro, e uma falha ao abrir aparece numa caixa
+  de mensagem do Windows.
+- **Testes:** 90, todos passando, com um teste novo do plano B e da gravação do erro.
+
 ## Próximas etapas (não iniciadas)
 
 A confirmar com o usuário. Sugestão: validação em Windows real com vídeos reais.

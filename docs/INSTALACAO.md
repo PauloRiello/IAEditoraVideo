@@ -125,7 +125,7 @@ npm run iniciar
 | Linhas com `[FALHA]` na etapa de dependências | Leia a linha: em geral falta Python ou FFmpeg, ou a internet caiu. Corrija e execute de novo |
 | "a aplicação ainda não foi instalada nesta pasta" ao abrir | Execute `windows\Instalar.cmd` |
 | A janela não abre sozinha | O inicializador mostra um endereço: copie-o para o navegador |
-| "a aplicação fechou logo ao iniciar" | A mensagem indica o arquivo de registro (`aplicacao.log`) e mostra as últimas linhas |
+| "a aplicação fechou logo ao iniciar" | Aparece uma caixa de mensagem com as últimas linhas do registro (`aplicacao.log`). Copie o texto e envie a quem mantém o programa |
 | A IA local não instala ("sem conexão" ou "download foi interrompido") | Confira a internet e clique em Instalar de novo: o que já foi baixado e conferido não é baixado outra vez |
 | A IA local não liga ("não pôde ser ligada") | A mensagem traz o motivo. Feche outros programas e use **Testar** de novo; se persistir, troque para o modelo 2B |
 | Verificação do Whisper com aviso sobre a placa de vídeo | A transcrição funciona pelo processador. Para usar a placa NVIDIA, execute o instalador de novo: ele instala as bibliotecas CUDA (download de cerca de 1 GB) |

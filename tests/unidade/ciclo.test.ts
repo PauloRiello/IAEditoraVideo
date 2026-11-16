@@ -123,6 +123,24 @@ test("iniciar e parar: a aplicação roda sozinha, em processo próprio, uma ins
   assert.match(readFileSync(path.join(dados, "logs", "aplicacao.log"), "utf8"), /pronta em .*\n.*Aplicação encerrada/);
 });
 
+test("se a abertura sem janelas falhar, a aplicação abre do jeito simples; erro ao carregar vai para o registro", async () => {
+  // Simula um Windows em que o console invisível não abre a aplicação.
+  const r = spawnSync(process.execPath, [path.join(instalacao, "scripts", "iniciar.mjs")], { cwd: instalacao, env: { ...ambiente, IAEV_TESTE_ABERTURA_OCULTA: "falha" }, encoding: "utf8", input: "" });
+  assert.equal(r.status, 0, `${r.stdout}${r.stderr}`);
+  assert.match(r.stdout, /Abrindo do jeito simples.*Aplicação iniciada/s);
+  const e = execucao()!;
+  assert.ok(vivo(e.pid));
+  assert.match(readFileSync(path.join(dados, "logs", "aplicacao.log"), "utf8"), /console invisível não funcionou/);
+  assert.match(script("parar").saida, /foi encerrada/);
+
+  // Um erro ao carregar a aplicação, que antes sumiria no console invisível, fica no registro.
+  const registro = path.join(base, "erro-ao-abrir.log"), marcador = path.join(base, "abrindo.json");
+  const falha = spawnSync(process.execPath, [path.join(instalacao, "scripts", "lib", "abrir-oculta.mjs"), path.join(base, "nao-existe.ts")], { env: { ...ambiente, IAEV_REGISTRO: registro, IAEV_MARCADOR: marcador }, encoding: "utf8" });
+  assert.equal(falha.status, 1);
+  assert.ok(existsSync(marcador), "deu sinal de vida antes de carregar");
+  assert.match(readFileSync(registro, "utf8"), /Erro ao abrir a aplicação: .*nao-existe\.ts/s);
+});
+
 test("atualizar pelo Git: cópia de segurança antes, dados preservados e aplicação reaberta", async () => {
   assert.match(script("atualizar").saida, /já está na versão mais recente/);
   const nova = publicar("Versão nova", () => {
