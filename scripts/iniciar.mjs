@@ -54,11 +54,27 @@ if (execucao) {
   mkdirSync(registros, { recursive: true });
   const registro = path.join(registros, "aplicacao.log");
   if (existsSync(registro) && statSync(registro).size > 5 * 1024 * 1024) renameSync(registro, `${registro}.anterior`);
-  const saida = openSync(registro, "a");
-  const processo = spawn(process.execPath, [...NODE, path.join(RAIZ, "src", "interface", "principal.ts")], { cwd: RAIZ, detached: true, stdio: ["ignore", saida, saida], windowsHide: true });
+  const principal = path.join(RAIZ, "src", "interface", "principal.ts");
   let saiu = null;
-  processo.on("exit", (codigo) => { saiu = codigo ?? 1; });
-  processo.unref();
+  if (WINDOWS) {
+    // No Windows a aplicação recebe um console invisível, pelo Start-Process -WindowStyle Hidden.
+    // Tudo o que ela abrir (Remotion, FFmpeg, navegador de render, motor da IA) herda esse
+    // console, e nenhuma janela de prompt aparece. A própria aplicação grava o registro.
+    const aspas = (texto) => `'${String(texto).replace(/'/g, "''")}'`;
+    const argumentos = [...NODE, principal].map((a) => `"${a}"`).join(" ");
+    const comando = `Start-Process -FilePath ${aspas(process.execPath)} -ArgumentList ${aspas(argumentos)} -WorkingDirectory ${aspas(RAIZ)} -WindowStyle Hidden`;
+    const lancador = spawn("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", Buffer.from(comando, "utf16le").toString("base64")], {
+      cwd: RAIZ, detached: true, stdio: "ignore", windowsHide: true, env: { ...process.env, IAEV_REGISTRO: registro },
+    });
+    lancador.on("exit", (codigo) => { if (codigo) saiu = codigo; }); // só falha se o próprio Start-Process falhar
+    lancador.on("error", () => { saiu = 1; });
+    lancador.unref();
+  } else {
+    const saida = openSync(registro, "a");
+    const processo = spawn(process.execPath, [...NODE, principal], { cwd: RAIZ, detached: true, stdio: ["ignore", saida, saida], windowsHide: true });
+    processo.on("exit", (codigo) => { saiu = codigo ?? 1; });
+    processo.unref();
+  }
 
   dizer("Iniciando a IA Editora de Vídeo...");
   for (let i = 0; i < 240 && !execucao && saiu === null; i += 1) {

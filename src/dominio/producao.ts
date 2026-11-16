@@ -163,6 +163,26 @@ export interface LinhaDoRoteiro {
   texto: string;
   /** Identificadores dos fatos que sustentam a linha. */
   baseadoEm: string[];
+  /** Cena do plano a que a linha pertence (1, 2, 3...), na ordem do vídeo. */
+  cena?: number;
+  /** Quando a cena aparece no vídeo final, em segundos. */
+  inicioSeg?: number;
+  fimSeg?: number;
+}
+
+/** O que acontece em cada trecho do plano, tirado da análise do material: base do roteiro. */
+export interface DescricaoDaCena {
+  n: number;
+  bloco: Bloco;
+  /** No vídeo final, em segundos. */
+  inicioSeg: number;
+  fimSeg: number;
+  /** Personagens e elementos visíveis (estimados pela IA na análise). */
+  elementos: string[];
+  /** Falas transcritas dentro do trecho. */
+  falas: string[];
+  ritmo: "calmo" | "movimentado" | "intenso";
+  humor: boolean;
 }
 
 export interface Roteiro {
@@ -171,6 +191,8 @@ export interface Roteiro {
   base: "modelo" | "estrutura";
   /** Ângulos sugeridos pelo perfil (por exemplo humor, imersão, recrutamento). */
   angulos: string[];
+  /** Ideia central que liga as cenas, quando escrita por modelo. */
+  ideia?: string;
   linhas: LinhaDoRoteiro[];
   fatos: Fato[];
   avisos: string[];

@@ -44,6 +44,8 @@ export interface ModeloLocal {
   vramMB: number;
   memoriaMinimaMB: number;
   contexto: number;
+  /** Lento demais só no processador: só é recomendado com placa de vídeo. */
+  exigePlaca?: boolean;
   somenteTeste?: boolean;
 }
 
@@ -264,7 +266,9 @@ export class IALocal {
   /** O modelo cabe neste computador? Placa com memória suficiente, ou memória do sistema suficiente para rodar pelo processador. */
   private adequado(modelo: ModeloLocal): boolean {
     const vram = this.o.hardware.gpu?.vramMB ?? 0;
-    return vram >= modelo.vramMB || this.o.hardware.memoriaTotalMB >= modelo.memoriaMinimaMB * 2;
+    if (modelo.exigePlaca && !this.o.hardware.gpu) return false;
+    // Com placa: memória da placa e do sistema suficientes. Sem placa: o dobro de memória do sistema.
+    return (vram >= modelo.vramMB && this.o.hardware.memoriaTotalMB >= modelo.memoriaMinimaMB) || this.o.hardware.memoriaTotalMB >= modelo.memoriaMinimaMB * 2;
   }
 
   /** Modelo recomendado: o maior que cabe neste computador (o de teste nunca é recomendado). */
@@ -389,12 +393,15 @@ export class IALocal {
     let falha = "";
     for (const pedido of tentativas) {
       // Só vai para a placa se couber junto com o que já está nela (o Whisper, por exemplo).
-      const dispositivo = pedido === "gpu" ? this.o.vram.reservar("ia-local", modelo?.vramMB ?? 4000) : "cpu";
+      // Ocupa da placa o que estiver livre (o motor põe o resto do modelo no processador),
+      // desde que haja um mínimo útil; o Whisper e outros modelos já carregados são respeitados.
+      const livre = this.o.vram.livreMB;
+      const dispositivo = pedido === "gpu" && livre >= 1500 ? this.o.vram.reservar("ia-local", Math.min(modelo?.vramMB ?? 4000, livre)) : "cpu";
       if (pedido === "gpu" && dispositivo === "cpu") continue;
       const porta = await portaLivre();
       const argumentos = [
         "-m", path.join(pastaDoModelo, instalacao.modelo.arquivo), "--mmproj", path.join(pastaDoModelo, instalacao.modelo.visao),
-        "--host", "127.0.0.1", "--port", String(porta), "-c", String(modelo?.contexto ?? 8192), "-ngl", dispositivo === "gpu" ? "99" : "0",
+        "--host", "127.0.0.1", "--port", String(porta), "-c", String(modelo?.contexto ?? 8192), "-ngl", dispositivo === "gpu" ? "auto" : "0",
         "--jinja", "--no-webui", "--parallel", "1",
       ];
       this.registro = "";

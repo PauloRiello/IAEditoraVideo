@@ -107,13 +107,15 @@ after(() => {
   rmSync(base, { recursive: true, force: true });
 });
 
-test("recomenda o modelo pelo computador: placa de 6 GB fica com o 4B; sem placa e pouca memória, o 2B", () => {
+test("recomenda o modelo pelo computador: placa de 6 GB e 16 GB de memória ficam com o 8B; placa de 4 GB, o 4B; sem placa e pouca memória, o 2B", () => {
   const programa = { caminhos, vram: new GerenciadorVram(null, 1024), configuracao: () => configuracao };
-  assert.equal(new IALocal({ ...programa, hardware: comPlaca }).recomendado().id, "qwen3-vl-4b");
+  assert.equal(new IALocal({ ...programa, hardware: comPlaca }).recomendado().id, "qwen3-vl-8b");
+  assert.equal(new IALocal({ ...programa, hardware: { ...comPlaca, gpu: { fabricante: "nvidia", nome: "X", vramMB: 4096 } } }).recomendado().id, "qwen3-vl-4b");
+  assert.equal(new IALocal({ ...programa, hardware: { ...comPlaca, memoriaTotalMB: 8000 } }).recomendado().id, "qwen3-vl-4b", "placa grande com pouca memória fica no 4B");
   assert.equal(new IALocal({ ...programa, hardware: { ...comPlaca, gpu: null, memoriaTotalMB: 8000 } }).recomendado().id, "qwen3-vl-2b");
   assert.equal(new IALocal({ ...programa, hardware: { ...comPlaca, gpu: null, memoriaTotalMB: 32000 } }).recomendado().id, "qwen3-vl-4b");
   const estado = new IALocal({ ...programa, hardware: comPlaca }).estado();
-  assert.deepEqual([estado.instalada, estado.ligada, estado.modelos.map((m) => m.id)], [false, false, ["qwen3-vl-4b", "qwen3-vl-2b"]], "o modelo de teste não é oferecido");
+  assert.deepEqual([estado.instalada, estado.ligada, estado.modelos.map((m) => m.id)], [false, false, ["qwen3-vl-8b", "qwen3-vl-4b", "qwen3-vl-2b"]], "o modelo de teste não é oferecido");
   // O catálogo publicado tem licença, origem e soma de verificação para cada arquivo.
   for (const m of JSON.parse(readFileSync(path.join(RAIZ, "IA", "Local", "modelos.json"), "utf8")).modelos as ModeloLocal[]) {
     assert.match(m.licenca, /Apache-2\.0/);
@@ -180,7 +182,7 @@ test("liga só quando precisa, na placa de vídeo, responde em JSON, reaproveita
   const iniciados = linhas().filter((l) => l.evento === "iniciado");
   assert.equal(iniciados.length, 1);
   const argumentos = iniciados[0].argumentos as string[];
-  assert.equal(argumentos[argumentos.indexOf("-ngl") + 1], "99", "o modelo vai para a placa de vídeo");
+  assert.equal(argumentos[argumentos.indexOf("-ngl") + 1], "auto", "o modelo vai para a placa de vídeo, o quanto couber");
   assert.equal(argumentos[argumentos.indexOf("--host") + 1], "127.0.0.1", "o motor só atende este computador");
   assert.deepEqual([ia.estado().ligada, ia.estado().dispositivo, vram.livreMB], [true, "gpu", livreAntes - 2000], "a memória da placa fica reservada enquanto ligada");
 
@@ -204,19 +206,19 @@ test("se a placa de vídeo falhar, o motor é ligado de novo pelo processador; s
   const { ia } = novaIA();
   await ia.usar((p) => p.gerarTexto({ mensagem: "Teste" }));
   const iniciados = linhas().filter((l) => l.evento === "iniciado").slice(-2).map((l) => (l.argumentos as string[])[(l.argumentos as string[]).indexOf("-ngl") + 1]);
-  assert.deepEqual(iniciados, ["99", "0"]);
+  assert.deepEqual(iniciados, ["auto", "0"]);
   assert.equal(ia.estado().dispositivo, "cpu");
   await ia.parar();
   delete process.env.IAEV_MOTOR_FALHA_NA_PLACA;
 
   const vram = new GerenciadorVram(comPlaca.gpu, 1024);
-  vram.reservar("whisper-medium", 4500); // o Whisper ocupa a placa
+  vram.reservar("whisper-medium", 4000); // o Whisper ocupa quase toda a placa: sobra menos que o mínimo útil
   const ocupada = novaIA({ vram }).ia;
   await ocupada.usar((p) => p.gerarTexto({ mensagem: "Teste" }));
   const ultimo = linhas().filter((l) => l.evento === "iniciado").at(-1)?.argumentos as string[];
   assert.equal(ultimo[ultimo.indexOf("-ngl") + 1], "0");
   await ocupada.parar();
-  assert.equal(vram.livreMB, 6144 - 1024 - 4500, "a reserva do Whisper continua intacta");
+  assert.equal(vram.livreMB, 6144 - 1024 - 4000, "a reserva do Whisper continua intacta");
 });
 
 test("desativada nas configurações, a IA local não é usada; o teste completo confere que ela enxerga", async () => {

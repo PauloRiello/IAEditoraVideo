@@ -10,7 +10,7 @@ import { AgenteDeRoteiro } from "../../Pipeline/editing/roteiro.ts";
 import { AgenteDeArquivos, EXTENSOES_DE_VIDEO } from "../../Pipeline/ingestion/arquivos.ts";
 import { ErroAplicacao, NaoEncontrado } from "../dominio/erros.ts";
 import type { Observacao, VersaoPlano } from "../dominio/memoria.ts";
-import type { Agente, AnaliseDeConteudo, ArquivoBruto, Briefing, EntradaDoIndice, PlanoDeEdicao, ResultadoDaPesquisa, Roteiro } from "../dominio/producao.ts";
+import type { Agente, AnaliseDeConteudo, ArquivoBruto, Briefing, DescricaoDaCena, EntradaDoIndice, PlanoDeEdicao, ResultadoDaPesquisa, Roteiro } from "../dominio/producao.ts";
 import type { FormatoSaida, Midia, Projeto } from "../dominio/tipos.ts";
 import type { ServicoAprendizado } from "../servicos/aprendizado.ts";
 import type { ServicoEstilos } from "../servicos/estilos.ts";
@@ -231,11 +231,29 @@ export class Producao implements Agente {
       perfil: this.d.perfis.obter(projeto.perfil),
       briefing: this.briefing(projetoId) ?? { objetivo: (versao.plano as PlanoDeEdicao).objetivo },
       plano: versao.plano as PlanoDeEdicao,
+      cenas: this.descreverCenas(versao.plano as PlanoDeEdicao),
       provedores: this.d.provedores,
     });
     this.d.memoria.lembrar(`projeto:${projetoId}`, "roteiro", roteiro);
     this.d.acervo.registrarDecisao(projetoId, "roteiro", `Roteiro (${roteiro.base}) com ${roteiro.linhas.length} linha(s) para o plano v${versao.versao}.`, versao.versao);
     return roteiro;
+  }
+
+  /** O que a análise viu no trecho exato de cada clipe do plano: elementos, falas, ritmo e humor. */
+  descreverCenas(plano: PlanoDeEdicao): DescricaoDaCena[] {
+    return plano.clipes.map((clipe, i) => {
+      const conteudo = this.d.acervo.analises({ midiaId: clipe.midiaId }, "conteudo")[0]?.resultado as AnaliseDeConteudo | undefined;
+      const dentro = (x: { inicioSeg: number; fimSeg: number }) => x.inicioSeg < clipe.fimOrigemSeg && clipe.inicioOrigemSeg < x.fimSeg;
+      const cenas = (conteudo?.cenas ?? []).filter(dentro);
+      const acao = Math.max(0, ...cenas.map((c) => c.acao));
+      return {
+        n: i + 1, bloco: clipe.bloco, inicioSeg: clipe.inicioLinhaDoTempoSeg, fimSeg: Math.round((clipe.inicioLinhaDoTempoSeg + clipe.fimOrigemSeg - clipe.inicioOrigemSeg) * 100) / 100,
+        elementos: [...new Set(cenas.flatMap((c) => c.elementos))].slice(0, 8),
+        falas: (conteudo?.transcricao?.segmentos ?? []).filter(dentro).map((s) => s.texto.trim()).filter(Boolean),
+        ritmo: acao >= 0.6 ? "intenso" : acao >= 0.25 ? "movimentado" : "calmo",
+        humor: cenas.some((c) => c.etiquetas.includes("humor")),
+      };
+    });
   }
 
   roteiro(projetoId: string): Roteiro | undefined {

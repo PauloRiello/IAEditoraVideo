@@ -276,46 +276,61 @@ test("Agente de Roteiro sem modelo: estrutura só com fatos do briefing e do mat
   const naTela = roteiro.linhas.filter((l) => l.tipo === "texto-na-tela").map((l) => l.texto);
   assert.deepEqual(naTela, ["Servidor Cidade Alta", "Inauguração no dia 20", "Entre no nosso Discord"].filter((texto) => naTela.includes(texto)), "cada fato aparece uma vez, sem repetição");
   assert.equal(naTela.at(-1), "Entre no nosso Discord");
+  assert.deepEqual(naTela.filter((t) => t !== "Entre no nosso Discord").sort(), ["Inauguração no dia 20", "Servidor Cidade Alta"], "nenhum fato informado fica de fora");
+
+  // Com um único trecho no plano, todos os fatos aparecem mesmo assim.
+  const umaCena = { ...(app.acervo.plano(projetoId).plano as PlanoDeEdicao) };
+  umaCena.clipes = umaCena.clipes.slice(0, 1);
+  const curto = await new AgenteDeRoteiro().escrever({ projetoId, perfil: app.perfis.obter("fivem"), briefing: app.producao.briefing(projetoId)!, plano: umaCena });
+  assert.deepEqual(curto.linhas.filter((l) => l.tipo === "texto-na-tela").map((l) => l.texto), ["Servidor Cidade Alta", "Inauguração no dia 20", "Entre no nosso Discord"]);
   assert.equal(roteiro.linhas[0].bloco, "abertura");
   assert.equal(app.producao.roteiro(projetoId)?.linhas.length, roteiro.linhas.length, "o roteiro fica guardado");
   assert.equal(app.acervo.decisoes(projetoId).at(-1)?.tipo, "roteiro");
 });
 
-test("Agente de Roteiro com modelo: descarta o que foi inventado, repetido ou genérico", async () => {
+test("Agente de Roteiro com modelo: uma linha por cena, na ordem do vídeo; descarta o que foi inventado, repetido ou genérico", async () => {
   const plano = app.acervo.plano(projetoId).plano as PlanoDeEdicao;
   const briefing = app.producao.briefing(projetoId)!;
-  let sistema = "";
-  const responder = (linhas: unknown[]): { selecionar: () => Promise<ProvedorIA> } => ({
+  let sistema = "", pedidoEnviado = "";
+  const responder = (resposta: unknown): { selecionar: () => Promise<ProvedorIA> } => ({
     selecionar: async () => ({
       id: "texto-local", nome: "Modelo", origem: "local", capacidades: ["texto"], disponivel: async () => true,
-      gerarTexto: async (pedido) => { sistema = pedido.sistema ?? ""; return `Aqui está:\n${JSON.stringify({ linhas })}`; },
+      gerarTexto: async (pedido) => { sistema = pedido.sistema ?? ""; pedidoEnviado = pedido.mensagem; return `Aqui está:\n${JSON.stringify(resposta)}`; },
     }),
   });
   const agente = new AgenteDeRoteiro();
   const entrada = { projetoId, perfil: app.perfis.obter("fivem"), briefing, plano };
 
-  const roteiro = await agente.escrever({
-    ...entrada,
-    provedores: responder([
-      { bloco: "abertura", tipo: "narracao", texto: "Fala galera, neste vídeo vamos mostrar o servidor!", baseadoEm: ["B1"] },
-      { bloco: "desenvolvimento", tipo: "narracao", texto: "A Cidade Alta abre as portas no dia 20.", baseadoEm: ["B1", "B2"] },
-      { bloco: "desenvolvimento", tipo: "narracao", texto: "A Cidade Alta abre as portas no dia 20.", baseadoEm: ["B2"] },
-      { bloco: "desenvolvimento", tipo: "narracao", texto: "Temos mais de 300 carros exclusivos e sistema de facções.", baseadoEm: [] },
-      { bloco: "climax", tipo: "narracao", texto: "Perseguições de tirar o fôlego.", baseadoEm: ["X9"] },
-      { bloco: "encerramento", tipo: "narracao", texto: "Acesse nosso site e compre seu VIP!", baseadoEm: ["B1"] },
-    ]),
-  });
+  const n = plano.clipes.length;
+  assert.ok(n >= 3, `o plano de teste tem cenas suficientes (${n})`);
+  const cenas = [
+    { n: 1, narracao: "Fala galera, neste vídeo vamos mostrar o servidor!", texto_na_tela: "", fatos: ["B1"] },
+    { n: 2, narracao: "A Cidade Alta abre as portas no dia 20.", texto_na_tela: "Inauguração no dia 20", fatos: ["B1", "B2"] },
+    // Repete a narração da cena 2 e inventa um número no texto da tela.
+    { n: 3, narracao: "A Cidade Alta abre as portas no dia 20.", texto_na_tela: "300 carros exclusivos", fatos: ["B1"] },
+    ...Array.from({ length: Math.max(0, n - 3) }, (_, k) => ({ n: k + 4, narracao: "Temos mais de 300 carros exclusivos.", texto_na_tela: "", fatos: [] })),
+  ].filter((c) => n < 4 || c.n !== n); // com 4 cenas ou mais, o modelo "esquece" a última
+  const roteiro = await agente.escrever({ ...entrada, provedores: responder({ ideia: "A cidade abre e convida o jogador", cenas }) });
   assert.equal(roteiro.base, "modelo");
+  assert.equal(roteiro.ideia, "A cidade abre e convida o jogador");
   const textos = roteiro.linhas.map((l) => l.texto);
-  assert.ok(!textos.some((t) => /300 carros|tirar o fôlego|compre seu VIP|Fala galera/.test(t)), textos.join(" | "));
+  assert.ok(!textos.some((t) => /300 carros|Fala galera/i.test(t)), textos.join(" | "));
   assert.equal(textos.filter((t) => t === "A Cidade Alta abre as portas no dia 20.").length, 1);
-  assert.equal(roteiro.linhas[0].bloco, "abertura");
+  assert.equal(roteiro.linhas[0].cena, 1, "o roteiro segue a ordem das cenas");
+  assert.equal(roteiro.linhas[0].tipo, "imagem", "a abertura genérica vira o que aparece na primeira cena");
+  const cenasEmOrdem = roteiro.linhas.filter((l) => !l.baseadoEm.includes("CTA")).map((l) => l.cena as number);
+  assert.deepEqual(cenasEmOrdem, [...cenasEmOrdem].sort((a, b) => a - b), "linhas na ordem do vídeo");
+  assert.deepEqual([...new Set(cenasEmOrdem)], Array.from({ length: n }, (_, k) => k + 1), "toda cena aparece, inclusive a que o modelo pulou");
+  assert.ok(roteiro.linhas.every((l) => l.baseadoEm.includes("CTA") || (typeof l.inicioSeg === "number" && typeof l.fimSeg === "number")), "cada linha diz quando aparece");
+  assert.ok(roteiro.linhas.some((l) => l.tipo === "texto-na-tela" && l.texto === "Inauguração no dia 20" && l.cena === 2));
   assert.equal(textos.at(-1), "Entre no nosso Discord", "o CTA é o informado pelo usuário, não o inventado pelo modelo");
-  assert.ok(roteiro.avisos.some((a) => a.includes("3 linha(s)") && a.includes("não se apoiarem")));
+  assert.ok(roteiro.avisos.some((a) => /trecho\(s\) do modelo foram descartados/.test(a)));
   assert.ok(roteiro.avisos.some((a) => a.includes("repetida")));
   assert.ok(roteiro.avisos.some((a) => a.includes("genérica")));
+  if (n >= 4) assert.ok(roteiro.avisos.some((a) => /não escreveu 1 cena/.test(a)));
   assert.match(sistema, /não invente funcionalidades/);
   assert.match(sistema, /recrutamento/);
+  assert.match(pedidoEnviado, new RegExp(`Cena ${n} — `), "o modelo recebe todas as cenas, na ordem");
 
   // Resposta inválida do modelo: volta a estrutura montada com os fatos.
   const invalido = await agente.escrever({ ...entrada, provedores: { selecionar: async () => ({ id: "x", nome: "x", origem: "local", capacidades: ["texto"], disponivel: async () => true, gerarTexto: async () => "não consigo" }) } });

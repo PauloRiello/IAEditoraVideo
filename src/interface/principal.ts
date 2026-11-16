@@ -3,12 +3,26 @@
 // parar encontrá-lo. Não depende de nenhum outro programa em execução.
 // Uso normal: scripts/iniciar.mjs (ou o atalho criado pelo instalador).
 
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { caminhosPadrao } from "../infra/caminhos.ts";
 import { arquivoDeExecucao as arquivoDaInstancia } from "../infra/instancia.ts";
 import { Aplicacao } from "../nucleo/aplicacao.ts";
 import { iniciarServidor } from "./servidor.ts";
+
+// Sem saída redirecionada (no Windows, a aplicação roda com console invisível), o registro é gravado aqui.
+if (process.env.IAEV_REGISTRO) {
+  const arquivo = process.env.IAEV_REGISTRO;
+  const gravar = (...partes: unknown[]) => {
+    try {
+      appendFileSync(arquivo, `${partes.map((p) => (p instanceof Error ? (p.stack ?? p.message) : String(p))).join(" ")}\n`);
+    } catch {
+      // sem onde registrar: segue sem registro
+    }
+  };
+  console.log = gravar;
+  console.error = gravar;
+}
 
 const caminhos = caminhosPadrao();
 const arquivoDeExecucao = arquivoDaInstancia(caminhos.dados);

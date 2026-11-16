@@ -160,9 +160,15 @@ O planejamento não usa modelo de IA: é determinístico e explicável.
 O roteiro só pode usar **fatos**: o que o usuário informou no briefing, o que foi dito nos
 vídeos e o que foi medido nas cenas. Cada linha cita os fatos em que se apoia.
 
-- **Sem modelo de linguagem:** entrega uma estrutura por bloco — o que mostrar, as falas
-  originais e os fatos do briefing como texto na tela, cada um uma única vez, com o CTA no
-  fim. Não há texto de narração redigido, e o roteiro diz isso.
+O roteiro é escrito **cena por cena, na ordem do vídeo**. Cada trecho do plano vira uma
+cena com o tempo em que aparece e o que a análise viu naquele trecho exato: personagens e
+elementos, falas transcritas, ritmo e humor. O modelo primeiro escreve a ideia central e
+depois uma linha por cena, continuando a anterior; cena que ele pular ou escrever mal fica
+com a descrição do que mostrar.
+
+- **Sem modelo de linguagem:** entrega uma estrutura por cena — o que mostrar, as falas
+  originais e os fatos do briefing como texto na tela, cada um uma única vez e todos
+  presentes, com o CTA no fim. Não há texto de narração redigido, e o roteiro diz isso.
 - **Com modelo de linguagem:** o modelo redige em linguagem natural, considerando público,
   plataforma e os ângulos do perfil (em FiveM e RedM: gameplay, humor, imersão, divulgação
   de funcionalidades, eventos e recrutamento). O texto é conferido antes de ser aceito:

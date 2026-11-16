@@ -351,6 +351,38 @@ feito precisa mostrá-la.
   vista na janela, no navegador, durante uma análise real (0% a 95% em 11 passos).
 - **Pendência:** a instalação dos pacotes npm e Python não informa o próprio andamento.
 
+### Ajuste — roteiro cena por cena, IA local maior e janelas do prompt na prévia
+
+Pedidos do usuário: roteiros sem nexo e sem ordem, uma IA local mais inteligente para
+organizar o roteiro, e janelas do prompt que continuavam abrindo na prévia.
+
+- **Causa dos roteiros sem nexo:** o modelo recebia só a justificativa técnica de cada
+  trecho ("cena de maior ação 0,82"), não o que aparece nele, e as linhas voltavam soltas,
+  só agrupadas por bloco.
+- **Roteiro reescrito:** cada trecho do plano vira uma cena numerada com tempo, elementos
+  vistos, falas transcritas, ritmo e humor do trecho exato
+  (`producao.descreverCenas`). O modelo escreve a ideia central e uma linha por cena, na
+  ordem; a conferência descarta números e chamadas para ação inventados, repetições e
+  abertura genérica, e preenche a cena pulada com a descrição do que mostrar. Sem modelo, a
+  estrutura também é por cena, com linguagem legível, e nenhum fato informado fica de fora.
+  A tela mostra a ideia central e o tempo de cada cena.
+- **IA local:** novo modelo Qwen3-VL 8B (Apache 2.0), recomendado para placa de 6 GB e 16 GB
+  de memória. O motor passou a usar a placa o quanto couber (`-ngl auto`) e o processador
+  no resto, em vez de "tudo na placa ou nada".
+- **Janelas do prompt na prévia:** o Remotion abre o compositor, o FFmpeg e o navegador sem
+  pedir janela oculta. No Windows, a aplicação agora inicia com um console invisível
+  (`Start-Process -WindowStyle Hidden`), herdado por todos esses programas, e grava o
+  próprio registro.
+- **IA editora antiga do Cowork:** não foi possível acessá-la daqui (a memória do claude.ai
+  e as sessões do Cowork não ficam visíveis para esta sessão; a pasta "Nacional" do
+  computador "PH" aparece como indisponível para sessões na nuvem).
+- **Testes:** 89, todos passando, com os testes do roteiro reescritos (ordem das cenas,
+  cena pulada, número inventado, todos os fatos com uma única cena) e a recomendação do 8B.
+  O roteiro foi gerado pela janela, no navegador, sem erros.
+- **Pendências:** conferir no Windows que as janelas sumiram; avaliar o roteiro com o 8B em
+  vídeos reais; a identidade visual da marca e a referência por link (pedido anterior)
+  ainda não começaram.
+
 ## Próximas etapas (não iniciadas)
 
 A confirmar com o usuário. Sugestão: validação em Windows real com vídeos reais.

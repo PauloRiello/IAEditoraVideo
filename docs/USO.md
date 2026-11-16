@@ -81,9 +81,10 @@ Na aba **Plano e roteiro**:
   escolha, estrutura, áudio, legendas, trilha e CTA.
 - **Aprovar plano** libera a edição. **Rejeitar** registra o motivo. **Gerar nova versão**
   refaz o plano com a configuração atual do projeto; as versões ficam no histórico.
-- **Escrever roteiro** é opcional. Sem modelo de linguagem, o roteiro é uma estrutura com
-  os fatos do material; com um modelo configurado, vira texto de narração conferido
-  contra os fatos.
+- **Escrever roteiro** é opcional. O roteiro vem cena por cena, na ordem do vídeo, com o
+  tempo de cada cena. Sem modelo de linguagem, diz o que mostrar e traz as falas e os
+  fatos; com a IA local, traz uma ideia central e uma linha de narração por cena,
+  conferidas contra os fatos.
 
 ## 4. Edição
 
@@ -157,14 +158,18 @@ instalação não mudam sozinhas: use **Analisar tudo de novo**.
 
 | Modelo | Tamanho | Para quem |
 |---|---|---|
-| Qwen3-VL 4B (recomendado) | 2,7 GB | Placa de vídeo com 4 GB ou mais, ou 16 GB de memória |
+| Qwen3-VL 8B (o mais inteligente) | 5,4 GB | Placa de vídeo com 6 GB ou mais e 16 GB de memória; roteiros mais bem organizados, porém mais lento |
+| Qwen3-VL 4B | 2,7 GB | Placa de vídeo com 4 GB ou mais, ou 16 GB de memória |
 | Qwen3-VL 2B | 2,1 GB | Computadores sem placa de vídeo ou com pouca memória |
 
 Como ela funciona:
 
 - Liga sozinha quando uma análise precisa e desliga depois de alguns minutos sem uso,
   devolvendo a memória.
-- Usa a placa de vídeo quando há memória livre nela; senão, o processador, mais devagar.
+- Usa a placa de vídeo o quanto couber nela e põe o resto no processador; sem memória
+  livre na placa, roda só no processador, mais devagar.
+- Para trocar de modelo: Configurações → IA local → escolha o modelo → **Instalar este
+  modelo**. Depois, escreva o roteiro de novo.
 - Nada é enviado para fora do computador.
 - Tudo o que ela interpreta fica marcado como **estimativa** nos relatórios, nunca como medição.
 - Pode ser desativada sem apagar, ou removida, na mesma tela.

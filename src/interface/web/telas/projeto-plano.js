@@ -75,8 +75,13 @@ export async function aba(raiz, estado) {
       h("h2", {}, "Roteiro", v ? h("button", { aoClicar: acao("roteiro", {}, "Roteiro escrito.") }, r ? "Escrever de novo" : "Escrever roteiro") : null),
       !v ? h("div.suave", {}, "O roteiro é escrito a partir do plano.") : !r ? h("div.suave", {}, "Opcional. O roteiro só usa fatos do projeto e do material: nada é inventado.") : [
         r.avisos.map((a) => h("div.nota", {}, a)),
-        h("table", {}, h("thead", {}, h("tr", {}, ["Parte", "Tipo", "Texto"].map((c) => h("th", {}, c)))),
-          h("tbody", {}, r.linhas.map((l) => h("tr", {}, h("td", {}, BLOCOS[l.bloco] ?? l.bloco), h("td", {}, TIPOS_DE_LINHA[l.tipo] ?? l.tipo), h("td", {}, l.texto))))),
+        r.ideia ? h("p", {}, h("strong", {}, "Ideia central: "), r.ideia) : null,
+        h("div.rolavel", {}, h("table", {}, h("thead", {}, h("tr", {}, ["Cena", "Tempo", "Parte", "Tipo", "Texto"].map((c) => h("th", {}, c)))),
+          h("tbody", {}, r.linhas.map((l, i) => {
+            const novaCena = l.cena !== undefined && l.cena !== r.linhas[i - 1]?.cena;
+            return h("tr", {}, h("td", {}, novaCena ? l.cena : ""), h("td", { style: "white-space:nowrap" }, novaCena && l.inicioSeg !== undefined ? `${tempo(l.inicioSeg)}–${tempo(l.fimSeg)}` : ""),
+              h("td", {}, novaCena || l.cena === undefined ? (BLOCOS[l.bloco] ?? l.bloco) : ""), h("td", {}, TIPOS_DE_LINHA[l.tipo] ?? l.tipo), h("td", {}, l.texto));
+          })))),
         h("small", {}, r.base === "modelo" ? "Escrito por modelo de linguagem e conferido contra os fatos." : "Estrutura montada sem modelo de linguagem, com os fatos do material."),
       ]));
 

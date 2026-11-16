@@ -58,10 +58,14 @@ que não foi avaliado aparece como "não avaliado", nunca como um palpite.
   arquivos reais, e todo o funcionamento foi testado com um motor simulado que fala o
   mesmo protocolo. Falta rodar o motor e o modelo de verdade, no Windows (`Testar`, em
   Configurações → IA local).
+- **Janelas do prompt no Windows.** A aplicação passou a abrir com um console invisível,
+  herdado pelo Remotion, pelo FFmpeg e pelo navegador de render, para que nenhuma janela
+  apareça na prévia e na exportação. A correção ainda não foi conferida no Windows.
 - **Qualidade da IA local.** Um modelo de 4 bilhões de parâmetros erra mais que modelos
   grandes de serviços pagos: pode deixar de ver elementos pequenos ou confundir o tom de
   uma fala. Por isso o que ele interpreta é sempre marcado como estimativa. No processador,
-  cada vídeo leva bem mais tempo que na placa de vídeo.
+  cada vídeo leva bem mais tempo que na placa de vídeo. O 8B escreve melhor, mas numa placa
+  de 6 GB parte dele roda no processador, e o roteiro e a análise ficam mais lentos.
 - **Poucos efeitos e transições**, de propósito: corte, entrada gradual, fade final, zoom
   lento, correção de cor e barras de cinema. O HyperFrames é usado só no cartão final.
 - **Legendas** não são quebradas em frases curtas nem animadas palavra a palavra.
