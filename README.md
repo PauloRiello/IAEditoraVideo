@@ -68,10 +68,15 @@ Versões instaladas: [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Instalar e usar
 
-**No Windows:** baixe o programa, abra a pasta `windows` e dê dois cliques em
-`Instalar.cmd`. Ele instala o que faltar (Node.js, Git, FFmpeg e Python), configura as
-pastas, verifica as ferramentas e cria o atalho **IA Editora de Video**. Passo a passo em
-[docs/INSTALACAO.md](docs/INSTALACAO.md).
+**No Windows:** baixe o `IA-Editora-de-Video-Setup-<versão>.exe` na aba **Releases** do
+GitHub e execute. O programa abre com uma tela de abertura que mostra a porcentagem, baixa
+na primeira vez o que faltar (FFmpeg, Python e os pacotes do Whisper) e se atualiza sozinho
+quando sai uma versão nova. Nenhuma janela de prompt aparece. Passo a passo em
+[docs/INSTALACAO.md](docs/INSTALACAO.md); como publicar uma versão, em
+[docs/LANCAMENTO.md](docs/LANCAMENTO.md).
+
+**Pelo código-fonte** (desenvolvimento, ou Windows sem o instalador): `windows\Instalar.cmd`
+instala Node.js, Git, FFmpeg e Python pelo winget e cria o atalho.
 
 **Em macOS e Linux**, com Node.js 22.20+, Python 3.11+, FFmpeg e Git instalados:
 
@@ -85,7 +90,9 @@ npm run iniciar
 
 | Para | Windows | Qualquer sistema |
 |---|---|---|
-| Instalar ou reparar | `windows\Instalar.cmd` | `npm run instalar` |
+| Abrir o aplicativo (janela própria) | Atalho do `Setup.exe` | `npm run aplicativo` |
+| Gerar o instalador | Fluxo "Lançamento" do GitHub | `npm run empacotar` (só no Windows) |
+| Instalar ou reparar pelo código | `windows\Instalar.cmd` | `npm run instalar` |
 | Abrir a aplicação | Atalho ou `windows\Iniciar.cmd` | `npm run iniciar` |
 | Fechar | Botão Encerrar ou `windows\Parar.cmd` | `npm run parar` |
 | Atualizar pelo GitHub | `windows\Atualizar.cmd` | `npm run atualizar` |

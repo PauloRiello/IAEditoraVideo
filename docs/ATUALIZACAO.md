@@ -3,7 +3,23 @@
 Atualizar troca só o programa. Projetos, banco de dados, referências, preferências,
 perfis, aprendizados e exportações ficam em pastas separadas e não são tocados.
 
-## Como atualizar
+## Programa instalado pelo Setup.exe: automática
+
+Não é preciso fazer nada. O programa procura uma versão nova ao abrir e a cada 6 horas e,
+se houver, baixa em segundo plano. O andamento aparece em **Configurações → Sobre**
+("Baixando a versão 0.2.0: 37%"). Quando o download termina:
+
+- a versão nova é instalada **ao fechar o programa**, ou na hora, pelo botão **Reiniciar e
+  atualizar**;
+- antes de instalar, o programa faz uma cópia de segurança marcada como "antes de atualizar
+  o programa"; se a cópia falhar, a atualização fica para a próxima vez;
+- nunca instala durante uma análise ou um render: espera o trabalho terminar;
+- ao abrir a versão nova, o banco é atualizado (com outra cópia antes, como sempre).
+
+Os dados ficam em `%LOCALAPPDATA%\IAEditoraVideo`, fora da pasta do programa, que a
+atualização substitui. Sem internet, nada acontece: o programa tenta de novo mais tarde.
+
+## Instalação pelo código-fonte: pelo Git
 
 No Windows, dê dois cliques em **`windows\Atualizar.cmd`**. Nos demais sistemas:
 

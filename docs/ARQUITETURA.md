@@ -235,20 +235,27 @@ scripts de ciclo de vida não acrescentaram nenhuma dependência.
 
 | Item | Como funciona |
 |---|---|
-| Janela | `src/interface/principal.ts` abre a `Aplicacao` e um servidor HTTP em `127.0.0.1`. A página (`src/interface/web/`) é aberta em janela própria do Edge ou do Chrome (`--app`), ou no navegador padrão |
+| Aplicativo (.exe) | `aplicativo/principal.mjs` (Electron) é o programa instalado: tela de abertura com porcentagem, preparação do computador (`src/interface/preparar.ts`), servidor iniciado como processo filho rodando o próprio executável como Node (`ELECTRON_RUN_AS_NODE`) com `windowsHide`, e janela própria. O console invisível do servidor é herdado por Remotion, FFmpeg e Python: nenhuma janela de prompt |
+| Janela | `src/interface/principal.ts` abre a `Aplicacao` e um servidor HTTP em `127.0.0.1`. No aplicativo, a página aparece numa janela do Electron; pelo código-fonte, numa janela do Edge ou do Chrome (`--app`) |
+| Modo anfitrião | Com `IAEV_ANFITRIAO=1`, `principal.ts` fala por linhas JSON (etapa e fração, pronta com porta e sessão, ou erro) e encerra quando a entrada padrão fecha |
+| Ambiente da máquina | `Caminhos.ambiente` (`<dados>/ambiente`): Python portátil e ambiente virtual, FFmpeg, `aceleracao.json`. Fora da pasta do programa porque a atualização a substitui. Instalações antigas (`.venv` e `config/local.aceleracao.json` na pasta do programa) continuam valendo |
 | Segurança da janela | Só o próprio computador é atendido; o endereço de origem é conferido; cada abertura sorteia um segredo de sessão, entregue por cookie que o JavaScript não lê; arquivos são servidos só por identificador, nunca por caminho livre |
 | Eventos | Tarefas, renders e atividades chegam à janela por eventos enviados pelo servidor (`/api/eventos`) |
 | Instância única | `Dados/execucao.json` registra processo, porta e sessão. Abrir de novo só reabre a janela |
 | Encerramento | Botão Encerrar, `parar.mjs` ou fechar a janela (a aplicação termina o trabalho e se encerra sem janela). Renders são interrompidos sem deixar arquivo pela metade |
-| Instalação | `windows/Instalar.cmd` instala Node.js, Git, FFmpeg e Python pelo winget e chama `scripts/instalar.mjs`: pastas, dependências, verificação, banco e atalho |
-| Atualização | `scripts/atualizar.mjs`: cópia de segurança, `git merge --ff-only`, dependências se mudaram, migração do banco; em caso de falha volta à versão anterior |
+| Instalação | Aplicativo: `Setup.exe` (NSIS, por usuário, sem administrador; `electron-builder.yml`). Pelo código-fonte: `windows/Instalar.cmd` instala Node.js, Git, FFmpeg e Python pelo winget e chama `scripts/instalar.mjs` |
+| Atualização | Aplicativo: `aplicativo/atualizacao.mjs` (electron-updater) procura os lançamentos do GitHub ao abrir e a cada 6 h, baixa com porcentagem e instala ao fechar, depois da cópia "pre-atualizacao" e nunca com tarefa em andamento. Pelo código-fonte: `scripts/atualizar.mjs` com Git |
+| Lançamento | `.github/workflows/lancamento.yml`: num Windows, gera o instalador, instala em silêncio, abre com `--teste-de-fumaca` e, nas etiquetas `v*`, publica ([LANCAMENTO.md](LANCAMENTO.md)) |
 | Cópias de segurança | Automáticas, manuais, antes de migração, de atualização e de restauração; pela janela ou por `backup.mjs` e `restaurar.mjs` |
 
-**Decisão registrada.** O plano anterior previa Electron e um instalador NSIS. Foi adotada
-a janela servida pela própria aplicação porque não acrescenta dependência, não exige
-compilar nem empacotar binários, é testável de ponta a ponta e mantém a regra das camadas
-(a página só fala com a `Aplicacao` pelas rotas). A mesma página pode ser embutida em um
-Electron no futuro, se um instalador único (.exe) for necessário. Guias:
+**Decisões registradas.** Primeiro foi adotada a janela servida pela própria aplicação,
+aberta no Edge ou no Chrome, sem dependência nova. Em 18/11/2026 o usuário pediu um .exe
+sem janelas de prompt, com tela de abertura e atualização automática: a mesma página passou
+a ser embutida num Electron, que só embrulha (não tem regra de negócio, e o servidor
+continua só com módulos nativos do Node). O código fica fora de pacote compactado (`asar:
+false`) porque o servidor lê os `.ts` direto e o Remotion executa binários de
+`node_modules`. O instalador é gerado num Windows, porque os binários nativos (compositor
+do Remotion) são escolhidos pelo sistema onde as dependências são instaladas. Guias:
 [INSTALACAO.md](INSTALACAO.md), [USO.md](USO.md), [ATUALIZACAO.md](ATUALIZACAO.md) e
 [BACKUP.md](BACKUP.md).
 
@@ -257,7 +264,17 @@ Electron no futuro, se um instalador único (.exe) for necessário. Guias:
 **Existentes e verificadas:** Node.js, TypeScript, Remotion, HyperFrames, GSAP, React,
 FFmpeg, FFprobe, faster-whisper, yt-dlp, SQLite (nativo). Versões em [VERSOES.md](VERSOES.md).
 
-**Exigidas no computador do usuário** (instaladas pelo instalador do Windows quando faltam):
+**Do aplicativo Windows** (dependências novas, versões fixas):
+
+| Dependência | Versão | Licença | Por que esta |
+|---|---|---|---|
+| Electron | 45.2.2 (desenvolvimento; vai dentro do instalador) | MIT | Janela própria e instalador único; o próprio executável roda o servidor como Node 24 (com `node:sqlite` e TypeScript direto, conferido), então o usuário não precisa instalar Node.js. Alternativas: Tauri e WebView2 exigiriam um Node separado para o servidor |
+| electron-builder | 26.18.0 (desenvolvimento) | MIT | Gera o instalador NSIS por usuário e os arquivos (`latest.yml`, `.blockmap`) que a atualização usa |
+| electron-updater | 6.8.11 (produção) | MIT | Atualização pelos lançamentos do GitHub, com download em segundo plano e porcentagem |
+| FFmpeg portátil | 8.0.1, build essentials de Gyan Doshi (espelho GitHub) | GPL-3.0 | Baixado pela preparação só se não houver FFmpeg; mesmo build que o winget instala. Fixado em `IA/Ambiente/` |
+| Python portátil | 3.12.12, python-build-standalone 20251217 | PSF-2.0 | Baixado pela preparação só se não houver Python 3.11+; a soma confere com a publicada. Fixado em `IA/Ambiente/` |
+
+**Exigidas no computador do usuário, pelo código-fonte** (instaladas pelo `Instalar.cmd` quando faltam; o aplicativo não exige nenhuma):
 Node.js 22.20 ou mais recente, Python 3.11 ou mais recente, FFmpeg com FFprobe e Git. Para
 abrir a janela: Microsoft Edge, Chrome ou outro navegador atual. As bibliotecas do
 programa (pacotes npm e Python) são instaladas por `npm run setup`, acionado pelo instalador.
@@ -279,8 +296,7 @@ processamento que não existem no projeto).
 
 | Dependência | Para quê |
 |---|---|
-| Electron e electron-builder | Só se for necessário um instalador único (.exe) com janela própria |
-| Python embutido | Distribuir Whisper e yt-dlp sem exigir Python instalado |
+| Assinatura digital do instalador | Tirar o aviso "O Windows protegeu o computador" (exige certificado pago) |
 | Outro servidor de modelo local (Ollama, LM Studio) | Opcional, para quem já usa um; detectado em Configurações. A IA local já cobre o caso comum |
 
 ## 12. Decisões em aberto

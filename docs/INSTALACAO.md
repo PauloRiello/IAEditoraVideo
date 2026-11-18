@@ -21,10 +21,41 @@ instalada, não depende de nenhum outro programa aberto nem de internet para edi
 | Espaço em disco | Cerca de 3 GB para o programa e as dependências, mais o espaço dos seus vídeos |
 | Memória | 8 GB no mínimo; 16 GB recomendados |
 | Placa de vídeo | Não é necessária. Se houver uma placa NVIDIA, ela é detectada e usada |
-| Internet | Só durante a instalação e as atualizações |
+| Internet | Na primeira abertura (para baixar FFmpeg, Python e os pacotes do Whisper, se faltarem) e nas atualizações |
 | Conhecimento de programação | Nenhum |
 
-## Instalação no Windows, passo a passo
+## Instalação no Windows pelo instalador (recomendada)
+
+1. **Baixe o instalador.** Na página do projeto no GitHub, abra **Releases** e baixe o
+   arquivo `IA-Editora-de-Video-Setup-<versão>.exe` da versão mais recente.
+2. **Execute.** Dê dois cliques no arquivo. Não pede senha de administrador: o programa é
+   instalado só para o seu usuário. Como o instalador não tem assinatura digital, o Windows
+   pode mostrar "O Windows protegeu o computador": clique em **Mais informações →
+   Executar assim mesmo**.
+3. **Primeira abertura.** O programa abre sozinho ao fim da instalação (depois, pelo atalho
+   **IA Editora de Video** na Área de Trabalho e no Menu Iniciar). A tela de abertura mostra
+   cada etapa e a porcentagem. Na primeira vez ela baixa o que faltar no computador:
+   - **FFmpeg** (cerca de 100 MB), se não houver um instalado;
+   - **Python** portátil (cerca de 45 MB), se não houver o Python 3.11 ou mais recente;
+   - os **pacotes do Whisper** (a transcrição), alguns minutos;
+   - a **detecção da placa de vídeo** e, com placa NVIDIA, as bibliotecas dela (cerca de 1 GB).
+
+   Tudo vai para `%LOCALAPPDATA%\IAEditoraVideo\ambiente`. Os downloads são conferidos pela
+   soma de verificação e, se a internet cair, continuam de onde pararam na próxima abertura.
+   Se alguma parte falhar, o programa abre assim mesmo, sem o recurso que dependia dela.
+4. **Pronto.** A janela do programa aparece. Nenhuma janela de prompt é aberta, nem ao
+   gerar prévias e exportar.
+
+Quem já usava a instalação pelo `Instalar.cmd` não perde nada: o aplicativo usa a mesma
+pasta de dados (`%LOCALAPPDATA%\IAEditoraVideo`), com os mesmos projetos e aprendizados. Se
+na instalação antiga você escolheu outra pasta para os vídeos, aponte-a de novo em
+**Configurações**.
+
+A IA local continua opcional e é instalada pela janela, em **Configurações → IA local**.
+
+## Instalação pelo código-fonte (Instalar.cmd)
+
+Para desenvolvimento, ou para quem prefere instalar pelo código.
 
 1. **Baixe o programa.** Na página do projeto no GitHub, clique em **Code → Download ZIP**
    e extraia o arquivo em uma pasta sua (por exemplo `C:\IA Editora de Video`).
@@ -134,6 +165,12 @@ npm run iniciar
 | A primeira transcrição demora | O modelo do Whisper é baixado uma vez; depois funciona sem internet |
 
 ## Desinstalar
+
+**Instalado pelo Setup.exe:** feche o programa e desinstale "IA Editora de Vídeo" em
+**Configurações do Windows → Aplicativos**. Os dados (`%LOCALAPPDATA%\IAEditoraVideo`) e os
+vídeos ficam; apague-os à mão se quiser.
+
+**Instalado pelo código-fonte:**
 
 1. Feche a aplicação.
 2. Apague os atalhos **IA Editora de Video** da Área de Trabalho e do Menu Iniciar.

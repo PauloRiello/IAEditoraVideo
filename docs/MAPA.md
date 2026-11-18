@@ -5,9 +5,10 @@ tamanho de cada arquivo extraídos com o compilador do TypeScript (a mesma base 
 ferramentas como o Serena usam para TypeScript). 102 arquivos de código, cerca de 14,8 mil
 linhas. Atualize este mapa quando a estrutura mudar.
 
-Orientado às próximas edições: **aplicativo .exe** (sem prompt), **tela de abertura** e
-**atualização automática** a partir do repositório. Plano detalhado:
+Orientado às edições do **aplicativo .exe** (sem prompt), **tela de abertura** e
+**atualização automática**, já feitas segundo o plano
 [superpowers/plans/2026-11-18-aplicativo-windows.md](superpowers/plans/2026-11-18-aplicativo-windows.md).
+As seções 4 e 5 registram o estado antes delas; a seção 7 resume o que mudou.
 
 ## 1. Camadas e tamanho
 
@@ -29,7 +30,7 @@ interface ──6──▶ nucleo ──47──▶ servicos ──8──▶ in
     │              ╰──13──▶ Pipeline
     ╰──3──▶ infra, 1 ▶ servicos
 todas ──▶ dominio (101 importações)
-Pipeline ──1──▶ servicos   ⚠ montagem.ts → servicos/estilos.ts (viola a regra das camadas)
+(corrigido: Pipeline/editing/montagem.ts importava servicos/estilos.ts; o tipo foi para dominio/estilos.ts)
 ```
 
 Pacotes externos importados pelo código: só `remotion`, `@remotion/bundler`,
@@ -41,7 +42,9 @@ externos.
 
 | Entrada | Arquivo | Quem chama |
 |---|---|---|
-| Janela (servidor local) | `src/interface/principal.ts` | `scripts/iniciar.mjs` (pelo atalho ou `npm run iniciar`) |
+| Aplicativo (.exe) | `aplicativo/principal.mjs` (Electron) | atalho do `Setup.exe`, `npm run aplicativo` |
+| Preparação do computador | `src/interface/preparar.ts` → `src/servicos/ambiente.ts` | aplicativo, a cada abertura |
+| Janela (servidor local) | `src/interface/principal.ts` (modo anfitrião com `IAEV_ANFITRIAO=1`) | aplicativo; ou `scripts/iniciar.mjs` (atalho do `Instalar.cmd`, `npm run iniciar`) |
 | Abertura com console invisível (Windows) | `scripts/lib/abrir-oculta.mjs` → `principal.ts` | `iniciar.mjs` |
 | Linha de comando | `src/interface/cli.ts` | `npm run app`, instalador, atualizador, backup, restaurar |
 | Instalação | `scripts/instalar.mjs` ← `windows/Instalar.ps1` | usuário |
@@ -115,18 +118,20 @@ mudaram, abre a CLI para migrar o banco e volta atrás se falhar.
 
 ## 5. Dívidas estruturais encontradas
 
-1. **Camada violada:** `Pipeline/editing/montagem.ts` importa `src/servicos/estilos.ts`.
-   O tipo do estilo deveria vir de `src/dominio/` (mover a interface `EstiloDeEdicao`).
+1. ~~**Camada violada**~~: corrigida (`EstiloDeEdicao` em `src/dominio/estilos.ts`).
 2. **Busca de navegador repetida** em quatro lugares: `Pipeline/rendering/motor.ts`
    (`chromeDoSistema`), `Pipeline/rendering/hyperframes.ts` (`navegadorDoRemotion`,
    `navegadorDoSistema`), `scripts/lib/comum.mjs` (`chromeDoSistema`, `navegadorDoRemotion`)
    e `scripts/iniciar.mjs`. Unificar em `Pipeline/rendering/navegadores.ts` (o código de
    `scripts/` só pode usar módulos nativos, então a versão `.mjs` fica como espelho).
-3. **Estado de máquina na pasta do programa** (seção 4.1): impede atualizar trocando a pasta.
+3. ~~**Estado de máquina na pasta do programa**~~: corrigido (`Caminhos.ambiente`), com volta
+   aos arquivos antigos para quem instalou pelo `Instalar.cmd`.
 4. **Arquivos grandes** que concentram muitas responsabilidades: `src/interface/rotas.ts`
    (554), `src/interface/cli.ts` (544), `src/servicos/ia-local.ts` (545). Dividir quando a
    próxima edição precisar mexer neles (rotas por assunto; CLI por comando; IA local em
-   download, motor e provedor).
+   motor e provedor; o download já saiu para `src/infra/download.ts`).
+6. **Dois caminhos de preparação do Python:** `scripts/configurar_ambiente.mjs` (código-fonte)
+   e `src/servicos/ambiente.ts` (aplicativo). Juntar quando o `Instalar.cmd` for aposentado.
 5. **Versão fixa em 0.1.0**: a atualização automática compara versões, então cada
    lançamento precisa incrementar `package.json`.
 
@@ -145,3 +150,23 @@ mudaram, abre a CLI para migrar o banco e volta atrás se falhar.
 | IA | `src/servicos/provedores.ts`, `ia-local.ts`, `src/infra/credenciais.ts`, `IA/Local/` |
 | Dados e proteção | `src/infra/banco.ts`, `backup.ts`, `caminhos.ts`, `configuracoes.ts` |
 | Instalação e manutenção | `scripts/instalar.mjs`, `atualizar.mjs`, `backup.mjs`, `restaurar.mjs`, `configurar_ambiente.mjs`, `detectar_gpu.mjs`, `scripts/verificar/*`, `windows/*` |
+
+## 7. Depois das edições do aplicativo (18/11/2026)
+
+| Assunto | Arquivos |
+|---|---|
+| Aplicativo (Electron) | `aplicativo/principal.mjs` (abertura, preparação, servidor, janela, fechamento), `estado.mjs` (lógica testável), `atualizacao.mjs`, `abertura.html`/`.js`, `ponte.cjs` |
+| Ambiente da máquina | `src/infra/caminhos.ts` (`ambiente`, `caminhoDaAceleracao`, `pythonDoAmbiente`), `src/servicos/ambiente.ts`, `IA/Ambiente/ferramentas.json` |
+| Download conferido | `src/infra/download.ts` (IA local e preparação) |
+| Instalador e lançamento | `electron-builder.yml`, `.github/workflows/lancamento.yml`, `docs/LANCAMENTO.md` |
+| Testes novos | `tests/unidade/ambiente.test.ts`, `anfitriao.test.ts`, `aplicativo.test.ts` |
+
+```
+atalho → IA Editora de Vídeo.exe (aplicativo/principal.mjs)
+  → abertura.html (etapa + %)
+  → [mesmo .exe como Node] src/interface/preparar.ts  → linhas {etapa, fracao} … {pronto}
+  → [mesmo .exe como Node, windowsHide] src/interface/principal.ts (anfitrião)
+        → {etapa} … {pronta, porta, token} → janela própria em http://127.0.0.1:porta/?t=…
+fechar → (pergunta se há tarefa) → fecha a entrada padrão do servidor → [atualização baixada?]
+        → cli.ts backup pre-atualizacao → instala e reabre
+```

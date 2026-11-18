@@ -92,6 +92,12 @@ Leia [docs/ARQUITETURA.md](docs/ARQUITETURA.md) antes de alterar a estrutura e
 - **Aprendizado rastreável e reversível.** Toda evidência registra a fonte (projeto,
   referência, avaliação ou resultado). Ações sobre aprendizados passam por
   `ServicoAprendizado`, que guarda o estado anterior para desfazer.
+- **O aplicativo só embrulha.** `aplicativo/` mostra a abertura, prepara o computador,
+  inicia `src/interface/principal.ts` em modo anfitrião e mostra a página; não tem regra de
+  negócio. Estado da máquina (Python, FFmpeg, aceleração) fica em `Caminhos.ambiente`, na
+  pasta de dados, porque a atualização substitui a pasta do programa. Cada lançamento sobe a
+  versão do `package.json` (`npm version`) e é publicado pelo fluxo, nunca à mão
+  ([docs/LANCAMENTO.md](docs/LANCAMENTO.md)).
 - **Nada pessoal no Git.** Vídeos, banco, `Dados/`, `.env` e chaves ficam fora.
 - **Trabalhe uma etapa por vez** e não avance para a seguinte sem autorização do usuário.
 
@@ -110,6 +116,8 @@ Leia [docs/ARQUITETURA.md](docs/ARQUITETURA.md) antes de alterar a estrutura e
 | `npm run app -- situacao` | Executa a aplicação pela linha de comando |
 | `npm run exemplo:memoria` | Demonstra memória e aprendizado em pasta temporária |
 | `npm run versoes` | Regrava `docs/VERSOES.md` |
+| `npm run aplicativo` | Abre o aplicativo (Electron) com tela de abertura e janela própria |
+| `npm run empacotar` | Gera o instalador do Windows (só num Windows; o oficial vem do fluxo "Lançamento") |
 
 Antes de concluir uma alteração: `npm run typecheck` e `npm test`.
 
@@ -145,6 +153,9 @@ Antes de concluir uma alteração: `npm run typecheck` e `npm test`.
 | `tests/windows/` | Simulação do instalador do Windows com PowerShell fora do Windows (`bash tests/windows/simular_instalador.sh`; exige `pwsh`, senão é pulada) |
 | `scripts/` | Instalar, iniciar, parar, atualizar, backup, restaurar, setup, detecção de GPU e verificadores |
 | `windows/` | Instalador (`Instalar.cmd`, `Instalar.ps1`) e atalhos `.cmd`, em ASCII e com fim de linha do Windows |
+| `aplicativo/` | Aplicativo Windows (Electron): tela de abertura, preparação, servidor sem console, janela e atualização automática; lógica testável em `estado.mjs` |
+| `IA/Ambiente/` | FFmpeg e Python portáteis baixados pela preparação, com versão, tamanho e SHA-256 fixados |
+| `.github/workflows/` | `lancamento.yml`: instalador gerado e testado num Windows; publica nas etiquetas `v*` |
 | `Dados/` | Banco, configurações e temporários locais (fora do Git) |
 
 ## Ao terminar uma etapa

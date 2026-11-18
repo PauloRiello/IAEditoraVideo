@@ -22,13 +22,25 @@ que não foi avaliado aparece como "não avaliado", nunca como um palpite.
   livre de 15,7 GB, mas o erro continuou depois de fechar os outros programas, então a
   memória provavelmente não é a causa. A pista que resta: o Node.js 26, mais novo que o 22
   usado no desenvolvimento.
-- **Não há instalador único (.exe).** A instalação é feita por um script que usa o winget
-  para instalar Node.js, Git, FFmpeg e Python. Exige internet e Windows 10 ou 11 com winget.
-- **A janela é uma janela do Edge ou do Chrome.** A interface é uma página servida pela
-  própria aplicação, só para o próprio computador. Não há ícone próprio na barra de
-  tarefas além do atalho.
-- **Atualização depende do Git.** Instalações feitas a partir de um ZIP são atualizadas
-  baixando o ZIP novo e executando o instalador de novo.
+- **Instalador sem assinatura digital.** Na primeira vez, o Windows mostra "O Windows
+  protegeu o computador"; é preciso clicar em "Mais informações → Executar assim mesmo".
+  Assinar exige um certificado pago.
+- **A atualização automática exige o repositório público.** O atualizador baixa os
+  lançamentos sem login. Enquanto o repositório for privado, o programa só registra que não
+  conseguiu procurar atualizações.
+- **O instalador só é gerado num Windows.** Os componentes nativos (como o compositor do
+  Remotion) dependem do sistema onde as dependências são instaladas; o fluxo "Lançamento"
+  do GitHub faz isso num Windows. `npm run empacotar` em Linux gera um programa que não
+  renderiza no Windows.
+- **Pasta de vídeos personalizada da instalação antiga.** O aplicativo usa a pasta padrão
+  (`Documentos\IA Editora de Vídeo`); quem escolheu outra no `Instalar.cmd` precisa
+  apontá-la de novo.
+- **Links do YouTube sem Node.js.** O yt-dlp usa o Node.js para parte do YouTube. No
+  aplicativo, que não exige Node instalado, baixar referências do YouTube pode falhar.
+- **Primeiro render baixa o navegador de render.** A preparação não baixa o navegador do
+  Remotion; ele vem no primeiro render, que demora mais.
+- **Pelo código-fonte:** o `Instalar.cmd` usa o winget para instalar Node.js, Git, FFmpeg
+  e Python, abre a página numa janela do Edge ou do Chrome e atualiza pelo Git.
 - **Codificação por GPU (NVENC) testada só na verificação.** Em um Windows com RTX 3050, o
   render de teste do Remotion usou NVENC. Uma exportação completa pela GPU ainda não foi
   conferida. Sem GPU, tudo roda pelo processador.

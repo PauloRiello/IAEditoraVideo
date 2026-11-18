@@ -395,6 +395,45 @@ organizar o roteiro, e janelas do prompt que continuavam abrindo na prévia.
   de mensagem do Windows.
 - **Testes:** 90, todos passando, com um teste novo do plano B e da gravação do erro.
 
+## Etapa — Aplicativo Windows: .exe, tela de abertura e atualização automática (18/11/2026)
+
+Pedido: "deixar de tudo ser executado num prompt para se tornar um .exe; tela de loading
+inicial; .exe ser atualizado automaticamente com base no repositório". Mapa do código em
+[MAPA.md](MAPA.md); plano em [superpowers/plans/2026-11-18-aplicativo-windows.md](superpowers/plans/2026-11-18-aplicativo-windows.md).
+O usuário escolheu publicar os lançamentos neste repositório, tornando-o público.
+
+- **Aplicativo Electron** (`aplicativo/`): tela de abertura com etapa e porcentagem; uma
+  instância só; servidor iniciado rodando o próprio executável como Node (Electron 45.2.2,
+  Node 24.22; `node:sqlite` e TypeScript direto conferidos), com `windowsHide`, então nenhuma
+  janela de prompt; janela própria; fechar com análise ou render em andamento pergunta antes;
+  erro ao abrir mostra o motivo, as últimas linhas do registro e "Tentar de novo".
+- **Preparação do computador** (`src/servicos/ambiente.ts`, `src/interface/preparar.ts`):
+  FFmpeg 8.0.1 e Python 3.12.12 portáteis, com tamanho e SHA-256 fixados em `IA/Ambiente/`,
+  baixados só se faltarem, com retomada; pacotes do Whisper (reinstalados quando o
+  `requirements.txt` muda); detecção da placa e bibliotecas NVIDIA. Falha numa parte vira
+  aviso e o programa abre com o resto.
+- **Estado da máquina fora da pasta do programa** (`Caminhos.ambiente`), porque a
+  atualização a substitui; instalações pelo `Instalar.cmd` continuam valendo (`.venv` e
+  `config/local.aceleracao.json` antigos são usados se não houver os novos).
+- **Servidor em modo anfitrião** (`IAEV_ANFITRIAO=1`): linhas JSON e encerramento quando o
+  aplicativo fecha.
+- **Atualização automática** (electron-updater): procura ao abrir e a cada 6 h, baixa com
+  porcentagem (em Configurações → Sobre), instala ao fechar ou em "Reiniciar e atualizar",
+  depois da cópia "pre-atualizacao" e nunca com tarefa em andamento.
+- **Lançamento** (`.github/workflows/lancamento.yml`, [LANCAMENTO.md](LANCAMENTO.md)): num
+  Windows, gera o instalador, instala em silêncio, abre com `--teste-de-fumaca` e, nas
+  etiquetas `v*`, publica. Nos pull requests, o instalador fica como artefato.
+- **Dívidas do mapa resolvidas:** camada violada (`EstiloDeEdicao` no domínio); download
+  conferido em `src/infra/download.ts`.
+- **Testes:** 3 arquivos novos (ambiente, anfitrião, aplicativo), todos passando com o
+  resto da suíte. O aplicativo foi aberto de verdade em Linux (tela virtual): abertura,
+  janela em 5 s, tela de erro, seção Sobre e teste de fumaça.
+- **Pendências:** tornar o repositório público (sem isso a atualização não acha os
+  lançamentos); publicar a primeira versão (`npm version minor` e `git push --follow-tags`)
+  depois do merge; o instalador não tem assinatura digital; pasta de vídeos personalizada
+  do `Instalar.cmd` não é descoberta; links do YouTube podem precisar do Node.js; o
+  navegador de render vem no primeiro render; juntar os dois caminhos de preparação do Python.
+
 ## Próximas etapas (não iniciadas)
 
 A confirmar com o usuário. Sugestão: validação em Windows real com vídeos reais.
