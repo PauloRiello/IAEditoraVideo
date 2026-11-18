@@ -6,7 +6,7 @@
 
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import { spawn } from "node:child_process";
-import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,6 +26,12 @@ const ENV_DO_SERVIDOR = {
   ...process.env,
   ...ambienteDoServidor({ dados: DADOS, biblioteca: BIBLIOTECA, ambiente: AMBIENTE, pathAtual: process.env.PATH ?? "", registro: REGISTRO }),
 };
+/**
+ * Teste de fumaça (fluxo de lançamento): abre sem mostrar nada, confere o servidor, grava o
+ * resultado no arquivo de --resultado=<arquivo> e fecha.
+ */
+const FUMACA = process.argv.includes("--teste-de-fumaca");
+const RESULTADO_DA_FUMACA = process.argv.find((a) => a.startsWith("--resultado="))?.slice("--resultado=".length) ?? path.join(DADOS, "teste-de-fumaca.json");
 /** Tempo máximo para o servidor ficar pronto depois de iniciado. */
 const ESPERA_DO_SERVIDOR_MS = 3 * 60_000;
 
@@ -67,7 +73,7 @@ if (!app.requestSingleInstanceLock()) {
     criarAbertura();
     void abrir();
     // Só o programa instalado se atualiza (no desenvolvimento, quem atualiza é o Git).
-    if (app.isPackaged) atualizacao = iniciarAtualizacao({ aoMudar: (texto, pronta) => janela?.webContents.send("iaev:atualizacao", texto, pronta), registrar });
+    if (app.isPackaged && !FUMACA) atualizacao = iniciarAtualizacao({ aoMudar: (texto, pronta) => janela?.webContents.send("iaev:atualizacao", texto, pronta), registrar });
   });
 }
 
@@ -81,7 +87,7 @@ const preferencias = () => ({ preload: path.join(AQUI, "ponte.cjs"), contextIsol
 
 function criarAbertura() {
   abertura = new BrowserWindow({ width: 520, height: 320, frame: false, resizable: false, show: false, backgroundColor: "#14161a", title: TITULO, icon: path.join(AQUI, "icone.svg"), webPreferences: preferencias() });
-  abertura.once("ready-to-show", () => abertura?.show());
+  abertura.once("ready-to-show", () => { if (!FUMACA) abertura?.show(); });
   abertura.on("closed", () => (abertura = null));
   void abertura.loadFile(path.join(AQUI, "abertura.html"));
 }
@@ -93,6 +99,7 @@ function mostrar(etapa, fracao) {
 }
 function mostrarErro(mensagem) {
   registrar(`Falha ao abrir: ${mensagem}`);
+  if (FUMACA) void terminarFumaca({ ok: false, erro: mensagem });
   abertura?.webContents.send("iaev:abertura", { erro: mensagem, registro: ultimasLinhasDoRegistro() });
 }
 
@@ -113,6 +120,8 @@ function executarComoNode(script, aoLinha) {
   return filho;
 }
 
+/** O que a preparação não conseguiu fazer (vai para o resultado do teste de fumaça). */
+let avisosDaPreparacao = [];
 let abrindo = false;
 async function abrir() {
   if (abrindo) return;
@@ -136,6 +145,7 @@ function preparar() {
       if (linha.tipo === "etapa") mostrar(linha.etapa, fracaoDaAbertura("preparando", linha.fracao));
       else if (linha.tipo === "preparado") {
         terminou = true;
+        avisosDaPreparacao = [...linha.avisos, ...linha.faltando.map((f) => `Falta: ${f}`)];
         for (const aviso of linha.avisos) registrar(`Preparação: ${aviso}`);
         if (linha.faltando.length) registrar(`Preparação: ainda falta ${linha.faltando.join(", ")}`);
       } else if (linha.tipo === "erro") {
@@ -163,7 +173,8 @@ function iniciarServidor() {
         clearTimeout(limite);
         sessao = { porta: linha.porta, token: linha.token };
         mostrar("Abrindo a janela", 1);
-        abrirJanela();
+        if (FUMACA) void conferirFumaca();
+        else abrirJanela();
         resolver();
       } else if (linha.tipo === "erro") motivo = linha.mensagem;
     });
@@ -213,6 +224,31 @@ function abrirJanela() {
   });
   janela.on("closed", () => (janela = null));
   void janela.loadURL(`${origem}/?t=${sessao.token}`);
+}
+
+async function conferirFumaca() {
+  const pedir = async (rota) => {
+    const resposta = await fetch(`http://127.0.0.1:${sessao?.porta}${rota}`, { headers: { "x-iaev-sessao": sessao?.token ?? "" }, signal: AbortSignal.timeout(15_000) });
+    if (!resposta.ok) throw new Error(`${rota} respondeu ${resposta.status}`);
+    return resposta.json();
+  };
+  try {
+    const saude = await pedir("/api/saude");
+    await pedir("/api/painel");
+    await terminarFumaca({ ok: saude.aplicacao === "ia-editora-video", versao: app.getVersion(), preparacao: avisosDaPreparacao });
+  } catch (erro) {
+    await terminarFumaca({ ok: false, erro: erro instanceof Error ? erro.message : String(erro) });
+  }
+}
+
+let fumacaTerminada = false;
+async function terminarFumaca(resultado) {
+  if (fumacaTerminada) return;
+  fumacaTerminada = true;
+  saindo = true;
+  writeFileSync(RESULTADO_DA_FUMACA, `${JSON.stringify(resultado, null, 2)}\n`);
+  await encerrarServidor();
+  app.exit(resultado.ok ? 0 : 1);
 }
 
 /** Tarefas do servidor (análises, renders), pela sessão do aplicativo. */
