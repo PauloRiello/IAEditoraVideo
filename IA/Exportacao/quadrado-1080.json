@@ -1,0 +1,10 @@
+{
+  "id": "quadrado-1080",
+  "nome": "Quadrado 1080×1080 (feed)",
+  "largura": 1080,
+  "altura": 1080,
+  "fps": null,
+  "crf": 18,
+  "velocidadeDeCodificacao": "medium",
+  "taxaDeBitsDoAudioKbps": 192
+}

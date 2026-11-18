@@ -1,0 +1,44 @@
+# Instalador do Windows (NSIS) e publicação para a atualização automática.
+# Gerado pelo fluxo .github/workflows/lancamento.yml; à mão: npm run empacotar.
+appId: br.iaeditora.video
+productName: IA Editora de Vídeo
+copyright: IA Editora de Vídeo
+directories:
+  output: dist-aplicativo
+# Sem pacote compactado (asar): o servidor lê os .ts direto e o Remotion executa binários
+# de node_modules, o que não funciona de dentro de um asar.
+asar: false
+files:
+  - package.json
+  - aplicativo/**
+  - src/**
+  - Pipeline/**
+  - IA/**
+  - scripts/**
+  - config/**
+  - "!config/local.*"
+  - remotion.config.ts
+  - requirements.txt
+  - requirements-gpu-nvidia.txt
+  - "!**/*.test.ts"
+  - "!**/__pycache__/**"
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: src/interface/web/icone.ico
+nsis:
+  # Instala só para o usuário, sem pedir administrador; atualizações também.
+  oneClick: true
+  perMachine: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: IA Editora de Video
+  artifactName: IA-Editora-de-Video-Setup-${version}.${ext}
+  # Desinstalar não apaga os dados (ficam em %LOCALAPPDATA%\IAEditoraVideo).
+  deleteAppDataOnUninstall: false
+publish:
+  provider: github
+  owner: PauloRiello
+  repo: IAEditoraVideo
+  releaseType: release

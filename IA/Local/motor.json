@@ -1,0 +1,15 @@
+{
+  "nome": "llama.cpp (llama-server)",
+  "versao": "b12400",
+  "licenca": "MIT",
+  "origem": "https://github.com/ggml-org/llama.cpp",
+  "endereco": "https://github.com/ggml-org/llama.cpp/releases/download/b12400/",
+  "variantes": [
+    { "id": "windows-gpu", "plataforma": "win32", "arquitetura": "x64", "aceleracao": "gpu", "descricao": "Windows, placa de vídeo (Vulkan: NVIDIA, AMD ou Intel)", "arquivo": "llama-b12400-bin-win-vulkan-x64.zip", "tamanho": 38197675, "sha256": "0574451721e7084bec76ceef65d28c351bc6fc19ca395efd4394c046e25a1f4a" },
+    { "id": "windows-cpu", "plataforma": "win32", "arquitetura": "x64", "aceleracao": "cpu", "descricao": "Windows, só processador", "arquivo": "llama-b12400-bin-win-cpu-x64.zip", "tamanho": 25127288, "sha256": "080810522a80ab61025ffd4e85a876a506cba67009dcbe8f8056fd4b9b2e43d8" },
+    { "id": "linux-gpu", "plataforma": "linux", "arquitetura": "x64", "aceleracao": "gpu", "descricao": "Linux, placa de vídeo (Vulkan)", "arquivo": "llama-b12400-bin-ubuntu-vulkan-x64.tar.gz", "tamanho": 36266579, "sha256": "0ec5e9e324d6667ad57a8880274f824d54b072cff06f857c20857c1be87fec46" },
+    { "id": "linux-cpu", "plataforma": "linux", "arquitetura": "x64", "aceleracao": "cpu", "descricao": "Linux, só processador", "arquivo": "llama-b12400-bin-ubuntu-x64.tar.gz", "tamanho": 23338771, "sha256": "2fc619d367f6a6bed8a0d2436c25d33eab1b60167ccef4906147d7d3a6ad3020" },
+    { "id": "macos-arm", "plataforma": "darwin", "arquitetura": "arm64", "aceleracao": "gpu", "descricao": "macOS com Apple Silicon (Metal)", "arquivo": "llama-b12400-bin-macos-arm64.tar.gz", "tamanho": 16925352, "sha256": "e159aeb1384686b037dd2992eef6c11989e362ccfa0b7dfbe7cbc21b8fcbb4e8" },
+    { "id": "macos-intel", "plataforma": "darwin", "arquitetura": "x64", "aceleracao": "cpu", "descricao": "macOS com processador Intel", "arquivo": "llama-b12400-bin-macos-x64.tar.gz", "tamanho": 12671439, "sha256": "ea04d501b8a2806dde2a25302c7cea7970eb82b8cead4ce6780ea3c250feeb4c" }
+  ]
+}

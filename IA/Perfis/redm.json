@@ -1,0 +1,139 @@
+{
+  "id": "redm",
+  "nome": "RedM — divulgação de servidor",
+  "descricao": "Vídeos promocionais curtos de servidores RedM (Red Dead Redemption 2 roleplay) para Instagram e TikTok.",
+  "formatoPadrao": "vertical-1080",
+  "formatos": [
+    {
+      "id": "vertical-1080",
+      "nome": "Vertical 9:16 (Instagram Reels, TikTok, Shorts)",
+      "largura": 1080,
+      "altura": 1920,
+      "fps": 30,
+      "duracaoMaximaSeg": 90
+    },
+    {
+      "id": "horizontal-1080",
+      "nome": "Horizontal 16:9 (YouTube, institucional)",
+      "largura": 1920,
+      "altura": 1080,
+      "fps": 30
+    },
+    {
+      "id": "quadrado-1080",
+      "nome": "Quadrado 1:1 (feed)",
+      "largura": 1080,
+      "altura": 1080,
+      "fps": 30
+    }
+  ],
+  "diretrizes": [
+    "Abrir com paisagem ou cena de ação marcante nos primeiros 2 segundos.",
+    "Ritmo cinematográfico: planos um pouco mais longos e trilha de faroeste.",
+    "Mostrar diferenciais do servidor: cidades, profissões, cavalos, duelos e eventos.",
+    "Encerrar com nome do servidor e chamada para entrar (Discord ou IP)."
+  ],
+  "analise": {
+    "estrutura": "curta",
+    "palavrasDeCta": [
+      "discord",
+      "inscreva",
+      "siga",
+      "segue",
+      "link",
+      "acesse",
+      "entre",
+      "conecte",
+      "baixe",
+      "compre",
+      "garanta",
+      "subscribe",
+      "follow",
+      "join",
+      "connect"
+    ],
+    "tiposDeConteudo": [
+      {
+        "id": "trailer",
+        "nome": "Trailer",
+        "sinais": [
+          "ritmo-rapido",
+          "musica",
+          "sincronia-musical",
+          "sem-fala"
+        ]
+      },
+      {
+        "id": "cena-cinematografica",
+        "nome": "Cena cinematográfica",
+        "sinais": [
+          "barras-de-cinema",
+          "planos-longos",
+          "musica",
+          "camera-em-movimento"
+        ]
+      },
+      {
+        "id": "gameplay",
+        "nome": "Gameplay",
+        "sinais": [
+          "ritmo-lento",
+          "planos-longos",
+          "sem-musica"
+        ]
+      },
+      {
+        "id": "demonstracao-de-funcionalidade",
+        "nome": "Demonstração de funcionalidade",
+        "sinais": [
+          "fala",
+          "ritmo-lento",
+          "palavras"
+        ],
+        "palavras": [
+          "sistema",
+          "script",
+          "garagem",
+          "inventário",
+          "emprego",
+          "profissão",
+          "loja",
+          "comando",
+          "menu",
+          "funciona",
+          "novidade",
+          "atualização"
+        ]
+      },
+      {
+        "id": "divulgacao-de-servidor",
+        "nome": "Divulgação de servidor",
+        "sinais": [
+          "ritmo-rapido",
+          "musica",
+          "palavras"
+        ],
+        "palavras": [
+          "servidor",
+          "cidade",
+          "roleplay",
+          "rp",
+          "whitelist",
+          "discord",
+          "venha",
+          "conheça",
+          "inauguração",
+          "redm"
+        ]
+      }
+    ]
+  },
+  "angulosDeRoteiro": [
+    "gameplay",
+    "humor",
+    "imersão",
+    "divulgação de funcionalidades",
+    "eventos",
+    "recrutamento"
+  ]
+}

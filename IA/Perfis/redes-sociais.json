@@ -1,0 +1,56 @@
+{
+  "id": "redes-sociais",
+  "nome": "Redes sociais",
+  "descricao": "Vídeos curtos verticais para Instagram, TikTok e Shorts, feitos para prender a atenção logo no início.",
+  "formatoPadrao": "vertical-1080",
+  "formatos": [
+    {
+      "id": "vertical-1080",
+      "nome": "Vertical 9:16 (Instagram Reels, TikTok, Shorts)",
+      "largura": 1080,
+      "altura": 1920,
+      "fps": 30,
+      "duracaoMaximaSeg": 90
+    },
+    {
+      "id": "quadrado-1080",
+      "nome": "Quadrado 1:1 (feed)",
+      "largura": 1080,
+      "altura": 1080,
+      "fps": 30
+    },
+    {
+      "id": "horizontal-1080",
+      "nome": "Horizontal 16:9 (YouTube, institucional)",
+      "largura": 1920,
+      "altura": 1080,
+      "fps": 30
+    }
+  ],
+  "diretrizes": [
+    "Gancho nos primeiros 2 segundos.",
+    "Legendas visíveis: boa parte do público assiste sem som.",
+    "Manter elementos importantes longe das bordas ocupadas pela interface do aplicativo.",
+    "Encerrar com uma chamada para ação clara."
+  ],
+  "analise": {
+    "estrutura": "curta",
+    "palavrasDeCta": [
+      "discord",
+      "inscreva",
+      "siga",
+      "segue",
+      "link",
+      "acesse",
+      "entre",
+      "conecte",
+      "baixe",
+      "compre",
+      "garanta",
+      "subscribe",
+      "follow",
+      "join",
+      "connect"
+    ]
+  }
+}

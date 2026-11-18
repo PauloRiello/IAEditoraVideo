@@ -1,0 +1,10 @@
+{
+  "id": "horizontal-720",
+  "nome": "Horizontal 1280×720, arquivo menor",
+  "largura": 1280,
+  "altura": 720,
+  "fps": null,
+  "crf": 21,
+  "velocidadeDeCodificacao": "medium",
+  "taxaDeBitsDoAudioKbps": 160
+}

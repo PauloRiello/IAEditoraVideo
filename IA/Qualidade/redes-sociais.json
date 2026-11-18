@@ -1,0 +1,45 @@
+{
+  "id": "redes-sociais",
+  "nome": "Instagram e TikTok",
+  "plataformas": [
+    "instagram",
+    "tiktok",
+    "reels",
+    "shorts",
+    "kwai"
+  ],
+  "proporcao": {
+    "orientacao": "vertical",
+    "gravidade": "importante"
+  },
+  "duracao": {
+    "maximaSeg": 90,
+    "gravidade": "importante"
+  },
+  "texto": {
+    "tamanhoMinimo": 0.032,
+    "gravidade": "importante"
+  },
+  "legendas": {
+    "tamanhoMinimo": 0.03,
+    "maximoDeCaracteres": 90
+  },
+  "areaSegura": {
+    "topo": 0.1,
+    "base": 0.2,
+    "lados": 0.06,
+    "gravidade": "importante"
+  },
+  "abertura": {
+    "avaliar": true,
+    "segundos": 3
+  },
+  "ritmo": {
+    "duracaoMaximaDoPlanoSeg": 6
+  },
+  "cta": "recomendado",
+  "audio": {
+    "volumeAlvoLufs": -14,
+    "picoMaximoDb": -1
+  }
+}

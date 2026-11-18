@@ -1,0 +1,61 @@
+{
+  "name": "ia-editora-video",
+  "version": "0.2.0",
+  "description": "Editor de vídeo assistido por IA",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "scripts": {
+    "app": "node --disable-warning=ExperimentalWarning src/interface/cli.ts",
+    "instalar": "node scripts/instalar.mjs",
+    "iniciar": "node scripts/iniciar.mjs",
+    "parar": "node scripts/parar.mjs",
+    "atualizar": "node scripts/atualizar.mjs",
+    "backup": "node scripts/backup.mjs",
+    "restaurar": "node scripts/restaurar.mjs",
+    "test": "node --disable-warning=ExperimentalWarning --test \"tests/unidade/*.test.ts\"",
+    "exemplo:memoria": "node --disable-warning=ExperimentalWarning exemplos/memoria.ts",
+    "setup": "node scripts/configurar_ambiente.mjs",
+    "gpu": "node scripts/detectar_gpu.mjs",
+    "versoes": "node scripts/registrar_versoes.mjs",
+    "typecheck": "tsc",
+    "verificar": "node scripts/verificar/todos.mjs",
+    "verificar:node": "node scripts/verificar/node.mjs",
+    "verificar:python": "node scripts/verificar/python.mjs",
+    "verificar:typescript": "node scripts/verificar/typescript.mjs",
+    "verificar:ffmpeg": "node scripts/verificar/ffmpeg.mjs",
+    "verificar:ffprobe": "node scripts/verificar/ffprobe.mjs",
+    "verificar:gpu": "node scripts/verificar/gpu.mjs",
+    "verificar:gsap": "node scripts/verificar/gsap.mjs",
+    "verificar:remotion": "node scripts/verificar/remotion.mjs",
+    "verificar:hyperframes": "node scripts/verificar/hyperframes.mjs",
+    "verificar:whisper": "node scripts/verificar/whisper.mjs",
+    "verificar:yt-dlp": "node scripts/verificar/yt-dlp.mjs",
+    "verificar:skills": "node scripts/verificar/skills.mjs",
+    "aplicativo": "electron .",
+    "empacotar": "electron-builder --win --publish never"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.543",
+    "@remotion/cli": "4.0.543",
+    "@remotion/renderer": "4.0.543",
+    "electron-updater": "6.8.11",
+    "gsap": "3.15.1",
+    "hyperframes": "0.9.40",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "remotion": "4.0.543"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "electron": "45.2.2",
+    "electron-builder": "26.18.0",
+    "typescript": "5.9.3"
+  },
+  "main": "aplicativo/principal.mjs",
+  "author": "IA Editora de Vídeo"
+}

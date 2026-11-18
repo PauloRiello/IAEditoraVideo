@@ -1,0 +1,29 @@
+{
+  "id": "gameplay",
+  "nome": "Gameplay",
+  "descricao": "Mostra o jogo como ele é: planos mais longos, cortes secos e imagem sem tratamento.",
+  "indicadoPara": [
+    "fivem",
+    "redm"
+  ],
+  "duracaoDoPlanoSeg": 4,
+  "transicao": {
+    "tipo": "corte",
+    "duracaoSeg": 0
+  },
+  "efeitos": [],
+  "zoomLentoEmPlanosParados": false,
+  "legendas": {
+    "tamanho": 0.032,
+    "caixa": true
+  },
+  "texto": {
+    "tamanho": 0.04,
+    "posicao": "topo",
+    "animacao": "surgir"
+  },
+  "encerramento": "texto",
+  "fadeFinalSeg": 0,
+  "volumeDaTrilha": 0.5,
+  "volumeDaTrilhaNasFalas": 0.2
+}

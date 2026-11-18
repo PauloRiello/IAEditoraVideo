@@ -1,0 +1,29 @@
+{
+  "id": "demonstracao",
+  "nome": "Demonstração de funcionalidades",
+  "descricao": "Mostra sistemas e novidades com clareza: planos longos, sem efeitos, legendas com caixa e texto explicativo no topo.",
+  "indicadoPara": [
+    "fivem",
+    "redm"
+  ],
+  "duracaoDoPlanoSeg": 4,
+  "transicao": {
+    "tipo": "corte",
+    "duracaoSeg": 0
+  },
+  "efeitos": [],
+  "zoomLentoEmPlanosParados": false,
+  "legendas": {
+    "tamanho": 0.034,
+    "caixa": true
+  },
+  "texto": {
+    "tamanho": 0.04,
+    "posicao": "topo",
+    "animacao": "surgir"
+  },
+  "encerramento": "texto",
+  "fadeFinalSeg": 0,
+  "volumeDaTrilha": 0.3,
+  "volumeDaTrilhaNasFalas": 0.1
+}

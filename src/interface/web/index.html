@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IA Editora de Vídeo</title>
+  <link rel="icon" href="/icone.svg">
+  <link rel="stylesheet" href="/estilo.css">
+</head>
+<body>
+  <aside class="lateral">
+    <div class="marca"><img src="/icone.svg" alt=""><div><strong>IA Editora</strong><span>de Vídeo</span></div></div>
+    <nav id="menu">
+      <a href="#/painel" data-tela="painel">Painel</a>
+      <a href="#/projetos" data-tela="projetos">Projetos</a>
+      <a href="#/referencias" data-tela="referencias">Referências</a>
+      <a href="#/aprendizado" data-tela="aprendizado">Aprendizado</a>
+      <a href="#/configuracoes" data-tela="configuracoes">Configurações</a>
+    </nav>
+    <div class="processamento" id="processamento" hidden></div>
+    <div class="rodape"><span id="versao"></span><button class="discreto" id="encerrar" title="Fecha a aplicação com segurança">Encerrar</button></div>
+  </aside>
+  <main id="conteudo" tabindex="-1"></main>
+  <div id="avisos" aria-live="polite"></div>
+  <div class="cortina" id="cortina" hidden><div><h2 id="cortina-titulo"></h2><p id="cortina-texto"></p><button id="cortina-acao" hidden>Tentar de novo</button></div></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

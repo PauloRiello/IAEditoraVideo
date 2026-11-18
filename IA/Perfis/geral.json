@@ -1,0 +1,54 @@
+{
+  "id": "geral",
+  "nome": "Geral",
+  "descricao": "Ponto de partida para qualquer tipo de vídeo: marketing, institucional, educacional, documentário, trailer ou conteúdo pessoal.",
+  "formatoPadrao": "horizontal-1080",
+  "formatos": [
+    {
+      "id": "horizontal-1080",
+      "nome": "Horizontal 16:9 (YouTube, institucional)",
+      "largura": 1920,
+      "altura": 1080,
+      "fps": 30
+    },
+    {
+      "id": "vertical-1080",
+      "nome": "Vertical 9:16 (Instagram Reels, TikTok, Shorts)",
+      "largura": 1080,
+      "altura": 1920,
+      "fps": 30,
+      "duracaoMaximaSeg": 90
+    },
+    {
+      "id": "quadrado-1080",
+      "nome": "Quadrado 1:1 (feed)",
+      "largura": 1080,
+      "altura": 1080,
+      "fps": 30
+    }
+  ],
+  "diretrizes": [
+    "Priorizar clareza da mensagem e boa qualidade de áudio.",
+    "Manter ritmo coerente com o objetivo do vídeo."
+  ],
+  "analise": {
+    "estrutura": "automatica",
+    "palavrasDeCta": [
+      "discord",
+      "inscreva",
+      "siga",
+      "segue",
+      "link",
+      "acesse",
+      "entre",
+      "conecte",
+      "baixe",
+      "compre",
+      "garanta",
+      "subscribe",
+      "follow",
+      "join",
+      "connect"
+    ]
+  }
+}

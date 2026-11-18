@@ -1,0 +1,14 @@
+# Dependências Python da IA Editora de Vídeo (Python 3.11+).
+# Instaladas em .venv por `npm run setup`.
+
+# Transcrição: implementação do Whisper sobre CTranslate2. Não depende de PyTorch
+# e decodifica áudio com PyAV (bibliotecas do FFmpeg embutidas).
+faster-whisper==1.2.1
+
+# PyAV fixado: o faster-whisper 1.2.1 chama av.open(metadata_errors=...),
+# argumento removido no PyAV 19. A 18.1.0 é a mais recente compatível (testado).
+av==18.1.0
+
+# Download de vídeos de referência. O extra "default" inclui o yt-dlp-ejs,
+# exigido para suporte completo ao YouTube (usa o Node.js como runtime de JavaScript).
+yt-dlp[default]==2026.10.26

@@ -1,0 +1,10 @@
+{
+  "id": "vertical-720",
+  "nome": "Vertical 720×1280, arquivo menor",
+  "largura": 720,
+  "altura": 1280,
+  "fps": null,
+  "crf": 21,
+  "velocidadeDeCodificacao": "medium",
+  "taxaDeBitsDoAudioKbps": 160
+}

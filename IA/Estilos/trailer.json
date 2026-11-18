@@ -1,0 +1,40 @@
+{
+  "id": "trailer",
+  "nome": "Trailer",
+  "descricao": "Apresentação de impacto: cortes secos em ritmo forte, contraste alto, barras de cinema em formato horizontal e cartão final.",
+  "indicadoPara": [
+    "fivem",
+    "redm"
+  ],
+  "duracaoDoPlanoSeg": 1.8,
+  "transicao": {
+    "tipo": "corte",
+    "duracaoSeg": 0
+  },
+  "efeitos": [
+    {
+      "tipo": "cor",
+      "saturacao": 0.95,
+      "contraste": 1.15,
+      "brilho": 1
+    },
+    {
+      "tipo": "barras-de-cinema",
+      "proporcao": 2.39
+    }
+  ],
+  "zoomLentoEmPlanosParados": false,
+  "legendas": {
+    "tamanho": 0.032,
+    "caixa": false
+  },
+  "texto": {
+    "tamanho": 0.055,
+    "posicao": "centro",
+    "animacao": "subir"
+  },
+  "encerramento": "cartao",
+  "fadeFinalSeg": 0.8,
+  "volumeDaTrilha": 1.0,
+  "volumeDaTrilhaNasFalas": 0.35
+}

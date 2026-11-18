@@ -1,0 +1,45 @@
+{
+  "id": "publicidade",
+  "nome": "Publicidade",
+  "plataformas": [
+    "anuncio",
+    "anúncio",
+    "ads",
+    "publicidade",
+    "comercial"
+  ],
+  "proporcao": {
+    "orientacao": "qualquer",
+    "gravidade": "recomendacao"
+  },
+  "duracao": {
+    "maximaSeg": 60,
+    "gravidade": "recomendacao"
+  },
+  "texto": {
+    "tamanhoMinimo": 0.03,
+    "gravidade": "importante"
+  },
+  "legendas": {
+    "tamanhoMinimo": 0.028,
+    "maximoDeCaracteres": 100
+  },
+  "areaSegura": {
+    "topo": 0.06,
+    "base": 0.1,
+    "lados": 0.05,
+    "gravidade": "importante"
+  },
+  "abertura": {
+    "avaliar": true,
+    "segundos": 3
+  },
+  "ritmo": {
+    "duracaoMaximaDoPlanoSeg": 5
+  },
+  "cta": "recomendado",
+  "audio": {
+    "volumeAlvoLufs": -14,
+    "picoMaximoDb": -1
+  }
+}

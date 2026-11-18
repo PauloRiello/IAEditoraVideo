@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'">
+<title>IA Editora de Vídeo</title>
+<style>
+  :root { --fundo: #14161a; --painel-2: #232732; --borda: #313644; --texto: #e8eaed; --suave: #9aa3b2; --destaque: #4fd1c5; --ruim: #ef6b6b; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--fundo); color: var(--texto); font: 14px/1.5 "Segoe UI", system-ui, -apple-system, Arial, sans-serif; -webkit-app-region: drag; user-select: none;
+    display: flex; flex-direction: column; justify-content: center; padding: 0 36px; gap: 14px; border: 1px solid var(--borda); box-sizing: border-box; }
+  .marca { display: flex; gap: 14px; align-items: center; }
+  .marca img { width: 52px; height: 52px; }
+  .marca strong { display: block; font-size: 20px; font-weight: 650; }
+  .marca span { color: var(--suave); font-size: 12.5px; }
+  #etapa { color: var(--suave); min-height: 1.5em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .progresso { display: flex; align-items: center; gap: 10px; }
+  .barra { flex: 1; height: 8px; background: var(--painel-2); border-radius: 99px; overflow: hidden; }
+  .barra > div { height: 100%; width: 0; background: var(--destaque); transition: width .25s ease; }
+  #porcento { min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  #falha { display: none; flex-direction: column; gap: 10px; -webkit-app-region: no-drag; user-select: text; }
+  #falha.visivel { display: flex; }
+  #mensagem { color: var(--ruim); }
+  pre { margin: 0; max-height: 80px; overflow: auto; background: var(--painel-2); border-radius: 8px; padding: 8px; font-size: 11.5px; color: var(--suave); white-space: pre-wrap; }
+  .botoes { display: flex; gap: 8px; }
+  button { font: inherit; border: 1px solid var(--borda); background: var(--painel-2); color: var(--texto); border-radius: 8px; padding: 6px 14px; cursor: pointer; }
+  button.principal { background: var(--destaque); color: #0b1f1d; border-color: var(--destaque); font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="marca"><img src="icone.svg" alt=""><div><strong>IA Editora de Vídeo</strong><span id="versao"></span></div></div>
+  <div id="etapa">Abrindo…</div>
+  <div class="progresso" id="andamento"><div class="barra"><div id="preenchido"></div></div><span id="porcento">0%</span></div>
+  <div id="falha">
+    <div id="mensagem"></div>
+    <pre id="registro"></pre>
+    <div class="botoes"><button class="principal" id="tentar">Tentar de novo</button><button id="fechar">Fechar</button></div>
+  </div>
+  <script src="abertura.js"></script>
+</body>
+</html>
