@@ -5,7 +5,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import {
-  RAIZ, WINDOWS, binLocal, binVenv, executar, existeComando, pythonDoSistema, resumo, versaoPacote, versoesDeclaradas,
+  PASTA_VENV, RAIZ, WINDOWS, binLocal, binVenv, executar, existeComando, pythonDoSistema, resumo, versaoPacote, versoesDeclaradas,
 } from "./lib/comum.mjs";
 
 const pendencias = [];
@@ -64,7 +64,7 @@ if (existsSync(python)) {
   if (!sistema) {
     essencial("Python 3.11 ou mais recente não encontrado");
   } else {
-    const venv = executar(sistema.comando, [...sistema.argumentos, "-m", "venv", path.join(RAIZ, ".venv")]);
+    const venv = executar(sistema.comando, [...sistema.argumentos, "-m", "venv", PASTA_VENV]);
     if (venv.ok) feito(`Ambiente .venv criado com Python ${sistema.versao}`);
     else essencial(`Criação do .venv falhou: ${resumo(venv.erro || venv.saida)}`);
   }

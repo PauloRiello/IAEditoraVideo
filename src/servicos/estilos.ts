@@ -5,27 +5,9 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { NaoEncontrado } from "../dominio/erros.ts";
-import type { Efeito, Transicao } from "../dominio/timeline.ts";
+import type { EstiloDeEdicao } from "../dominio/estilos.ts";
 
-export interface EstiloDeEdicao {
-  id: string;
-  nome: string;
-  descricao: string;
-  /** Perfis para os quais o estilo foi pensado. Não é uma restrição. */
-  indicadoPara: string[];
-  duracaoDoPlanoSeg: number;
-  transicao: Transicao;
-  /** Efeitos que o estilo propõe. A montagem decide, pelo contexto, quais realmente aplicar. */
-  efeitos: Efeito[];
-  zoomLentoEmPlanosParados: boolean;
-  legendas: { tamanho: number; caixa: boolean };
-  texto: { tamanho: number; posicao: "topo" | "centro" | "base"; animacao: "nenhuma" | "surgir" | "subir" };
-  /** Como a chamada para ação aparece: texto sobre o vídeo ou cartão animado no final. */
-  encerramento: "texto" | "cartao";
-  fadeFinalSeg: number;
-  volumeDaTrilha: number;
-  volumeDaTrilhaNasFalas: number;
-}
+export type { EstiloDeEdicao };
 
 export class ServicoEstilos {
   private estilos = new Map<string, EstiloDeEdicao>();

@@ -12,6 +12,8 @@ export interface Caminhos {
   perfis: string;
   /** Dados da aplicação: sobrevivem a atualizações do programa. */
   dados: string;
+  /** Ambiente da máquina (Python, FFmpeg, aceleração): fora da pasta do programa, que a atualização substitui. */
+  ambiente: string;
   banco: string;
   configuracoes: string;
   projetos: string;
@@ -30,11 +32,12 @@ export interface Caminhos {
 const PROGRAMA = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /** Monta os caminhos a partir da pasta de dados e da pasta de mídias. */
-export function montarCaminhos(dados: string, biblioteca: string, programa = PROGRAMA): Caminhos {
+export function montarCaminhos(dados: string, biblioteca: string, programa = PROGRAMA, ambiente = path.join(dados, "ambiente")): Caminhos {
   return {
     programa,
     perfis: path.join(programa, "IA", "Perfis"),
     dados,
+    ambiente,
     banco: path.join(dados, "banco", "editora.db"),
     configuracoes: path.join(dados, "config", "configuracoes.json"),
     projetos: path.join(dados, "projetos"),
@@ -75,7 +78,26 @@ export function caminhosPadrao(ambiente: NodeJS.ProcessEnv = process.env): Camin
     ? path.join(ambiente.LOCALAPPDATA ?? path.join(os.homedir(), ".local", "share"), "IAEditoraVideo")
     : path.join(PROGRAMA, "Dados");
   const bibliotecaPadrao = instalado ? path.join(os.homedir(), "Documents", "IA Editora de Vídeo") : PROGRAMA;
-  return montarCaminhos(ambiente.IAEV_DADOS ?? registrada.dados ?? dadosPadrao, ambiente.IAEV_BIBLIOTECA ?? registrada.biblioteca ?? bibliotecaPadrao);
+  const dados = ambiente.IAEV_DADOS ?? registrada.dados ?? dadosPadrao;
+  return montarCaminhos(dados, ambiente.IAEV_BIBLIOTECA ?? registrada.biblioteca ?? bibliotecaPadrao, PROGRAMA, ambiente.IAEV_AMBIENTE ?? path.join(dados, "ambiente"));
+}
+
+/** Resultado da detecção de placa de vídeo. Instalações antigas o gravaram na pasta do programa. */
+export function caminhoDaAceleracao(c: Caminhos): string {
+  const novo = path.join(c.ambiente, "aceleracao.json");
+  const antigo = path.join(c.programa, "config", "local.aceleracao.json");
+  return !existsSync(novo) && existsSync(antigo) ? antigo : novo;
+}
+
+const pythonDoVenv = (venv: string): string =>
+  process.platform === "win32" ? path.join(venv, "Scripts", "python.exe") : path.join(venv, "bin", "python");
+
+/** Python com o Whisper: o do ambiente da máquina e, se não houver, o .venv de instalações antigas. */
+export function pythonDoAmbiente(c: Caminhos): string | null {
+  for (const venv of [path.join(c.ambiente, "python"), path.join(c.programa, ".venv")]) {
+    if (existsSync(pythonDoVenv(venv))) return pythonDoVenv(venv);
+  }
+  return null;
 }
 
 /** Cria as pastas que faltam. Nunca apaga nem altera o que já existe. */

@@ -5,7 +5,7 @@
 import type { Aprendizado } from "../../src/dominio/memoria.ts";
 import type { Agente, Decisao, PlanoDeEdicao, Roteiro } from "../../src/dominio/producao.ts";
 import type { Efeito, ItemDaTimeline, ItemVideo, Timeline } from "../../src/dominio/timeline.ts";
-import type { EstiloDeEdicao } from "../../src/servicos/estilos.ts";
+import type { EstiloDeEdicao } from "../../src/dominio/estilos.ts";
 import type { Material } from "./planejamento.ts";
 
 export interface EntradaDaMontagem {

@@ -9,8 +9,11 @@ Config.setVideoImageFormat("jpeg");
 Config.setOverwriteOutput(true);
 
 // A aceleração é decidida por `npm run gpu`, que grava config/local.aceleracao.json
-// (arquivo por máquina, fora do Git). Sem o arquivo, o Remotion usa codificação por software.
-const arquivoAceleracao = path.join(process.cwd(), "config", "local.aceleracao.json");
+// (ou aceleracao.json em IAEV_AMBIENTE, no aplicativo). Sem o arquivo, o Remotion usa
+// codificação por software.
+const arquivoAceleracao = process.env.IAEV_AMBIENTE
+  ? path.join(process.env.IAEV_AMBIENTE, "aceleracao.json")
+  : path.join(process.cwd(), "config", "local.aceleracao.json");
 
 if (existsSync(arquivoAceleracao)) {
   const aceleracao = JSON.parse(readFileSync(arquivoAceleracao, "utf8"));

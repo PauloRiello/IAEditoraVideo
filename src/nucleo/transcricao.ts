@@ -1,9 +1,9 @@
 // Liga o Whisper local à aplicação: escolhe GPU ou CPU pela VRAM livre e registra o uso.
 
 import path from "node:path";
-import { pythonDoPrograma, transcrever, VRAM_POR_MODELO } from "../../Pipeline/transcription/whisper.ts";
+import { transcrever, VRAM_POR_MODELO } from "../../Pipeline/transcription/whisper.ts";
 import type { Transcricao } from "../dominio/analise.ts";
-import type { Caminhos } from "../infra/caminhos.ts";
+import { pythonDoAmbiente, type Caminhos } from "../infra/caminhos.ts";
 import type { Configuracoes } from "../infra/configuracoes.ts";
 import type { ServicoAcervo } from "../servicos/acervo.ts";
 import type { GerenciadorVram } from "../servicos/recursos.ts";
@@ -17,7 +17,7 @@ export interface DependenciasDoTranscritor {
 
 /** Devolve a função de transcrição, ou undefined se o Whisper não estiver instalado. */
 export function criarTranscritor(d: DependenciasDoTranscritor, operacao: string, projetoId: string | null = null): ((arquivo: string) => Promise<Transcricao>) | undefined {
-  const python = pythonDoPrograma(d.caminhos.programa);
+  const python = pythonDoAmbiente(d.caminhos);
   if (!python) return undefined;
   return async (arquivo) => {
     const { modelo, idioma } = d.configuracoes.transcricao;

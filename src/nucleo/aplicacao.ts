@@ -13,7 +13,7 @@ import {
   type Copia, type MotivoCopia,
 } from "../infra/backup.ts";
 import { abrirBanco, BancoCorrompido, VERSAO_ESQUEMA, type Banco } from "../infra/banco.ts";
-import { caminhosPadrao, garantirPastas, type Caminhos } from "../infra/caminhos.ts";
+import { caminhoDaAceleracao, caminhosPadrao, garantirPastas, type Caminhos } from "../infra/caminhos.ts";
 import { outraInstanciaAtiva } from "../infra/instancia.ts";
 import { carregarConfiguracoes, CONFIGURACOES_PADRAO, salvarConfiguracoes, type Configuracoes } from "../infra/configuracoes.ts";
 import { arquivoDeCredenciais, carregarCredenciais, salvarCredenciais } from "../infra/credenciais.ts";
@@ -104,7 +104,7 @@ export class Aplicacao {
     const bancoExistia = existsSync(caminhos.banco);
     this.banco = this.abrirComRecuperacao();
     this.orquestrador = new Orquestrador(this.banco, this.eventos);
-    this.hardware = detectarHardware(path.join(caminhos.programa, "config", "local.aceleracao.json"));
+    this.hardware = detectarHardware(caminhoDaAceleracao(caminhos));
     this.vram = new GerenciadorVram(this.hardware.gpu, this.configuracoes.processamento.margemVramMB);
     this.iaLocal = new IALocal({ caminhos, hardware: this.hardware, vram: this.vram, configuracao: () => this.configuracoes.ia.local });
     this.provedorLocal = new ProvedorIALocal(this.iaLocal);

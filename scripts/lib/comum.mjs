@@ -9,7 +9,14 @@ import { fileURLToPath } from "node:url";
 
 export const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const WINDOWS = process.platform === "win32";
-export const ARQUIVO_ACELERACAO = path.join(RAIZ, "config", "local.aceleracao.json");
+// Ambiente da máquina (Python, aceleração). O aplicativo o põe na pasta de dados com
+// IAEV_AMBIENTE, porque a atualização substitui a pasta do programa; sem ela (instalação
+// pelo Instalar.cmd e desenvolvimento), continua na pasta do programa.
+export const AMBIENTE_DA_MAQUINA = process.env.IAEV_AMBIENTE || null;
+export const ARQUIVO_ACELERACAO = AMBIENTE_DA_MAQUINA
+  ? path.join(AMBIENTE_DA_MAQUINA, "aceleracao.json")
+  : path.join(RAIZ, "config", "local.aceleracao.json");
+export const PASTA_VENV = AMBIENTE_DA_MAQUINA ? path.join(AMBIENTE_DA_MAQUINA, "python") : path.join(RAIZ, ".venv");
 
 // Ambiente dos processos filhos: telemetria de terceiros desligada.
 export const AMBIENTE = {
@@ -56,11 +63,11 @@ export function binLocal(nome) {
   return path.join(RAIZ, "node_modules", ".bin", WINDOWS ? `${nome}.cmd` : nome);
 }
 
-/** Executável do ambiente virtual Python (.venv). */
+/** Executável do ambiente virtual Python (PASTA_VENV). */
 export function binVenv(nome) {
   return WINDOWS
-    ? path.join(RAIZ, ".venv", "Scripts", `${nome}.exe`)
-    : path.join(RAIZ, ".venv", "bin", nome);
+    ? path.join(PASTA_VENV, "Scripts", `${nome}.exe`)
+    : path.join(PASTA_VENV, "bin", nome);
 }
 
 /** Interpretador Python do sistema (3.11+), como [comando, ...argumentos]. */
