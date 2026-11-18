@@ -8,7 +8,10 @@ import path from "node:path";
 import { after, test } from "node:test";
 import { MIGRACOES } from "../../src/infra/banco.ts";
 import { montarCaminhos } from "../../src/infra/caminhos.ts";
+import { execFileSync } from "node:child_process";
+import { pythonDoAmbiente } from "../../src/infra/caminhos.ts";
 import { Aplicacao } from "../../src/nucleo/aplicacao.ts";
+import { manualDeMarca } from "./apoio/pdf.ts";
 
 const RAIZ = path.resolve(import.meta.dirname, "..", "..");
 const temporarias: string[] = [];
@@ -19,6 +22,14 @@ function novaPasta(): string {
   const pasta = mkdtempSync(path.join(os.tmpdir(), "iaev-marcas-"));
   temporarias.push(pasta);
   return pasta;
+}
+function temLeitorDePdf(): boolean {
+  const python = pythonDoAmbiente(montarCaminhos(path.join(os.tmpdir(), "iaev-sem-dados"), os.tmpdir(), RAIZ));
+  try {
+    return python !== null && (execFileSync(python, ["-c", "import pypdfium2, pypdf"]), true);
+  } catch {
+    return false;
+  }
 }
 const caminhosEm = (pasta: string) => montarCaminhos(path.join(pasta, "dados"), path.join(pasta, "bib"), RAIZ);
 function comApp(teste: (app: Aplicacao, pasta: string) => void, pasta = novaPasta()): void {
@@ -101,4 +112,27 @@ test("banco antigo migra e projetos antigos ficam sem marca", () => {
     assert.equal(projeto.configuracao.marca, "");
     assert.deepEqual(app.marcas.listar(), []);
   }, pasta);
+});
+
+test("ler o manual pela tarefa guarda o PDF e as sugestões na marca", { skip: !temLeitorDePdf() }, async () => {
+  const pasta = novaPasta();
+  const app = new Aplicacao(caminhosEm(pasta));
+  try {
+    const marca = app.marcas.criar("Pelo manual");
+    const pdf = path.join(pasta, "originais", "manual.pdf");
+    mkdirSync(path.dirname(pdf), { recursive: true });
+    writeFileSync(pdf, manualDeMarca());
+    const { tarefa, conclusao } = app.fluxoDeMarcas.lerManual(marca.id, pdf);
+    assert.equal(tarefa.tipo, "leitura-de-manual");
+    const fim = await conclusao;
+    assert.equal(fim.estado, "concluida", fim.erro ?? "");
+    const lida = app.marcas.obter(marca.id);
+    assert.deepEqual(lida.materiais.map((m) => m.nome), ["manual.pdf"]);
+    assert.equal(lida.sugestoes?.cores[0].hex, "#1A2B3C");
+    assert.ok(lida.sugestoes?.logos[0].arquivo.startsWith(app.marcas.pastaDaMarca(marca.id)));
+    assert.equal(lida.estado, "rascunho", "nada é aplicado sem confirmação");
+    assert.deepEqual(lida.cores, []);
+  } finally {
+    app.encerrar();
+  }
 });

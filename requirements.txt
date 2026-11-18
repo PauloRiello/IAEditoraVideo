@@ -12,3 +12,9 @@ av==18.1.0
 # Download de vídeos de referência. O extra "default" inclui o yt-dlp-ejs,
 # exigido para suporte completo ao YouTube (usa o Node.js como runtime de JavaScript).
 yt-dlp[default]==2026.10.26
+
+# Leitura do manual da marca em PDF (texto, imagens embutidas, nomes de fontes e páginas como
+# imagem), sem Pillow nem internet. pypdfium2 é o leitor de PDF do Chrome (BSD-3/Apache-2.0);
+# pypdf lê os recursos de fonte (BSD-3). Ambos têm pacotes prontos para Windows.
+pypdfium2==5.14.0
+pypdf==6.21.4

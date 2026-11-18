@@ -274,6 +274,13 @@ FFmpeg, FFprobe, faster-whisper, yt-dlp, SQLite (nativo). Versões em [VERSOES.m
 | FFmpeg portátil | 8.0.1, build essentials de Gyan Doshi (espelho GitHub) | GPL-3.0 | Baixado pela preparação só se não houver FFmpeg; mesmo build que o winget instala. Fixado em `IA/Ambiente/` |
 | Python portátil | 3.12.12, python-build-standalone 20251217 | PSF-2.0 | Baixado pela preparação só se não houver Python 3.11+; a soma confere com a publicada. Fixado em `IA/Ambiente/` |
 
+**Da identidade visual da marca** (pacotes Python, versões fixas em `requirements.txt`, instalados pela preparação):
+
+| Dependência | Versão | Licença | Por que esta |
+|---|---|---|---|
+| pypdfium2 | 5.14.0 | BSD-3 / Apache-2.0 | Leitor de PDF do Chrome: texto por página, imagens embutidas (candidatas a logo, com transparência) e páginas como imagem para medir cores, sem Pillow nem internet. Pacotes prontos para Windows |
+| pypdf | 6.21.4 | BSD-3 | Nomes das fontes usadas no PDF e detecção de senha. Alternativas descartadas: pdf.js (exigiria biblioteca nativa para as páginas) e só a IA local (tudo estimado; contraria "funciona sem IA") |
+
 **Exigidas no computador do usuário, pelo código-fonte** (instaladas pelo `Instalar.cmd` quando faltam; o aplicativo não exige nenhuma):
 Node.js 22.20 ou mais recente, Python 3.11 ou mais recente, FFmpeg com FFprobe e Git. Para
 abrir a janela: Microsoft Edge, Chrome ou outro navegador atual. As bibliotecas do

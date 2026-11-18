@@ -19,6 +19,7 @@ import { carregarConfiguracoes, CONFIGURACOES_PADRAO, salvarConfiguracoes, type 
 import { arquivoDeCredenciais, carregarCredenciais, salvarCredenciais } from "../infra/credenciais.ts";
 import { ServicoAtividades } from "../servicos/atividades.ts";
 import { ServicoMarcas } from "../servicos/marcas.ts";
+import { FluxoDeMarcas } from "./marcas.ts";
 import { ServicoAcervo } from "../servicos/acervo.ts";
 import { ServicoAprendizado } from "../servicos/aprendizado.ts";
 import { ServicoEstilos } from "../servicos/estilos.ts";
@@ -86,6 +87,8 @@ export class Aplicacao {
   atividades!: ServicoAtividades;
   /** Identidade visual das marcas (logo, cores, fontes). */
   marcas!: ServicoMarcas;
+  /** Leitura do manual da marca em segundo plano. */
+  fluxoDeMarcas!: FluxoDeMarcas;
   /** Trabalhos demorados em segundo plano, com estado e progresso. */
   tarefas: Tarefas;
   /** Ações do fluxo de trabalho de um projeto, usadas pela interface gráfica. */
@@ -209,6 +212,10 @@ export class Aplicacao {
     this.fluxo = new Fluxo({
       caminhos: this.caminhos, eventos: this.eventos, projetos: this.projetos, perfis: this.perfis, acervo: this.acervo, atividades: this.atividades,
       tarefas: this.tarefas, producao: this.producao, edicao: this.edicao, referencias: this.referencias, feedback: this.feedback,
+    });
+    this.fluxoDeMarcas = new FluxoDeMarcas({
+      caminhos: this.caminhos, marcas: this.marcas, tarefas: this.tarefas, provedores: this.provedores,
+      registrar: (descricao) => this.fluxo.registrar("marca", descricao),
     });
   }
 
