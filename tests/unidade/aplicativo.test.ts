@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { test } from "node:test";
-import { ambienteDoServidor, fracaoDaAbertura, lerLinha, podeInstalarAgora } from "../../aplicativo/estado.mjs";
+import { ambienteDoServidor, fracaoDaAbertura, lerLinha, podeInstalarAgora, textoDaAtualizacao } from "../../aplicativo/estado.mjs";
 
 test("ambiente do servidor: roda como Node, modo anfitrião, pastas e FFmpeg do ambiente na frente do PATH", () => {
   const amb = path.join("C:", "dados", "ambiente");
@@ -41,4 +41,13 @@ test("não instala atualização com render ou análise na fila ou em andamento"
   assert.equal(podeInstalarAgora([{ estado: "concluida" }, { estado: "falhou" }, { estado: "cancelada" }]), true);
   assert.equal(podeInstalarAgora([{ estado: "concluida" }, { estado: "executando" }]), false);
   assert.equal(podeInstalarAgora([{ estado: "na-fila" }]), false);
+});
+
+test("textos da atualização, em linguagem simples", () => {
+  assert.equal(textoDaAtualizacao({ tipo: "verificando" }), "Procurando atualizações…");
+  assert.equal(textoDaAtualizacao({ tipo: "disponivel", versao: "0.2.0" }), "Versão 0.2.0 disponível: baixando…");
+  assert.equal(textoDaAtualizacao({ tipo: "baixando", versao: "0.2.0", fracao: 0.374 }), "Baixando a versão 0.2.0: 37%");
+  assert.equal(textoDaAtualizacao({ tipo: "baixada", versao: "0.2.0" }), "Versão 0.2.0 pronta. Ela é instalada ao fechar o programa, ou agora em “Reiniciar e atualizar”.");
+  assert.equal(textoDaAtualizacao({ tipo: "sem-novidade" }), "Você está usando a versão mais recente.");
+  assert.equal(textoDaAtualizacao({ tipo: "erro", mensagem: "net::ERR" }), "Não foi possível procurar atualizações agora. O programa tenta de novo mais tarde.");
 });

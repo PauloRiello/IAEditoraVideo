@@ -167,8 +167,26 @@ export async function mostrar(raiz, contexto) {
 
   function desenhar() {
     por(limpar(area), geral(), iaLocal(), ia(), computador(), seguranca(),
-      h("section.bloco", {}, h("h2", {}, "Sobre"), h("p", {}, `IA Editora de Vídeo, versão ${c.versao}. Roda neste computador, com memória própria, sem depender de nenhum outro programa aberto.`),
-        h("p.suave", {}, "Para atualizar, use o atalho Atualizar (ou o comando de atualização): ele faz uma cópia de segurança antes e preserva projetos, aprendizados e exportações.")));
+      sobre());
+  }
+
+  // No aplicativo instalado, a atualização é automática; a página só mostra o andamento e pede a reinstalação.
+  function sobre() {
+    const apresentacao = h("p", {}, `IA Editora de Vídeo, versão ${c.versao}. Roda neste computador, com memória própria, sem depender de nenhum outro programa aberto.`);
+    const aplicativo = window.iaevAplicativo;
+    if (!aplicativo) {
+      return h("section.bloco", {}, h("h2", {}, "Sobre"), apresentacao,
+        h("p.suave", {}, "Para atualizar, use o atalho Atualizar (ou o comando de atualização): ele faz uma cópia de segurança antes e preserva projetos, aprendizados e exportações."));
+    }
+    const estado = h("p.suave", {});
+    const reiniciar = h("button.principal", { hidden: true, aoClicar: () => aplicativo.reiniciarParaAtualizar() }, "Reiniciar e atualizar");
+    const mudar = (texto, pronta) => { estado.textContent = texto; reiniciar.hidden = !pronta; };
+    const atual = aplicativo.estadoDaAtualizacao();
+    mudar(atual.texto, atual.pronta);
+    aplicativo.aoMudarAtualizacao(mudar);
+    return h("section.bloco", {}, h("h2", {}, "Sobre"), apresentacao,
+      h("p", {}, "Atualizações chegam sozinhas: o programa baixa em segundo plano e faz uma cópia de segurança antes de instalar. Projetos, aprendizados e exportações são preservados."),
+      estado, reiniciar);
   }
   const carregar = async () => {
     [c, copias, local] = await Promise.all([api("/api/configuracoes"), api("/api/backups"), api("/api/ia/local")]);

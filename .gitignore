@@ -126,3 +126,6 @@ desktop.ini
 
 # --- Dados locais da aplicação (banco, projetos, temporários) -
 /Dados/
+
+# --- Aplicativo empacotado (electron-builder) ---------------
+/dist-aplicativo/

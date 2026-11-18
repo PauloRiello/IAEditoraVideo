@@ -10,6 +10,7 @@ import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { iniciarAtualizacao } from "./atualizacao.mjs";
 import { ambienteDoServidor, fracaoDaAbertura, lerLinha, podeInstalarAgora } from "./estado.mjs";
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
@@ -33,6 +34,7 @@ const ESPERA_DO_SERVIDOR_MS = 3 * 60_000;
 /** @type {import("node:child_process").ChildProcess | null} */ let servidor = null;
 /** @type {{ porta: number, token: string } | null} */ let sessao = null;
 let saindo = false;
+/** @type {ReturnType<typeof iniciarAtualizacao> | null} */ let atualizacao = null;
 
 function registrar(texto) {
   try {
@@ -64,12 +66,16 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(() => {
     criarAbertura();
     void abrir();
+    // Só o programa instalado se atualiza (no desenvolvimento, quem atualiza é o Git).
+    if (app.isPackaged) atualizacao = iniciarAtualizacao({ aoMudar: (texto, pronta) => janela?.webContents.send("iaev:atualizacao", texto, pronta), registrar });
   });
 }
 
 ipcMain.on("iaev:versao", (evento) => (evento.returnValue = app.getVersion()));
 ipcMain.on("iaev:tentar-de-novo", () => void abrir());
 ipcMain.on("iaev:fechar", () => app.quit());
+ipcMain.on("iaev:estado-atualizacao", (evento) => (evento.returnValue = atualizacao?.estado() ?? { texto: "A atualização automática funciona no programa instalado.", pronta: false }));
+ipcMain.on("iaev:reiniciar-para-atualizar", () => void fecharComCuidado({ atualizar: true }));
 
 const preferencias = () => ({ preload: path.join(AQUI, "ponte.cjs"), contextIsolation: true, sandbox: true, nodeIntegration: false });
 
@@ -177,7 +183,7 @@ function iniciarServidor() {
       } else if (!saindo) {
         // Encerrado pela própria página (botão Encerrar) ou já aberto por outro inicializador.
         saindo = true;
-        app.quit();
+        void finalizar();
       }
     });
   });
@@ -221,8 +227,13 @@ async function tarefas() {
 }
 
 /** Fecha avisando se há trabalho em andamento, e espera o servidor terminar com calma. */
-async function fecharComCuidado() {
+async function fecharComCuidado({ atualizar = false } = {}) {
   if (!podeInstalarAgora(await tarefas()) && janela) {
+    if (atualizar) {
+      // Nunca instala no meio de um trabalho: fica para quando o programa for fechado.
+      await dialog.showMessageBox(janela, { type: "info", buttons: ["Entendi"], title: TITULO, message: "Há uma análise ou um render em andamento.", detail: "A atualização será instalada quando esse trabalho terminar e você fechar o programa." });
+      return;
+    }
     const { response } = await dialog.showMessageBox(janela, {
       type: "question", buttons: ["Continuar trabalhando", "Fechar e cancelar"], defaultId: 0, cancelId: 0, title: TITULO,
       message: "Há uma análise ou um render em andamento.", detail: "Se fechar agora, esse trabalho é cancelado. O que já foi salvo continua salvo.",
@@ -232,7 +243,31 @@ async function fecharComCuidado() {
   saindo = true;
   janela?.hide();
   await encerrarServidor();
+  await finalizar();
+}
+
+/** Com o servidor já fechado: instala a atualização baixada (depois da cópia de segurança) ou só sai. */
+async function finalizar() {
+  if (atualizacao?.pronta()) {
+    if (await copiaAntesDeAtualizar()) {
+      registrar("Instalando a atualização.");
+      atualizacao.instalar();
+      return;
+    }
+    registrar("A cópia de segurança antes da atualização falhou: a atualização fica para a próxima vez.");
+  }
   app.quit();
+}
+
+/** Cópia "pre-atualizacao" pela linha de comando da aplicação (com o servidor fechado, o banco está livre). */
+function copiaAntesDeAtualizar() {
+  return new Promise((resolver) => {
+    const filho = spawn(process.execPath, [path.join(PROGRAMA, "src", "interface", "cli.ts"), "backup", "pre-atualizacao"], { cwd: PROGRAMA, env: ENV_DO_SERVIDOR, windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
+    filho.stdout.on("data", (bloco) => registrar(`(backup) ${bloco.toString().trimEnd()}`));
+    filho.stderr.on("data", (bloco) => registrar(`(backup) ${bloco.toString().trimEnd()}`));
+    filho.on("error", () => resolver(false));
+    filho.on("exit", (codigo) => resolver(codigo === 0));
+  });
 }
 
 /** Fechar a entrada padrão pede ao servidor que encerre (cancela renders e fecha o banco). */

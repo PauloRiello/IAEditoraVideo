@@ -35,12 +35,14 @@
     "verificar:whisper": "node scripts/verificar/whisper.mjs",
     "verificar:yt-dlp": "node scripts/verificar/yt-dlp.mjs",
     "verificar:skills": "node scripts/verificar/skills.mjs",
-    "aplicativo": "electron ."
+    "aplicativo": "electron .",
+    "empacotar": "electron-builder --win --publish never"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.543",
     "@remotion/cli": "4.0.543",
     "@remotion/renderer": "4.0.543",
+    "electron-updater": "6.8.11",
     "gsap": "3.15.1",
     "hyperframes": "0.9.40",
     "react": "19.3.1",
@@ -54,5 +56,6 @@
     "electron-builder": "26.18.0",
     "typescript": "5.9.3"
   },
-  "main": "aplicativo/principal.mjs"
+  "main": "aplicativo/principal.mjs",
+  "author": "IA Editora de Vídeo"
 }

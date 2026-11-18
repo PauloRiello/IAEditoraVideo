@@ -48,3 +48,15 @@ export function fracaoDaAbertura(fase, fracao) {
 export function podeInstalarAgora(tarefas) {
   return !tarefas.some((t) => t.estado === "na-fila" || t.estado === "executando");
 }
+
+/** Texto do andamento da atualização automática, para a página de configurações. */
+export function textoDaAtualizacao({ tipo, versao, fracao }) {
+  switch (tipo) {
+    case "verificando": return "Procurando atualizações…";
+    case "disponivel": return `Versão ${versao} disponível: baixando…`;
+    case "baixando": return `Baixando a versão ${versao}: ${Math.round(limitar(fracao) * 100)}%`;
+    case "baixada": return `Versão ${versao} pronta. Ela é instalada ao fechar o programa, ou agora em “Reiniciar e atualizar”.`;
+    case "sem-novidade": return "Você está usando a versão mais recente.";
+    default: return "Não foi possível procurar atualizações agora. O programa tenta de novo mais tarde.";
+  }
+}

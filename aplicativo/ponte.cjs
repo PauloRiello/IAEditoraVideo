@@ -3,6 +3,9 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 const versao = ipcRenderer.sendSync("iaev:versao");
+// Um só ouvinte da atualização: a página redesenha a seção várias vezes.
+let ouvinteDaAtualizacao = null;
+ipcRenderer.on("iaev:atualizacao", (_evento, texto, pronta) => ouvinteDaAtualizacao?.(texto, pronta));
 
 contextBridge.exposeInMainWorld("iaevAbertura", {
   versao,
@@ -13,6 +16,7 @@ contextBridge.exposeInMainWorld("iaevAbertura", {
 
 contextBridge.exposeInMainWorld("iaevAplicativo", {
   versao,
-  aoMudarAtualizacao: (f) => ipcRenderer.on("iaev:atualizacao", (_evento, texto, pronta) => f(texto, pronta)),
+  estadoDaAtualizacao: () => ipcRenderer.sendSync("iaev:estado-atualizacao"),
+  aoMudarAtualizacao: (f) => { ouvinteDaAtualizacao = f; },
   reiniciarParaAtualizar: () => ipcRenderer.send("iaev:reiniciar-para-atualizar"),
 });
