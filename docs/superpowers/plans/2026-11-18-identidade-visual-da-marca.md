@@ -102,7 +102,7 @@
 
 **Interfaces:**
 - Consumes: Tasks 1–3.
-- Tela da marca: enviar manual (PDF) → barra da tarefa → painel de sugestões com origem de cada item ("manual, página 4", "medida nas páginas", "escolhido pela IA local: estimado"); candidatas a logo em grade para escolher (ou enviar outro arquivo); cores com papel editável e seletor de cor; para cada fonte nomeada, "<Nome> encontrada no Google Fonts. Baixar?" ou "Envie o arquivo da fonte"; posição/opacidade do logo; botão "Marca pronta". Materiais listados (abrir pasta).
+- Tela da marca: enviar manual (PDF) → barra da tarefa → painel de sugestões com origem de cada item ("manual, página 4", "medida nas páginas", "escolhido pela IA local: estimado"); candidatas a logo em grade para escolher (ou enviar outro arquivo); cores com papel editável e seletor de cor; para cada fonte nomeada, "<Nome> encontrada no Google Fonts. Baixar?" ou "Envie o arquivo da fonte"; posição/opacidade do logo; botão "Marca pronta". Materiais listados (abrir pasta). Cadastro manual (sem PDF): a mesma tela vazia; ao enviar o logo, sugere as cores medidas nele (`coresMedidas([logo])`, `estimado`). Cartão e encerramento sobre fundo escuro usam `logoClaro` quando existir.
 
 - [ ] **Step 1:** Testes das rotas: criar, enviar logo, ler manual (tarefa com porcentagem, com o Python falso ou pulando sem `.venv`), confirmar e marcar pronta; `"projeto escolhe marca pronta e não aceita rascunho"`.
 - [ ] **Step 2:** Falham. **Step 3:** Implementar rotas e tela. **Step 4:** `npm test`; conferir no navegador de verdade (Playwright): fluxo do manual de teste até "pronta" e seleção no projeto; capturas.
