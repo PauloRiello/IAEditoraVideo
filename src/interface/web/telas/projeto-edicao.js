@@ -202,8 +202,11 @@ export async function aba(raiz, estado) {
         await agir(evento.target, async () => { const r = await api(`/api/projetos/${id}/timeline/montar`, { metodo: "POST", corpo: {} }); for (const a of r.avisos) aviso(a); await carregar(); }, "Timeline montada de novo.");
       }
     };
+    const avisoDaMarca = dados.marcaDesatualizada ? h("div.nota.alerta", { style: "margin-bottom:10px" },
+      "A marca do projeto mudou depois desta montagem. ",
+      h("button.pequeno", { aoClicar: (e) => agir(e, async () => { dados = await api(`/api/projetos/${id}/timeline/aplicar-marca`, { metodo: "POST", corpo: {} }); desenhar(); }, "Marca atual aplicada; suas edições continuam.") }, "Aplicar marca atual")) : null;
     por(area, h("div.editor", {},
-      h("div", {}, visor(),
+      h("div", {}, avisoDaMarca, visor(),
         h("div.linha", { style: "margin-bottom:8px" }, h("strong", {}, `Timeline v${dados.atual.versao}`), h("span.suave", {}, `${t.formato.largura}×${t.formato.altura}, ${t.formato.fps} fps · ${tempo(t.duracaoSeg)} · ${t.itens.length} item(ns)`), h("span.espaco"),
           dados.historico.length > 1 ? h("button.pequeno", { title: "Volta à versão anterior", aoClicar: (e) => agir(e, async () => { dados = await api(`/api/projetos/${id}/timeline/restaurar`, { metodo: "POST", corpo: {} }); escolhido = null; desenhar(); }, "Alteração desfeita.") }, "Desfazer") : null,
           h("button.pequeno", { aoClicar: remontar }, "Montar de novo")),

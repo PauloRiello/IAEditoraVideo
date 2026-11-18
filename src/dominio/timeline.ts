@@ -1,6 +1,8 @@
 // Timeline: a descrição completa e editável de um vídeo. É só dado — referencia os
 // arquivos originais pelo caminho e nunca os altera (edição não destrutiva).
 
+import type { RetratoDaMarca } from "./marca-na-timeline.ts";
+
 /** Formato de saída: resolução e taxa de quadros. */
 export interface FormatoDaTimeline {
   largura: number;
@@ -36,6 +38,12 @@ interface ItemBase {
   duracaoSeg: number;
   /** Prende o item a outro: se o outro se mover, este acompanha. */
   ancora?: { itemId: string; deslocamentoSeg: number };
+  /** "marca": o item inteiro veio da marca (logo, encerramento) e sai ao reaplicar a marca. */
+  origem?: "marca";
+  /** Campos que a marca mudou, com o valor de antes; editar um deles à mão o tira daqui. */
+  daMarca?: Record<string, unknown>;
+  /** Campos que a marca tinha mudado e o usuário editou depois: a marca não mexe mais neles. */
+  editadoAMao?: string[];
 }
 
 interface ItemVisual extends ItemBase {
@@ -61,6 +69,8 @@ export interface ItemVideo extends ItemVisual {
 export interface ItemImagem extends ItemVisual {
   tipo: "imagem";
   arquivo: string;
+  /** Imagem por cima do vídeo (logo), numa caixa em frações do quadro, sem fundo. */
+  sobreposicao?: { x: number; y: number; largura: number; altura: number; opacidade: number; alinhamento: "esquerda" | "direita" };
 }
 
 /** Cartão animado em HTML/CSS/GSAP, renderizado pelo HyperFrames antes da composição. */
@@ -70,6 +80,10 @@ export interface ItemCartao extends ItemVisual {
   subtitulo: string;
   corDeFundo: string;
   corDoTexto: string;
+  /** Logo da marca no cartão. */
+  logo?: string;
+  /** Família da fonte (registrada em timeline.marca). */
+  fonte?: string;
 }
 
 export interface ItemTexto extends ItemBase {
@@ -81,6 +95,8 @@ export interface ItemTexto extends ItemBase {
   cor: string;
   /** Cor da caixa atrás do texto, ou vazio para nenhuma. */
   fundo: string;
+  /** Família da fonte (registrada em timeline.marca). Sem ela, a padrão. */
+  fonte?: string;
   animacao: "nenhuma" | "surgir" | "subir";
 }
 
@@ -111,8 +127,10 @@ export interface Timeline {
   itens: ItemDaTimeline[];
   /** Efeitos aplicados ao vídeo inteiro. */
   efeitosGlobais: Efeito[];
-  /** Estilo visual das legendas. */
-  legendas: { tamanho: number; caixa: boolean };
+  /** Estilo visual das legendas. Cor, fundo e fonte vêm da marca, quando houver. */
+  legendas: { tamanho: number; caixa: boolean; cor?: string; fundo?: string; fonte?: string; daMarca?: Record<string, unknown>; editadoAMao?: string[] };
+  /** Retrato da marca aplicada: o render usa só isto, nunca a marca atual. */
+  marca?: { id: string; atualizadaEm: string; fontes: { familia: string; arquivo: string }[] };
   /** Margens que textos e legendas respeitam, como fração do quadro. Ausente = margens padrão. */
   areaSegura?: AreaSegura;
 }
@@ -143,7 +161,9 @@ export type Operacao =
   | { tipo: "efeito-global"; efeito: Efeito; remover?: boolean }
   | { tipo: "formato"; formato: Partial<FormatoDaTimeline> }
   /** Muda as margens de textos e legendas e/ou o estilo das legendas. */
-  | { tipo: "apresentacao"; areaSegura?: Partial<AreaSegura>; legendas?: Partial<Timeline["legendas"]> };
+  | { tipo: "apresentacao"; areaSegura?: Partial<AreaSegura>; legendas?: Partial<Timeline["legendas"]> }
+  /** Troca o que veio da marca pelo retrato atual dela, sem mexer nas edições manuais. */
+  | { tipo: "aplicar-marca"; marca: RetratoDaMarca | null };
 
 export interface VersaoDaTimeline {
   projetoId: string;

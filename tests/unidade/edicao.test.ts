@@ -314,3 +314,31 @@ test("recuperação: exportação interrompida pelo fechamento é encerrada na a
   assert.equal(app.edicao.historico(projetoId).length, versoes);
   assert.ok(historico.some((e) => e.tipo === "final" && e.estado === "concluida" && existsSync(e.arquivo!)), "o vídeo exportado continua lá");
 });
+
+test("montagem com marca: arquivos copiados para o projeto, decisões da marca e aviso quando a marca muda", () => {
+  const marca = app.marcas.criar("Cidade Alta Oficial");
+  app.marcas.guardarArquivo(marca.id, imagem, "logo");
+  app.marcas.atualizar(marca.id, { cores: [{ hex: "#1A2B3C", papel: "primaria", base: "observado", fonte: "manual, página 1" }] });
+  app.marcas.marcarPronta(marca.id);
+  app.projetos.atualizar(projetoId, { configuracao: { marca: marca.id } });
+  try {
+    const montada = app.edicao.montar(projetoId);
+    const logo = montada.timeline.itens.find((i) => i.id === "logo-da-marca");
+    assert.ok(logo && logo.tipo === "imagem");
+    assert.ok(logo.arquivo.startsWith(path.join(app.caminhos.projetos, projetoId)), `logo copiado para o projeto: ${logo.arquivo}`);
+    assert.ok(existsSync(logo.arquivo));
+    assert.ok(montada.decisoes.some((d) => d.origem === "marca"));
+    assert.equal(app.edicao.marcaDesatualizada(projetoId), false);
+
+    app.marcas.atualizar(marca.id, { cores: [{ hex: "#00AA00", papel: "primaria", base: "observado", fonte: "escolhida pelo usuário" }] });
+    assert.equal(app.edicao.marcaDesatualizada(projetoId), true);
+    const antes = app.edicao.timeline(projetoId).timeline;
+    assert.ok(JSON.stringify(antes).includes("#1A2B3C"), "a timeline montada não mudou sozinha");
+    const nova = app.edicao.aplicarMarcaAtual(projetoId);
+    assert.equal(nova.versao, montada.versao + 1);
+    assert.ok(JSON.stringify(nova.timeline).includes("#00AA00"));
+    assert.equal(app.edicao.marcaDesatualizada(projetoId), false);
+  } finally {
+    app.projetos.atualizar(projetoId, { configuracao: { marca: "" } });
+  }
+});

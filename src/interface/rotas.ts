@@ -168,6 +168,7 @@ function timelineDoProjeto(app: Aplicacao, projetoId: string) {
     historico: app.edicao.historico(projetoId).map((v) => ({ versao: v.versao, autor: v.autor, nota: v.nota, criadoEm: v.criadoEm })),
     montagem: app.memoria.recordar(`projeto:${projetoId}`, "montagem") ?? null,
     planoAprovado: app.acervo.planoAprovado(projetoId) !== null,
+    marcaDesatualizada: app.edicao.marcaDesatualizada(projetoId),
   };
 }
 
@@ -461,6 +462,10 @@ export const ROTAS: Rota[] = [
 
   // --- Timeline -----------------------------------------------------------------------------------
   { metodo: "GET", caminho: "/api/projetos/:id/timeline", atender: ({ app, p }) => timelineDoProjeto(app, p.id) },
+  {
+    metodo: "POST", caminho: "/api/projetos/:id/timeline/aplicar-marca",
+    atender: ({ app, p }) => { app.edicao.aplicarMarcaAtual(p.id); app.fluxo.registrar("edicao", "Marca atual aplicada à timeline.", p.id); return timelineDoProjeto(app, p.id); },
+  },
   {
     metodo: "POST", caminho: "/api/projetos/:id/timeline/montar",
     atender: ({ app, p, corpo }) => {

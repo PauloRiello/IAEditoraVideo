@@ -124,7 +124,7 @@ export interface Clipe {
 export interface Decisao {
   aspecto: string;
   decisao: string;
-  origem: "briefing" | "aprendizado" | "referencia" | "perfil" | "padrao";
+  origem: "briefing" | "aprendizado" | "referencia" | "perfil" | "padrao" | "marca";
   aprendizadoId?: number;
 }
 

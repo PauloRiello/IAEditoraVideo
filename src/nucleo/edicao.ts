@@ -2,6 +2,9 @@
 // usuário guardando cada versão, e gerencia as tarefas de render (fila, progresso,
 // cancelamento, nova tentativa e histórico de exportações).
 
+import { copyFileSync as copiarArquivo, existsSync as existe, mkdirSync as criarPasta } from "node:fs";
+import { aplicarMarca, type RetratoDaMarca } from "../dominio/marca-na-timeline.ts";
+import type { ServicoMarcas } from "../servicos/marcas.ts";
 import type { EventEmitter } from "node:events";
 import { existsSync, readdirSync, rmSync, statSync } from "node:fs";
 import os from "node:os";
@@ -29,6 +32,7 @@ import { resumoDoRelatorio, type Qualidade } from "./qualidade.ts";
 
 export interface DependenciasDaEdicao {
   caminhos: Caminhos;
+  marcas: ServicoMarcas;
   projetos: ServicoProjetos;
   acervo: ServicoAcervo;
   aprendizado: ServicoAprendizado;
@@ -96,9 +100,62 @@ export class Edicao {
     const { topo, base, lados } = destino.areaSegura;
     montagem.timeline.areaSegura = { topo, base, lados };
     montagem.decisoes.push({ aspecto: "area-segura", decisao: `margens do destino ${destino.nome}`, origem: "perfil" });
+    // A marca do projeto (só pronta), com os arquivos copiados para o projeto: retrato que não muda sozinho.
+    const retrato = this.retratoDaMarca(projetoId);
+    if (retrato) {
+      const comMarca = aplicarMarca(montagem.timeline, retrato);
+      montagem.timeline = comMarca.timeline;
+      montagem.decisoes.push(...comMarca.decisoes);
+    } else if (projeto.configuracao.marca) {
+      montagem.avisos.push("A marca escolhida para o projeto não está pronta: o vídeo foi montado sem ela.");
+    }
     const versao = this.d.timelines.salvar(projetoId, normalizarTimeline(montagem.timeline), "ia", `Montada do plano v${plano.versao} no estilo ${estilo.nome}`);
     this.d.memoria.lembrar(`projeto:${projetoId}`, "montagem", { versao: versao.versao, estilo: estilo.id, decisoes: montagem.decisoes });
     return { ...versao, decisoes: montagem.decisoes, avisos: [...divergencias, ...montagem.avisos] };
+  }
+
+  /**
+   * Retrato da marca pronta do projeto, com logo e fontes copiados para a pasta do projeto
+   * (uma pasta por versão da marca). null sem marca ou com marca ainda em rascunho.
+   */
+  private retratoDaMarca(projetoId: string): RetratoDaMarca | null {
+    const id = this.d.projetos.obter(projetoId).configuracao.marca;
+    if (!id) return null;
+    const marca = this.d.marcas.obter(id);
+    if (marca.estado !== "pronta") return null;
+    const pasta = path.join(this.d.caminhos.projetos, projetoId, "marca", marca.atualizadaEm.replace(/\D/g, ""));
+    criarPasta(pasta, { recursive: true });
+    const copiar = (arquivo: string | null): string | null => {
+      if (!arquivo || !existe(arquivo)) return null;
+      const destino = path.join(pasta, path.basename(arquivo));
+      if (!existe(destino)) copiarArquivo(arquivo, destino);
+      return destino;
+    };
+    const fonte = (f: (typeof marca.fontes)["titulos"]) => (f ? { ...f, arquivos: f.arquivos.map((a) => copiar(a)).filter((a): a is string => a !== null) } : null);
+    return {
+      id: marca.id, atualizadaEm: marca.atualizadaEm, logo: copiar(marca.logo), logoClaro: copiar(marca.logoClaro), logoPosicao: marca.logoPosicao, cores: marca.cores,
+      fontes: { titulos: fonte(marca.fontes.titulos), texto: fonte(marca.fontes.texto) },
+    };
+  }
+
+  /** A marca do projeto mudou (ou foi trocada/tirada) depois da montagem da timeline atual. */
+  marcaDesatualizada(projetoId: string): boolean {
+    let atual: Timeline;
+    try {
+      atual = this.timeline(projetoId).timeline;
+    } catch {
+      return false; // ainda sem timeline
+    }
+    const id = this.d.projetos.obter(projetoId).configuracao.marca;
+    if (!id) return Boolean(atual.marca);
+    const marca = this.d.marcas.obter(id);
+    if (marca.estado !== "pronta") return false;
+    return atual.marca?.id !== marca.id || atual.marca.atualizadaEm !== marca.atualizadaEm;
+  }
+
+  /** Troca o que veio da marca pela versão atual dela (ou tira, se o projeto ficou sem marca), sem perder edições manuais. */
+  aplicarMarcaAtual(projetoId: string): VersaoDaTimeline {
+    return this.editar(projetoId, { tipo: "aplicar-marca", marca: this.retratoDaMarca(projetoId) }, "Aplicada a marca atual");
   }
 
   timeline(projetoId: string, versao?: number): VersaoDaTimeline {

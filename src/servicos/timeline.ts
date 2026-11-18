@@ -2,6 +2,7 @@
 // e cada versão salva fica no histórico. Os arquivos de mídia nunca são tocados.
 
 import { ErroAplicacao, NaoEncontrado } from "../dominio/erros.ts";
+import { aplicarMarca, removerMarca } from "../dominio/marca-na-timeline.ts";
 import { AREA_SEGURA_PADRAO, type Exportacao, type ItemDaTimeline, type Operacao, type Timeline, type VersaoDaTimeline } from "../dominio/timeline.ts";
 import { agora, transacao, type Banco } from "../infra/banco.ts";
 
@@ -163,6 +164,12 @@ export function aplicarOperacao(original: Timeline, op: Operacao): Timeline {
       for (const [campo, valor] of Object.entries(op.campos)) {
         if (["id", "tipo", "inicioSeg", "duracaoSeg", "camada"].includes(campo)) throw invalida(`O campo "${campo}" não é alterado por esta operação.`);
         if (!(campo in item)) throw invalida(`O item "${op.id}" não tem o campo "${campo}".`);
+        // Editado à mão: o valor deixa de ser "da marca" e fica mesmo se a marca for reaplicada.
+        const daMarca = item.daMarca as Record<string, unknown> | undefined;
+        if (daMarca && campo in daMarca) {
+          delete daMarca[campo];
+          item.editadoAMao = [...new Set([...((item.editadoAMao as string[] | undefined) ?? []), campo])];
+        }
         const atual = item[campo];
         item[campo] = atual && typeof atual === "object" && !Array.isArray(atual) && valor && typeof valor === "object" && !Array.isArray(valor) ? { ...atual, ...valor } : valor;
       }
@@ -182,7 +189,20 @@ export function aplicarOperacao(original: Timeline, op: Operacao): Timeline {
         t.areaSegura = { ...(t.areaSegura ?? AREA_SEGURA_PADRAO), ...op.areaSegura };
         if (Object.values(t.areaSegura).some((m) => m < 0 || m > 0.4)) throw invalida("As margens da área segura vão de 0 a 0,4.");
       }
-      if (op.legendas) t.legendas = { ...t.legendas, ...op.legendas };
+      if (op.legendas) {
+        for (const campo of Object.keys(op.legendas)) {
+          if (!t.legendas.daMarca || !(campo in t.legendas.daMarca)) continue;
+          delete t.legendas.daMarca[campo];
+          t.legendas.editadoAMao = [...new Set([...(t.legendas.editadoAMao ?? []), campo])];
+        }
+        t.legendas = { ...t.legendas, ...op.legendas };
+      }
+      break;
+    }
+    case "aplicar-marca": {
+      const timeline = op.marca ? aplicarMarca(t, op.marca).timeline : removerMarca(t);
+      Object.assign(t, timeline);
+      if (!timeline.marca) delete t.marca;
       break;
     }
   }
@@ -195,7 +215,7 @@ export function descreverOperacao(op: Operacao): string {
   const nomes: Record<Operacao["tipo"], string> = {
     inserir: "Inserido item", remover: "Removido item", cortar: "Cortado item", dividir: "Dividido item", "ajustar-duracao": "Ajustada a duração de",
     reposicionar: "Reposicionado item", mover: "Movido item", "mudar-camada": "Mudada a camada de", alterar: "Alterado item", "efeito-global": "Alterado efeito global", formato: "Alterado o formato",
-    apresentacao: "Alteradas margens ou estilo das legendas",
+    apresentacao: "Alteradas margens ou estilo das legendas", "aplicar-marca": "Aplicada a marca atual",
   };
   const detalhe = op.tipo === "inserir" ? ` "${op.item.id}" (${op.item.tipo})` : op.tipo === "alterar" ? `: ${Object.keys(op.campos).join(", ")}` : op.tipo === "efeito-global" ? `: ${op.efeito.tipo}` : "";
   return `${nomes[op.tipo]}${alvo}${detalhe}`;

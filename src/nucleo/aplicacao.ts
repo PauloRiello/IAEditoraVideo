@@ -201,7 +201,7 @@ export class Aplicacao {
     );
     this.qualidade = new Qualidade({ banco: this.banco, projetos: this.projetos, acervo: this.acervo, timelines, catalogo: this.catalogoDeQualidade });
     this.edicao = new Edicao({
-      caminhos: this.caminhos, projetos: this.projetos, acervo: this.acervo, aprendizado: this.aprendizado, memoria: this.memoria, estilos: this.estilos,
+      caminhos: this.caminhos, marcas: this.marcas, projetos: this.projetos, acervo: this.acervo, aprendizado: this.aprendizado, memoria: this.memoria, estilos: this.estilos,
       timelines, producao: this.producao, hardware: this.hardware, eventos: this.eventos, qualidade: this.qualidade, catalogo: this.catalogoDeQualidade,
     });
     this.feedback = new Feedback({ banco: this.banco, projetos: this.projetos, aprendizado: this.aprendizado, timelines });
