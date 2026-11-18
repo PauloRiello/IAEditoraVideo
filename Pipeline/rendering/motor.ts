@@ -128,8 +128,12 @@ async function prepararMidias(p: PedidoDeRender, escala: number): Promise<Record
         renameSync(parcial, destino);
       }
     } else if (item.tipo === "imagem") {
-      destino = path.join(p.pastaDeCache, `${chave(item.arquivo)}${path.extname(item.arquivo).toLowerCase()}`);
-      if (!existsSync(destino)) copyFileSync(item.arquivo, destino);
+      destino = await prepararImagem(p, item.arquivo, item.duracaoSeg);
+    } else if (item.logo || item.fonte) {
+      // Cartão com logo ou fonte da marca: desenhado pela composição, que carrega as fontes da
+      // marca e o logo do mesmo jeito que no resto do vídeo.
+      if (item.logo) preparados[`logo:${item.id}`] = await prepararImagem(p, item.logo, item.duracaoSeg);
+      continue;
     } else {
       const tamanho = { largura: par(alvo.largura), altura: par(alvo.altura), fps: formato.fps };
       destino = path.join(p.pastaDeCache, `${chave(null, "cartao", item.titulo, item.subtitulo, item.corDeFundo, item.corDoTexto, item.duracaoSeg, tamanho)}.mp4`);
@@ -146,6 +150,26 @@ async function prepararMidias(p: PedidoDeRender, escala: number): Promise<Record
     preparados[item.id] = destino;
   }
   return preparados;
+}
+
+/**
+ * Imagem para a composição. GIF animado vira trecho de vídeo com transparência (VP9 com alfa),
+ * para animar em sincronia com o vídeo; as demais são só copiadas.
+ */
+async function prepararImagem(p: PedidoDeRender, arquivo: string, duracaoSeg: number): Promise<string> {
+  const extensao = path.extname(arquivo).toLowerCase();
+  if (extensao !== ".gif") {
+    const destino = path.join(p.pastaDeCache, `${chave(arquivo)}${extensao}`);
+    if (!existsSync(destino)) copyFileSync(arquivo, destino);
+    return destino;
+  }
+  const destino = path.join(p.pastaDeCache, `${chave(arquivo, "gif", duracaoSeg)}.webm`);
+  if (!existsSync(destino)) {
+    const parcial = `${destino}.parcial.webm`;
+    await ffmpeg(["-ignore_loop", "0", "-i", arquivo, "-t", String(duracaoSeg + 0.1), "-an", "-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-auto-alt-ref", "0", "-b:v", "0", "-crf", "30", parcial]);
+    renameSync(parcial, destino);
+  }
+  return destino;
 }
 
 let empacotando: Promise<string> | null = null;
@@ -208,6 +232,13 @@ export async function renderizarTimeline(p: PedidoDeRender): Promise<{ largura: 
     for (const [itemId, arquivo] of Object.entries(preparados)) {
       copyFileSync(arquivo, path.join(pastaPublica, path.basename(arquivo)));
       arquivos[itemId] = `${nomeDaPasta}/${path.basename(arquivo)}`;
+    }
+    // Fontes da marca (retrato guardado na timeline): a composição as carrega antes do primeiro quadro.
+    for (const [n, fonte] of (p.timeline.marca?.fontes ?? []).entries()) {
+      if (!existsSync(fonte.arquivo)) continue;
+      const nome = `fonte-${n}-${path.basename(fonte.arquivo)}`;
+      copyFileSync(fonte.arquivo, path.join(pastaPublica, nome));
+      arquivos[`fonte:${n}`] = `${nomeDaPasta}/${nome}`;
     }
 
     let navegador: string | undefined;

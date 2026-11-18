@@ -1,7 +1,7 @@
 // Composição do vídeo: desenha cada item da timeline na sua camada e no seu tempo.
 
-import type React from "react";
-import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import React from "react";
+import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, continueRender, delayRender, interpolate, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import type { AreaSegura, Efeito, ItemAudio, ItemCartao, ItemDaTimeline, ItemImagem, ItemLegenda, ItemTexto, ItemVideo, Timeline } from "../../../src/dominio/timeline.ts";
 
 // Mesmos valores de AREA_SEGURA_PADRAO em src/dominio/timeline.ts (este arquivo só importa tipos de lá).
@@ -14,6 +14,41 @@ export interface PropriedadesDoVideo extends Record<string, unknown> {
 }
 
 const LIMITE = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
+const PADRAO = "Arial, Helvetica, sans-serif";
+/** Família da fonte da marca, com a padrão como reserva. */
+const familia = (nome?: string) => (nome ? `"${nome}", ${PADRAO}` : PADRAO);
+const eVideo = (arquivo: string) => arquivo.endsWith(".webm") || arquivo.endsWith(".mp4");
+
+/** Carrega as fontes da marca antes do primeiro quadro (o render espera por elas). */
+const FontesDaMarca: React.FC<{ timeline: Timeline; arquivos: Record<string, string> }> = ({ timeline, arquivos }) => {
+  const [espera] = React.useState(() => ((timeline.marca?.fontes.length ?? 0) > 0 ? delayRender("Carregando as fontes da marca") : null));
+  React.useEffect(() => {
+    if (espera === null) return;
+    const cargas = (timeline.marca?.fontes ?? []).flatMap((f, n) => {
+      const arquivo = arquivos[`fonte:${n}`];
+      if (!arquivo) return [];
+      const peso = /-(\d00)(?:-|\.)/.exec(f.arquivo)?.[1] ?? "normal";
+      const face = new FontFace(f.familia, `url("${staticFile(arquivo)}")`, { weight: peso });
+      return [face.load().then((carregada) => { (document.fonts as unknown as { add(f: FontFace): void }).add(carregada); }).catch((erro) => console.error(`Fonte ${f.familia} não carregou: ${erro}`))];
+    });
+    void Promise.all(cargas).finally(() => continueRender(espera));
+  }, [espera, timeline, arquivos]);
+  return null;
+};
+
+/** Logo (ou outra imagem) por cima do vídeo, numa caixa do quadro, sem fundo. */
+const Sobreposicao: React.FC<{ item: ItemImagem; arquivo: string }> = ({ item, arquivo }) => {
+  const { width, height } = useVideoConfig();
+  const s = item.sobreposicao!;
+  const estilo: React.CSSProperties = { width: "100%", height: "100%", objectFit: "contain", objectPosition: `${s.alinhamento === "direita" ? "right" : "left"} center` };
+  return (
+    <AbsoluteFill>
+      <div style={{ position: "absolute", left: s.x * width, top: s.y * height, width: s.largura * width, height: s.altura * height, opacity: s.opacidade }}>
+        {eVideo(arquivo) ? <OffthreadVideo src={staticFile(arquivo)} style={estilo} transparent muted /> : <Img src={staticFile(arquivo)} style={estilo} />}
+      </div>
+    </AbsoluteFill>
+  );
+};
 const quadros = (segundos: number, fps: number) => Math.max(1, Math.round(segundos * fps));
 
 /** Vídeo, imagem ou cartão: enquadramento, entrada e saída graduais, zoom lento e cor. */
@@ -55,7 +90,7 @@ const Visual: React.FC<{ item: ItemVideo | ItemImagem | ItemCartao; arquivo: str
  * Cartão desenhado pela própria composição, com o mesmo conteúdo e a mesma entrada do
  * cartão do HyperFrames. Usado quando o HyperFrames não pôde gerar o trecho neste computador.
  */
-const CartaoDesenhado: React.FC<{ item: ItemCartao }> = ({ item }) => {
+const CartaoDesenhado: React.FC<{ item: ItemCartao; logo?: string }> = ({ item, logo }) => {
   const quadro = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
   const base = Math.min(width, height);
@@ -69,12 +104,17 @@ const CartaoDesenhado: React.FC<{ item: ItemCartao }> = ({ item }) => {
       <AbsoluteFill
         style={{
           opacity: Math.min(entrada, saida), backgroundColor: item.corDeFundo, color: item.corDoTexto, alignItems: "center", justifyContent: "center", textAlign: "center",
-          fontFamily: "Arial, Helvetica, sans-serif", padding: "0 8%", gap: base * 0.035,
+          fontFamily: familia(item.fonte), padding: "0 8%", gap: base * 0.035,
         }}
       >
-        <div style={{ opacity: titulo, transform: `translateY(${(1 - titulo) * base * 0.05}px)`, fontSize: base * 0.085, fontWeight: 800, lineHeight: 1.1 }}>{item.titulo}</div>
-        <div style={{ width: base * 0.3, height: Math.max(2, base * 0.006), backgroundColor: item.corDoTexto, transform: `scaleX(${linha})` }} />
-        <div style={{ opacity: subtitulo, transform: `translateY(${(1 - subtitulo) * base * 0.03}px)`, fontSize: base * 0.045, fontWeight: 600 }}>{item.subtitulo}</div>
+        {logo ? (
+          <div style={{ opacity: titulo, width: "60%", height: item.titulo ? base * 0.18 : base * 0.35 }}>
+            {eVideo(logo) ? <OffthreadVideo src={staticFile(logo)} style={{ width: "100%", height: "100%", objectFit: "contain" }} transparent muted /> : <Img src={staticFile(logo)} style={{ width: "100%", height: "100%", objectFit: "contain" }} />}
+          </div>
+        ) : null}
+        {item.titulo ? <div style={{ opacity: titulo, transform: `translateY(${(1 - titulo) * base * 0.05}px)`, fontSize: base * 0.085, fontWeight: 800, lineHeight: 1.1 }}>{item.titulo}</div> : null}
+        {item.titulo || item.subtitulo ? <div style={{ width: base * 0.3, height: Math.max(2, base * 0.006), backgroundColor: item.corDoTexto, transform: `scaleX(${linha})` }} /> : null}
+        {item.subtitulo ? <div style={{ opacity: subtitulo, transform: `translateY(${(1 - subtitulo) * base * 0.03}px)`, fontSize: base * 0.045, fontWeight: 600 }}>{item.subtitulo}</div> : null}
       </AbsoluteFill>
     </AbsoluteFill>
   );
@@ -98,7 +138,7 @@ const Texto: React.FC<{ item: ItemTexto; margens: AreaSegura }> = ({ item, marge
       <div
         style={{
           opacity: presenca, transform: `translateY(${subida}px)`, color: item.cor, fontSize: height * item.tamanho, fontWeight: 800,
-          fontFamily: "Arial, Helvetica, sans-serif", textAlign: "center", lineHeight: 1.15, textShadow: "0 2px 12px rgba(0,0,0,0.75)",
+          fontFamily: familia(item.fonte), textAlign: "center", lineHeight: 1.15, textShadow: "0 2px 12px rgba(0,0,0,0.75)",
           backgroundColor: item.fundo || undefined, padding: item.fundo ? "0.3em 0.6em" : 0, borderRadius: "0.25em",
         }}
       >
@@ -114,8 +154,8 @@ const Legenda: React.FC<{ item: ItemLegenda; estilo: Timeline["legendas"]; marge
     <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", padding: `0 ${margens.lados * 100}% ${height * margens.base}px` }}>
       <div
         style={{
-          color: "white", fontSize: height * estilo.tamanho, fontWeight: 700, fontFamily: "Arial, Helvetica, sans-serif", textAlign: "center", lineHeight: 1.25,
-          backgroundColor: estilo.caixa ? "rgba(0,0,0,0.65)" : undefined, padding: "0.25em 0.55em", borderRadius: "0.2em",
+          color: estilo.cor ?? "white", fontSize: height * estilo.tamanho, fontWeight: 700, fontFamily: familia(estilo.fonte), textAlign: "center", lineHeight: 1.25,
+          backgroundColor: estilo.caixa ? (estilo.fundo ?? "rgba(0,0,0,0.65)") : undefined, padding: "0.25em 0.55em", borderRadius: "0.2em",
           textShadow: estilo.caixa ? undefined : "0 2px 8px rgba(0,0,0,0.9)",
         }}
       >
@@ -165,8 +205,11 @@ export const VideoDaTimeline: React.FC<PropriedadesDoVideo> = ({ timeline, arqui
   );
   return (
     <AbsoluteFill style={{ backgroundColor: "black" }}>
+      <FontesDaMarca timeline={timeline} arquivos={arquivos} />
       {ordenados.filter(eVisual).map((item) =>
-        arquivos[item.id] ? sequencia(item, <Visual item={item} arquivo={arquivos[item.id]} />) : item.tipo === "cartao" ? sequencia(item, <CartaoDesenhado item={item} />) : null,
+        item.tipo === "imagem" && item.sobreposicao && arquivos[item.id] ? sequencia(item, <Sobreposicao item={item} arquivo={arquivos[item.id]} />)
+          : arquivos[item.id] ? sequencia(item, <Visual item={item} arquivo={arquivos[item.id]} />)
+          : item.tipo === "cartao" ? sequencia(item, <CartaoDesenhado item={item} logo={arquivos[`logo:${item.id}`]} />) : null,
       )}
       {barras ? <BarrasDeCinema proporcao={barras.proporcao} /> : null}
       {ordenados.map((item) =>
