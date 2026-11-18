@@ -171,6 +171,7 @@ Só quando o projeto tem marca **pronta**. Cada aplicação vira uma `Decisao` c
 | Elemento | Aplicação **(proposta de posição e tamanho)** |
 |---|---|
 | Logo | Item de imagem pequeno num canto (superior direito, ~8% da altura, opacidade 85%) durante o vídeo; grande no cartão final. Em GIF, animado |
+| Encerramento da marca | **Decidido pelo usuário (opção A):** quando o vídeo não tem cartão final, a montagem acrescenta um encerramento curto (~2 s) com fundo na cor da marca, logo centralizado e fade; registrado como `Decisao` de origem `marca`. Quando já existe cartão final (CTA), o logo grande entra nele e não há encerramento extra. Conta na duração do vídeo (avisado no plano/edição) |
 | Cores | Caixa da legenda (`fundo` com transparência) e texto da legenda; textos na tela (`cor`, `fundo`); cartão final (`corDeFundo`, `corDoTexto`) |
 | Fontes | `titulos` em textos na tela e cartão final; `texto` nas legendas |
 
@@ -222,6 +223,7 @@ Só quando o projeto tem marca **pronta**. Cada aplicação vira uma `Decisao` c
 3. Fontes: Google Fonts com confirmação; senão, pedir o arquivo (opção A).
 4. Links: tentar sem login e explicar quando bloquear (opção A).
 5. Leitura do PDF pelo Python (pypdfium2 + pypdf).
+6. Sem cartão final: encerramento curto só com o logo (opção A).
 
 ## Deixado ao construtor
 
