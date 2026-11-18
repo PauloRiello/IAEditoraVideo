@@ -51,7 +51,11 @@ export const pastaDoFfmpeg = (c: Caminhos): string => path.join(c.ambiente, "fer
 const pastaDoPythonPortatil = (c: Caminhos) => path.join(c.ambiente, "ferramentas", "python");
 const pythonPortatil = (c: Caminhos) => (WINDOWS ? path.join(pastaDoPythonPortatil(c), "python.exe") : path.join(pastaDoPythonPortatil(c), "bin", "python3"));
 const pastaDoVenv = (c: Caminhos) => path.join(c.ambiente, "python");
-const marcadorDosPacotes = (c: Caminhos) => path.join(pastaDoVenv(c), ".requisitos");
+/** Marca dos pacotes instalados: fica no ambiente do Python em uso (o novo ou o .venv antigo). */
+const marcadorDosPacotes = (c: Caminhos) => {
+  const python = pythonDoAmbiente(c);
+  return path.join(python ? path.dirname(path.dirname(python)) : pastaDoVenv(c), ".requisitos");
+};
 const requisitos = (c: Caminhos) => path.join(c.programa, "requirements.txt");
 
 export function lerCatalogo(c: Caminhos): CatalogoDeFerramentas {

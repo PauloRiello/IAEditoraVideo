@@ -34,7 +34,8 @@
     "verificar:hyperframes": "node scripts/verificar/hyperframes.mjs",
     "verificar:whisper": "node scripts/verificar/whisper.mjs",
     "verificar:yt-dlp": "node scripts/verificar/yt-dlp.mjs",
-    "verificar:skills": "node scripts/verificar/skills.mjs"
+    "verificar:skills": "node scripts/verificar/skills.mjs",
+    "aplicativo": "electron ."
   },
   "dependencies": {
     "@remotion/bundler": "4.0.543",
@@ -49,6 +50,9 @@
   "devDependencies": {
     "@types/node": "22.20.5",
     "@types/react": "19.3.0",
+    "electron": "45.2.2",
+    "electron-builder": "26.18.0",
     "typescript": "5.9.3"
-  }
+  },
+  "main": "aplicativo/principal.mjs"
 }

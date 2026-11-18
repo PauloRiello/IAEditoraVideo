@@ -256,3 +256,21 @@ test("preparar.ts fala em linhas JSON e termina com pronto ou erro", async () =>
   await prepararEmLinhas(async () => { throw new Error("disco cheio"); }, (linha) => comErro.push(linha));
   assert.deepEqual(JSON.parse(comErro.at(-1) as string), { erro: "disco cheio" });
 });
+
+test("instalação antiga com .venv na pasta do programa: pacotes conferidos ali, sem criar outro ambiente", { skip: !naoWindows }, async () => {
+  const c = cenario();
+  const venvAntigo = path.join(c.caminhos.programa, ".venv");
+  mkdirSync(path.join(venvAntigo, "bin"), { recursive: true });
+  writeFileSync(path.join(venvAntigo, "bin", "python"), PYTHON_DO_VENV, { mode: 0o755 });
+  const servidor = await servir(c.pacotes);
+  try {
+    const primeira = await prepararAmbiente(c.opcoes(servidor.endereco));
+    assert.deepEqual(primeira.avisos, []);
+    assert.deepEqual(primeira.faltando, []);
+    assert.equal(existsSync(path.join(c.caminhos.ambiente, "python")), false, "não criou um segundo ambiente");
+    await prepararAmbiente(c.opcoes(servidor.endereco));
+    assert.equal(readFileSync(path.join(venvAntigo, "chamadas-do-pip"), "utf8").trim().split("\n").length, 1);
+  } finally {
+    await servidor.fechar();
+  }
+});
