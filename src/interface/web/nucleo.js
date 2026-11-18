@@ -275,3 +275,57 @@ export function linhaDeTarefa(t) {
     t.erro ? h("small", { style: "color:var(--ruim)" }, t.erro) : null,
   );
 }
+
+/**
+ * Campo para colar links de vídeos de referência (YouTube, TikTok, Instagram...). Cada link vira
+ * uma tarefa com porcentagem; a página só mostra o andamento e o resultado.
+ * Devolve o elemento e `aoEvento`, que a tela repassa dos eventos da aplicação.
+ */
+export function baixadorDeLinks({ perfil, projeto, aoTerminar }) {
+  const campo = h("textarea", { rows: 3, placeholder: "Cole um ou mais links, um por linha (YouTube, TikTok, Instagram...)" });
+  const lista = h("div.downloads");
+  const linhas = new Map();
+  // Uma tarefa rápida (vídeo que já existia) pode terminar antes de a página saber o id dela.
+  const adiantados = new Map();
+  const acompanhar = (tarefa) => {
+    const etapa = h("span.suave", {}, tarefa.etapa || "Na fila");
+    const linha = h("div.download", {}, h("div.download-link", {}, tarefa.titulo.replace(/^Baixando referência: /, "")), barra(tarefa.progresso ?? 0), etapa);
+    linhas.set(tarefa.id, { linha, etapa });
+    lista.prepend(linha);
+    if (adiantados.has(tarefa.id)) mostrarEstado(adiantados.get(tarefa.id));
+    adiantados.delete(tarefa.id);
+  };
+  const baixar = (evento) => agir(evento, async () => {
+    const r = await api("/api/referencias/links", { metodo: "POST", corpo: { links: campo.value, perfil: perfil?.() ?? "", projeto: projeto ?? "" } });
+    campo.value = "";
+    for (const tarefa of r.tarefas) acompanhar(tarefa);
+  });
+  const elemento = h("div.baixador", {},
+    campo,
+    h("div.linha", { style: "margin-top:8px" },
+      h("span.ajuda", {}, "Sites que exigem login (como o Instagram) podem recusar: nesse caso, salve o vídeo pelo celular ou pelo navegador e arraste o arquivo."),
+      h("span.espaco"), h("button.principal", { aoClicar: baixar }, "Baixar")),
+    lista);
+  function mostrarEstado(dados) {
+    const item = linhas.get(dados.id);
+    if (!item) { adiantados.set(dados.id, dados); return; }
+    if (dados.estado === "concluida") {
+      atualizarBarra(item.linha, 1);
+      item.etapa.textContent = "Pronto: já está nas referências.";
+      aoTerminar?.();
+    } else if (dados.estado === "falhou") {
+      item.linha.querySelector(".progresso")?.remove();
+      item.etapa.className = "erro-do-download";
+      item.etapa.textContent = dados.erro ?? "Não foi possível baixar.";
+    } else {
+      atualizarBarra(item.linha, dados.progresso ?? 0);
+      item.etapa.textContent = dados.etapa || "Na fila";
+    }
+  }
+  return {
+    elemento,
+    aoEvento(nome, dados) {
+      if (nome === "tarefa:atualizada" && dados.tipo === "download-de-referencia") mostrarEstado(dados);
+    },
+  };
+}

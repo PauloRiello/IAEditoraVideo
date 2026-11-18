@@ -448,6 +448,28 @@ O usuário escolheu publicar os lançamentos neste repositório, tornando-o púb
   do `Instalar.cmd` não é descoberta; links do YouTube podem precisar do Node.js; o
   navegador de render vem no primeiro render; juntar os dois caminhos de preparação do Python.
 
+## Etapa — Referências por link (18/11/2026)
+
+Plano: [superpowers/plans/2026-11-18-referencias-por-link.md](superpowers/plans/2026-11-18-referencias-por-link.md);
+desenho: [superpowers/specs/2026-11-18-identidade-visual-e-referencias-por-link-design.md](superpowers/specs/2026-11-18-identidade-visual-e-referencias-por-link-design.md) (Parte 1).
+
+- **Baixador** (`Pipeline/ingestion/links.ts`): o yt-dlp do ambiente em duas chamadas
+  (metadados, depois o download com porcentagem lida das linhas dele); link normalizado (o
+  mesmo vídeo em outra forma não é baixado de novo); listas e perfis recusados; erros em
+  linguagem simples (login, privado/removido, link não reconhecido, sem internet). No `.exe`,
+  o YouTube usa o próprio executável do programa como motor de JavaScript.
+- **Núcleo, API e CLI:** `baixarDeLink` registra a referência com origem, título, autor, data
+  e autorização ("Baixado de <site> em <data> para análise como referência…") e a vincula ao
+  projeto; `POST /api/referencias/links` cria uma tarefa por link (um link ruim não impede os
+  outros); `npm run app -- referencias baixar <link>`.
+- **Janela:** campo "Ou cole links de vídeos" em Referências e na aba de material do projeto,
+  com uma barra por link. Conferido no navegador de verdade com o yt-dlp real e um vídeo
+  servido localmente: porcentagem, conclusão, link repetido, link inválido e playlist.
+- **Ajuste:** `config/yt-dlp.conf` ganhou a alternativa "melhor formato" no fim, porque
+  vídeos sem altura informada falhavam.
+- **Testes:** `tests/unidade/links.test.ts` (10), com um yt-dlp falso; suíte completa passando.
+- **Pendências:** login nos sites (decidido não fazer); teste no Windows com links reais.
+
 ## Próximas etapas (não iniciadas)
 
 A confirmar com o usuário. Sugestão: validação em Windows real com vídeos reais.

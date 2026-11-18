@@ -1,6 +1,6 @@
 // Aba "Material e análise": vídeos brutos (envio, análise, cenas, transcrição, pesquisa) e referências do projeto.
 
-import { agir, api, areaDeEnvio, atualizarBarra, aviso, barra, dialogo, escolha, etiqueta, h, limpar, markdown, quando, tamanho, tempo, por } from "/nucleo.js";
+import { agir, api, areaDeEnvio, atualizarBarra, aviso, baixadorDeLinks, barra, dialogo, escolha, etiqueta, h, limpar, markdown, por, quando, tamanho, tempo } from "/nucleo.js";
 
 const INTEGRIDADE = { integro: ["Íntegro", "bom"], "com-erros": ["Com erros", "alerta"], ilegivel: ["Ilegível", "ruim"] };
 
@@ -106,6 +106,7 @@ export async function aba(raiz, estado) {
     );
   };
   const carregarReferencias = async () => desenharReferencias(await api(`/api/referencias?projeto=${id}`));
+  const links = baixadorDeLinks({ perfil: () => estado.projeto.perfil, projeto: id, aoTerminar: () => carregarReferencias().catch(() => undefined) });
 
   const busca = h("input", { type: "search", placeholder: "Procurar nas falas, cenas e acontecimentos dos vídeos analisados" });
   const pesquisar = () => agir(null, async () => {
@@ -136,6 +137,7 @@ export async function aba(raiz, estado) {
         texto: "Arraste aqui vídeos de referência para este projeto.", aceitos: video,
         destino: (arquivo) => `/api/referencias/arquivo?nome=${encodeURIComponent(arquivo.name)}&perfil=${estado.projeto.perfil}&projeto=${id}`, aoTerminar: carregarReferencias,
       }),
+      h("h3", { style: "margin-top:16px" }, "Ou cole links de vídeos"), links.elemento,
       h("div", { style: "margin-top:14px" }, referencias)),
   );
   await Promise.all([carregarBrutos(), carregarReferencias()]);
@@ -145,6 +147,7 @@ export async function aba(raiz, estado) {
 
   return {
     aoEvento: (nome, dados) => {
+      links.aoEvento(nome, dados);
       if (nome !== "tarefa:atualizada" || !dados.tipo.startsWith("analise")) return;
       const ativa = dados.estado === "na-fila" || dados.estado === "executando";
       if (dados.tipo === "analise-de-brutos") {

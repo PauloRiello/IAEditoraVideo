@@ -7,6 +7,24 @@ provedores disponíveis, acrescenta a leitura que só um modelo consegue fazer.
 
 ## Como usar
 
+**Por link (YouTube, TikTok, Instagram e outros sites):** em **Referências** (ou na aba de
+material do projeto), cole um ou mais links, um por linha, e clique em **Baixar**. Cada link
+vira uma tarefa com porcentagem; o vídeo vai para `Referências/` (ou `Referências/<segmento>/`)
+em até 1080p e é registrado com o link de origem, o título, o autor e a data. O mesmo vídeo
+colado em outra forma (`youtu.be/…`, `/shorts/…`, com `?si=` ou `?igsh=`) não é baixado de
+novo. Listas e perfis inteiros são recusados. A autorização registrada é "Baixado de <site>
+em <data> para análise como referência (ensina princípio, não cópia)" e pode ser editada.
+Pela linha de comando:
+
+```bash
+npm run app -- referencias baixar "https://youtu.be/ID" --perfil fivem
+```
+
+O programa não entra em nenhuma conta. Se o site exigir login (o Instagram quase sempre
+exige), a tarefa explica e sugere salvar o vídeo pelo celular ou navegador e arrastá-lo.
+
+**Por arquivo:**
+
 1. Coloque os vídeos na pasta `Referências/`. Um vídeo dentro de uma subpasta com o nome
    de um perfil (por exemplo `Referências/fivem/`) é associado a esse perfil.
 2. Registre e analise:
@@ -138,6 +156,10 @@ apenas se couber na VRAM livre. Uma resposta inválida de um modelo não interro
 análise: vira uma limitação no relatório.
 
 ## Limites desta etapa
+
+- Download por link sem login: Instagram e parte do TikTok recusam. Os sites mudam com
+  frequência; quando um deixar de funcionar, a atualização do yt-dlp (pela versão nova do
+  programa) costuma resolver.
 
 - Sem modelo visual, tudo o que depende de "ver" o conteúdo fica sem avaliação.
 - A detecção de movimento de câmera é uma estimativa em baixa resolução: distingue

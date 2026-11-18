@@ -64,6 +64,11 @@ que não foi avaliado aparece como "não avaliado", nunca como um palpite.
 
 ## Análise e edição
 
+- **Referências por link sem login.** O programa não entra em contas: o Instagram quase
+  sempre recusa e o TikTok às vezes. Nesse caso, salve o vídeo pelo celular ou navegador e
+  arraste o arquivo. Os sites mudam com frequência e um link que funcionava pode parar até a
+  próxima versão do programa (que traz o yt-dlp atualizado).
+
 - **Sem a IA local nem outro modelo**, ficam como não avaliados: personagens e
   elementos visuais, humor, enquadramentos, tipografia e animações das referências,
   desenvolvimento, suspense e emoção. O roteiro vira uma estrutura com os fatos.

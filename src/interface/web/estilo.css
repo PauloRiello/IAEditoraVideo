@@ -161,3 +161,9 @@ dialog footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12p
 .estrelas button.ligada { background: var(--destaque-escuro); color: var(--destaque); border-color: var(--destaque); }
 @media (max-width: 1100px) { .editor { grid-template-columns: 1fr; } .inspetor { position: static; } }
 @media (max-width: 760px) { body { grid-template-columns: 1fr; } .lateral { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; } #menu { flex-direction: row; flex-wrap: wrap; } .processamento, .processamento[hidden] + .rodape { margin-top: 0; } main { padding: 18px 16px 50px; } }
+
+/* Baixador de links de referência */
+.downloads { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.download { background: var(--painel-2); border: 1px solid var(--borda); border-radius: var(--raio); padding: 8px 10px; display: grid; gap: 4px; font-size: 12.5px; }
+.download-link { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--texto); }
+.erro-do-download { color: var(--ruim); }

@@ -1,6 +1,6 @@
 // Referências: vídeos prontos cujo estilo a aplicação observa. Envio, análise, relatórios e remoção.
 
-import { agir, api, areaDeEnvio, aviso, confirmar, escolha, etiqueta, h, limpar, quando, por } from "/nucleo.js";
+import { agir, api, areaDeEnvio, aviso, baixadorDeLinks, confirmar, escolha, etiqueta, h, limpar, quando, por } from "/nucleo.js";
 import { verRelatorioDaReferencia } from "/telas/projeto-material.js";
 
 export async function mostrar(raiz, contexto) {
@@ -37,6 +37,7 @@ export async function mostrar(raiz, contexto) {
             h("button.pequeno.perigo", { aoClicar: remover(r) }, "Remover"))))))));
   };
   const carregar = async () => desenhar(await api("/api/referencias"));
+  const links = baixadorDeLinks({ perfil: () => perfil.value, aoTerminar: () => carregar().catch(() => undefined) });
 
   por(raiz, 
     h("div.cabecalho", {},
@@ -53,12 +54,14 @@ export async function mostrar(raiz, contexto) {
       areaDeEnvio({
         texto: "Arraste os vídeos de referência para cá. Use apenas material que você tem autorização para analisar.", aceitos: catalogo.extensoesDeVideo,
         destino: (arquivo) => `/api/referencias/arquivo?nome=${encodeURIComponent(arquivo.name)}${perfil.value ? `&perfil=${perfil.value}` : ""}`, aoTerminar: carregar,
-      })),
+      }),
+      h("h3", { style: "margin-top:16px" }, "Ou cole links de vídeos"), links.elemento),
     h("section.bloco", {}, h("h2", {}, "Referências cadastradas"), tabela),
   );
   await carregar();
   return {
     aoEvento: (nome, dados) => {
+      links.aoEvento(nome, dados);
       if (nome === "tarefa:atualizada" && dados.tipo === "analise-de-referencias" && dados.estado !== "na-fila" && dados.estado !== "executando") carregar().catch(() => undefined);
     },
   };

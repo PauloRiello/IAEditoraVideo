@@ -17,7 +17,7 @@ novo ela continua de onde parou.
 |---|---|
 | **Painel** | Criar e abrir projetos, ver os recentes, o que está sendo processado e o histórico de atividades |
 | **Projetos** | Todos os projetos, com busca |
-| **Referências** | Vídeos prontos cujo estilo a aplicação observa: enviar, analisar e ler os relatórios |
+| **Referências** | Vídeos prontos cujo estilo a aplicação observa: enviar ou colar links (YouTube, TikTok, Instagram), analisar e ler os relatórios |
 | **Aprendizado** | O que a aplicação aprendeu, perfis de estilo, preferências, histórico e controle da memória |
 | **Configurações** | Preferências, transcrição, provedores de IA opcionais, recursos do computador, pastas e cópias de segurança |
 
@@ -68,7 +68,8 @@ Na aba **Material e análise**:
    e o que não pôde ser avaliado.
 4. Use **Pesquisa no material** para encontrar falas, cenas e acontecimentos.
 
-**Referências do projeto.** Envie vídeos de referência ou associe uma referência já
+**Referências do projeto.** Envie vídeos de referência, cole links de vídeos (cada um é
+baixado com porcentagem; sites que exigem login, como o Instagram, podem recusar) ou associe uma referência já
 cadastrada, e clique em **Analisar referências**. O relatório mostra ritmo, cortes,
 estrutura e as regras de edição observadas. Uma referência sozinha só gera aprendizados
 candidatos; eles passam a valer quando outra fonte confirma.
