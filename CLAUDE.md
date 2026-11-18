@@ -98,6 +98,11 @@ Leia [docs/ARQUITETURA.md](docs/ARQUITETURA.md) antes de alterar a estrutura e
   pasta de dados, porque a atualização substitui a pasta do programa. Cada lançamento sobe a
   versão do `package.json` (`npm version`) e é publicado pelo fluxo, nunca à mão
   ([docs/LANCAMENTO.md](docs/LANCAMENTO.md)).
+- **Marca só com confirmação.** Do manual, só o código de cor escrito no texto é `observado`
+  (com página); cor medida, logo escolhido por regra ou IA é `estimado`. Nada é aplicado antes
+  de a marca ficar pronta. A marca decide cor, fonte e logo; o estilo decide caixa, posição e
+  tamanhos. A timeline guarda o retrato da marca (`origem`, `daMarca`, `editadoAMao` em
+  `src/dominio/marca-na-timeline.ts`), e reaplicar nunca desfaz edição manual ([docs/MARCAS.md](docs/MARCAS.md)).
 - **Nada pessoal no Git.** Vídeos, banco, `Dados/`, `.env` e chaves ficam fora.
 - **Trabalhe uma etapa por vez** e não avance para a seguinte sem autorização do usuário.
 
@@ -154,6 +159,7 @@ Antes de concluir uma alteração: `npm run typecheck` e `npm test`.
 | `scripts/` | Instalar, iniciar, parar, atualizar, backup, restaurar, setup, detecção de GPU e verificadores |
 | `windows/` | Instalador (`Instalar.cmd`, `Instalar.ps1`) e atalhos `.cmd`, em ASCII e com fim de linha do Windows |
 | `aplicativo/` | Aplicativo Windows (Electron): tela de abertura, preparação, servidor sem console, janela e atualização automática; lógica testável em `estado.mjs` |
+| `Pipeline/brand/` | Leitura do manual da marca em PDF (`ler_manual.py` extrai; `manual.ts` interpreta) |
 | `IA/Ambiente/` | FFmpeg e Python portáteis baixados pela preparação, com versão, tamanho e SHA-256 fixados |
 | `.github/workflows/` | `lancamento.yml`: instalador gerado e testado num Windows; publica nas etiquetas `v*` |
 | `Dados/` | Banco, configurações e temporários locais (fora do Git) |

@@ -248,6 +248,12 @@ scripts de ciclo de vida não acrescentaram nenhuma dependência.
 | Lançamento | `.github/workflows/lancamento.yml`: num Windows, gera o instalador, instala em silêncio, abre com `--teste-de-fumaca` e, nas etiquetas `v*`, publica ([LANCAMENTO.md](LANCAMENTO.md)) |
 | Cópias de segurança | Automáticas, manuais, antes de migração, de atualização e de restauração; pela janela ou por `backup.mjs` e `restaurar.mjs` |
 
+**Marcas.** `src/dominio/marca.ts` (tipos) e `marca-na-timeline.ts` (aplicação pura, usada pela
+montagem e pela operação `aplicar-marca`); `src/servicos/marcas.ts` (cadastro e arquivos, migração v9)
+e `fontes.ts` (Google Fonts); `src/nucleo/marcas.ts` (tarefa de leitura do manual); `Pipeline/brand/`
+(PDF). A edição aplica a marca pronta depois da área segura, com os arquivos copiados para o
+projeto; o render carrega as fontes por `FontFace` e desenha o logo por cima. Guia: [MARCAS.md](MARCAS.md).
+
 **Decisões registradas.** Primeiro foi adotada a janela servida pela própria aplicação,
 aberta no Edge ou no Chrome, sem dependência nova. Em 18/11/2026 o usuário pediu um .exe
 sem janelas de prompt, com tela de abertura e atualização automática: a mesma página passou

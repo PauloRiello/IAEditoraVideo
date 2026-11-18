@@ -161,6 +161,7 @@ com `npm run app`):
 | `npm run app -- resultado <projeto> Instagram --retencaoPercentual 48` | Registra métricas informadas |
 | `npm run app -- aprendido` | Mostra o que foi aprendido, por contexto |
 | `npm run app -- referencias importar` | Registra os vídeos novos da pasta `Referências/` |
+| Marcas (logo, cores e fontes do manual em PDF) | Menu **Marcas** na janela ([docs/MARCAS.md](docs/MARCAS.md)) |
 | `npm run app -- referencias baixar <link>` | Baixa um vídeo de referência por link (YouTube, TikTok, Instagram) |
 | `npm run app -- referencias analisar todas` | Analisa as referências e grava os relatórios |
 | `npm run app -- aprendizados` | Lista o que a IA aprendeu |

@@ -470,6 +470,28 @@ desenho: [superpowers/specs/2026-11-18-identidade-visual-e-referencias-por-link-
 - **Testes:** `tests/unidade/links.test.ts` (10), com um yt-dlp falso; suíte completa passando.
 - **Pendências:** login nos sites (decidido não fazer); teste no Windows com links reais.
 
+## Etapa — Identidade visual da marca (18/11/2026)
+
+Plano: [superpowers/plans/2026-11-18-identidade-visual-da-marca.md](superpowers/plans/2026-11-18-identidade-visual-da-marca.md);
+guia: [MARCAS.md](MARCAS.md).
+
+- **Marcas** no banco (migração v9) com arquivos copiados para `<dados>/marcas/<id>/`, incluídas
+  nas cópias de segurança; projeto escolhe só marca pronta.
+- **Leitura do manual em PDF** (pypdfium2 + pypdf, sem Pillow): cores escritas (observado, com
+  página e papel), CMYK convertido, cores medidas quando não há códigos (estimado), nomes de
+  fontes, candidatas a logo (IA local opcional), PDF com senha ou inválido com mensagem clara.
+- **Google Fonts** só com confirmação; fonte pendente usa a padrão.
+- **Tela Marcas**: manual, sugestões com origem, escolha do logo, cores com papel, fontes,
+  posição do logo, "Marca pronta". Conferida no navegador de verdade.
+- **No vídeo**: logo de canto (no topo em vertical), cores na caixa da legenda, nos textos com
+  caixa e no cartão, fontes da marca, encerramento de 2 s sem cartão final, contraste conferido
+  (WCAG 4,5), decisões com origem "marca". GIF animado vira trecho com transparência.
+- **Marca editada**: a timeline não muda sozinha; "Aplicar marca atual" troca só o que veio da
+  marca e mantém edições manuais. Conferido no navegador com prévia renderizada.
+- **Testes**: marcas, manual, fontes, marca-na-timeline, render-marca e integração na edição.
+- **Pendências**: Pantone sem conversão; cartão da marca desenhado pelo Remotion (não pelo
+  HyperFrames); Google Fonts e leitura de manuais reais não testados com a internet desta máquina.
+
 ## Próximas etapas (não iniciadas)
 
 A confirmar com o usuário. Sugestão: validação em Windows real com vídeos reais.

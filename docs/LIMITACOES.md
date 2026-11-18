@@ -64,6 +64,13 @@ que não foi avaliado aparece como "não avaliado", nunca como um palpite.
 
 ## Análise e edição
 
+- **Marca: leitura do manual.** Cores em Pantone não são convertidas; manuais só com imagens
+  (sem texto) dão cores medidas, estimadas; fontes fora do Google Fonts precisam do arquivo; a
+  escolha do logo pela IA local é uma estimativa. Os arquivos de fonte de dentro do PDF não são
+  aproveitados (vêm recortados e com licença incerta).
+- **Marca: cartão com logo.** O cartão final de uma marca é desenhado pela composição do Remotion,
+  com animação simples (não pelo HyperFrames).
+
 - **Referências por link sem login.** O programa não entra em contas: o Instagram quase
   sempre recusa e o TikTok às vezes. Nesse caso, salve o vídeo pelo celular ou navegador e
   arraste o arquivo. Os sites mudam com frequência e um link que funcionava pode parar até a

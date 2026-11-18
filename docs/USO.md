@@ -17,6 +17,7 @@ novo ela continua de onde parou.
 |---|---|
 | **Painel** | Criar e abrir projetos, ver os recentes, o que está sendo processado e o histórico de atividades |
 | **Projetos** | Todos os projetos, com busca |
+| **Marcas** | Identidade visual (logo, cores, fontes) lida do manual em PDF, confirmada por você e aplicada nos vídeos dos projetos que a escolherem ([MARCAS.md](MARCAS.md)) |
 | **Referências** | Vídeos prontos cujo estilo a aplicação observa: enviar ou colar links (YouTube, TikTok, Instagram), analisar e ler os relatórios |
 | **Aprendizado** | O que a aplicação aprendeu, perfis de estilo, preferências, histórico e controle da memória |
 | **Configurações** | Preferências, transcrição, provedores de IA opcionais, recursos do computador, pastas e cópias de segurança |

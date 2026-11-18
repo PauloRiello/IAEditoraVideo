@@ -170,3 +170,14 @@ atalho → IA Editora de Vídeo.exe (aplicativo/principal.mjs)
 fechar → (pergunta se há tarefa) → fecha a entrada padrão do servidor → [atualização baixada?]
         → cli.ts backup pre-atualizacao → instala e reabre
 ```
+
+## 8. Referências por link e marcas (18/11/2026)
+
+| Assunto | Arquivos |
+|---|---|
+| Referência por link | `Pipeline/ingestion/links.ts` (yt-dlp), `src/nucleo/referencias.ts` (`baixarDeLink`), rota `POST /api/referencias/links`, `baixadorDeLinks` em `web/nucleo.js` |
+| Marca: dados | `src/dominio/marca.ts`, `src/servicos/marcas.ts` (migração v9, `<dados>/marcas/<id>/`) |
+| Marca: manual em PDF | `Pipeline/brand/ler_manual.py` (pypdfium2 + pypdf), `Pipeline/brand/manual.ts`, `src/nucleo/marcas.ts` |
+| Marca: fontes | `src/servicos/fontes.ts` (Google Fonts, só com confirmação) |
+| Marca: no vídeo | `src/dominio/marca-na-timeline.ts`, `src/nucleo/edicao.ts` (retrato, aviso, aplicar), `src/servicos/timeline.ts` (operação), `Pipeline/rendering/remotion/Video.tsx`, `motor.ts` |
+| Marca: janela | `web/telas/marcas.js`, seletor em `formulario-projeto.js`, aviso em `projeto-edicao.js` |
