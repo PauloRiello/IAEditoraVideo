@@ -23,6 +23,13 @@ export async function prepararEmLinhas(preparar: Preparacao, escrever: (linha: s
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const caminhos = caminhosPadrao();
-  const ok = await prepararEmLinhas((aoProgredir) => prepararAmbiente({ caminhos, aoProgredir }), (linha) => process.stdout.write(`${linha}\n`));
+  // Iniciada pelo aplicativo (entrada por pipe): se ele fechar, a preparação para, inclusive downloads e pip.
+  const cancelamento = new AbortController();
+  if (!process.stdin.isTTY) {
+    process.stdin.on("end", () => cancelamento.abort());
+    process.stdin.resume();
+  }
+  const ok = await prepararEmLinhas((aoProgredir) => prepararAmbiente({ caminhos, aoProgredir, sinal: cancelamento.signal }), (linha) => process.stdout.write(`${linha}\n`));
+  process.stdin.pause();
   process.exitCode = ok ? 0 : 1;
 }

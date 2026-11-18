@@ -32,13 +32,15 @@ que não foi avaliado aparece como "não avaliado", nunca como um palpite.
   Remotion) dependem do sistema onde as dependências são instaladas; o fluxo "Lançamento"
   do GitHub faz isso num Windows. `npm run empacotar` em Linux gera um programa que não
   renderiza no Windows.
-- **Pasta de vídeos personalizada da instalação antiga.** O aplicativo usa a pasta padrão
-  (`Documentos\IA Editora de Vídeo`); quem escolheu outra no `Instalar.cmd` precisa
-  apontá-la de novo.
+- **Pasta de vídeos personalizada da instalação antiga.** O aplicativo reaproveita a pasta
+  padrão do `Instalar.cmd` (`Documentos\IA Editora de Video`, inclusive no OneDrive); quem
+  escolheu outra pasta lá precisa apontá-la de novo (ela fica em
+  `%LOCALAPPDATA%\IAEditoraVideo\aplicativo.json`).
 - **Links do YouTube sem Node.js.** O yt-dlp usa o Node.js para parte do YouTube. No
   aplicativo, que não exige Node instalado, baixar referências do YouTube pode falhar.
 - **Primeiro render baixa o navegador de render.** A preparação não baixa o navegador do
-  Remotion; ele vem no primeiro render, que demora mais.
+  Remotion; ele vem no primeiro render, que demora mais e não mostra a porcentagem desse
+  download. Fica guardado na pasta do ambiente e não é baixado de novo nas atualizações.
 - **Pelo código-fonte:** o `Instalar.cmd` usa o winget para instalar Node.js, Git, FFmpeg
   e Python, abre a página numa janela do Edge ou do Chrome e atualiza pelo Git.
 - **Codificação por GPU (NVENC) testada só na verificação.** Em um Windows com RTX 3050, o

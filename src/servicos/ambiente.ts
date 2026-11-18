@@ -8,6 +8,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { caminhoDaAceleracao, pythonDoAmbiente, type Caminhos } from "../infra/caminhos.ts";
+import { ErroAplicacao } from "../dominio/erros.ts";
 import { baixar, desempacotar, tamanhoLegivel, type ArquivoBaixavel } from "../infra/download.ts";
 
 export interface VarianteDaFerramenta extends ArquivoBaixavel { plataforma: string; arquitetura: string }
@@ -71,7 +72,7 @@ function temFfmpeg(c: Caminhos, sistema?: boolean): boolean {
   return sistema ?? (noCaminho("ffmpeg") && noCaminho("ffprobe"));
 }
 
-/** Python 3.11+ instalado no sistema, ou null. */
+/** Python 3.11 a 3.13 instalado no sistema, ou null. */
 function pythonDoSistema(): string | null {
   const candidatos: [string, string[]][] = WINDOWS ? [["py", ["-3"]], ["python", []], ["python3", []]] : [["python3", []], ["python", []]];
   for (const [comando, argumentos] of candidatos) {
@@ -79,7 +80,7 @@ function pythonDoSistema(): string | null {
     if (r.status !== 0) continue;
     const [executavel, versao] = r.stdout.trim().split(/\r?\n/);
     const [maior, menor] = versao.split(".").map(Number);
-    if (maior === 3 && menor >= 11) return executavel;
+    if (maior === 3 && menor >= 11 && menor <= 13) return executavel; // faixa com pacotes do Whisper publicados
   }
   return null;
 }
@@ -122,6 +123,8 @@ export async function prepararAmbiente(o: OpcoesDaPreparacao): Promise<Resultado
   const avisos: string[] = [];
   let atual = 0;
   const informar = (etapa: string, fracao: number) => {
+    // Cancelada (o aplicativo fechou): para entre uma parte e outra; downloads e pip param pelo sinal.
+    if (o.sinal?.aborted) throw new ErroAplicacao("cancelado", "Preparação cancelada. O que já foi baixado fica guardado para continuar depois.");
     atual = Math.max(atual, Math.min(1, fracao));
     o.aoProgredir(etapa, atual);
   };
@@ -163,11 +166,15 @@ export async function prepararAmbiente(o: OpcoesDaPreparacao): Promise<Resultado
 
   // 2 e 3. Python e ambiente virtual (25 a 45%) -------------------------------
   if (!pythonDoAmbiente(c)) {
-    let base = o.sistema && "python" in o.sistema ? o.sistema.python : pythonDoSistema();
-    if (!base && existsSync(pythonPortatil(c))) base = pythonPortatil(c);
+    // Com Python portátil no catálogo, ele é sempre o usado: versão fixada, com pacotes
+    // publicados para ela. O do sistema pode ser novo demais (no Python 3.14 o Whisper não
+    // instala) e só vale onde não há portátil.
+    const portatil = variante(catalogo.python);
+    let base: string | null = existsSync(pythonPortatil(c)) ? pythonPortatil(c) : null;
+    if (!base && !portatil) base = o.sistema && "python" in o.sistema ? (o.sistema.python ?? null) : pythonDoSistema();
     if (!base) {
-      const v = variante(catalogo.python);
-      if (!v) avisos.push("O Python 3.11 ou mais recente não foi encontrado. Instale-o e abra o programa de novo.");
+      const v = portatil;
+      if (!v) avisos.push("O Python 3.11, 3.12 ou 3.13 não foi encontrado. Instale um deles e abra o programa de novo.");
       else {
         try {
           const pasta = await obter(catalogo.python, v, o.origens?.python, 0.25, 0.4);

@@ -425,9 +425,23 @@ O usuário escolheu publicar os lançamentos neste repositório, tornando-o púb
   etiquetas `v*`, publica. Nos pull requests, o instalador fica como artefato.
 - **Dívidas do mapa resolvidas:** camada violada (`EstiloDeEdicao` no domínio); download
   conferido em `src/infra/download.ts`.
-- **Testes:** 3 arquivos novos (ambiente, anfitrião, aplicativo), todos passando com o
-  resto da suíte. O aplicativo foi aberto de verdade em Linux (tela virtual): abertura,
-  janela em 5 s, tela de erro, seção Sobre e teste de fumaça.
+- **Primeiro teste real no Windows** (fluxo "Lançamento", executor `windows-latest`): o
+  instalador foi gerado, instalado em silêncio e o programa instalado abriu e respondeu.
+  Ele revelou que o Python do sistema (3.14) não instala o Whisper (sem pacotes do
+  `onnxruntime` para essa versão); agora a preparação usa sempre o Python portátil 3.12
+  fixado, e o teste de fumaça reprova se algo ficar faltando.
+- **Revisão independente** do ramo inteiro, com correções: aplicativo aberto com o programa
+  antigo já rodando mostra aquele (antes sumia); pasta de vídeos do `Instalar.cmd`
+  reaproveitada (sem acento, Documentos real do Windows) e guardada em `aplicativo.json`;
+  avisos da preparação no Painel; leitura da saída dos processos sem corrida (motivo do erro
+  não se perde); fechar a abertura cancela a preparação (downloads e pip); servidor
+  trabalhando na pasta do ambiente (o navegador de render do Remotion sobrevive às
+  atualizações); origem da janela conferida exatamente; sem o menu padrão do Electron;
+  sem resposta do servidor, fechar pergunta antes; fechar com atualização baixada não
+  reabre o programa (só "Reiniciar e atualizar" reabre).
+- **Testes:** 114, todos passando, com 3 arquivos novos (ambiente, anfitrião, aplicativo). O
+  aplicativo foi aberto de verdade em Linux (tela virtual): abertura, janela em 5 s, tela de
+  erro, seção Sobre, programa antigo já aberto e teste de fumaça.
 - **Pendências:** tornar o repositório público (sem isso a atualização não acha os
   lançamentos); publicar a primeira versão (`npm version minor` e `git push --follow-tags`)
   depois do merge; o instalador não tem assinatura digital; pasta de vídeos personalizada

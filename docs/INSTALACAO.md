@@ -47,9 +47,14 @@ instalada, não depende de nenhum outro programa aberto nem de internet para edi
    gerar prévias e exportar.
 
 Quem já usava a instalação pelo `Instalar.cmd` não perde nada: o aplicativo usa a mesma
-pasta de dados (`%LOCALAPPDATA%\IAEditoraVideo`), com os mesmos projetos e aprendizados. Se
-na instalação antiga você escolheu outra pasta para os vídeos, aponte-a de novo em
-**Configurações**.
+pasta de dados (`%LOCALAPPDATA%\IAEditoraVideo`), com os mesmos projetos e aprendizados, e a
+mesma pasta de vídeos padrão (`Documentos\IA Editora de Video`). Se na instalação antiga
+você escolheu outra pasta para os vídeos, escreva-a em `biblioteca` no arquivo
+`%LOCALAPPDATA%\IAEditoraVideo\aplicativo.json`. Se o programa antigo estiver aberto, o
+aplicativo mostra aquele em vez de abrir outro.
+
+O que a preparação não conseguir fazer (por exemplo, sem internet) aparece como aviso no
+**Painel**; feche e abra o programa de novo com internet para terminar.
 
 A IA local continua opcional e é instalada pela janela, em **Configurações → IA local**.
 

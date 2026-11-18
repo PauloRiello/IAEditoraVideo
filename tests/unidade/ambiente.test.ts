@@ -274,3 +274,34 @@ test("instalação antiga com .venv na pasta do programa: pacotes conferidos ali
     await servidor.fechar();
   }
 });
+
+test("com Python portátil no catálogo, ele é usado mesmo havendo Python no sistema (versão fixada, com pacotes disponíveis)", { skip: !naoWindows }, async () => {
+  const c = cenario();
+  // Python "do sistema" de versão nova demais: se fosse usado, marcaria o arquivo e falharia.
+  const pastaDoSistema = path.join(path.dirname(c.pacotes), "sistema");
+  mkdirSync(pastaDoSistema);
+  const marca = path.join(pastaDoSistema, "usado");
+  const pythonDoSistema = path.join(pastaDoSistema, "python3");
+  writeFileSync(pythonDoSistema, `#!/bin/sh\ntouch "${marca}"\nexit 1\n`, { mode: 0o755 });
+  const servidor = await servir(c.pacotes);
+  try {
+    const resultado = await prepararAmbiente({ ...c.opcoes(servidor.endereco), sistema: { ffmpeg: false, python: pythonDoSistema } });
+    assert.deepEqual(resultado.faltando, []);
+    assert.equal(existsSync(marca), false, "o Python do sistema não foi usado");
+    assert.ok(existsSync(path.join(c.caminhos.ambiente, "ferramentas", "python", "bin", "python3")));
+  } finally {
+    await servidor.fechar();
+  }
+});
+
+test("preparação cancelada (o aplicativo fechou): para sem baixar nada", { skip: !naoWindows }, async () => {
+  const c = cenario();
+  const servidor = await servir(c.pacotes);
+  try {
+    const sinal = AbortSignal.abort();
+    await assert.rejects(prepararAmbiente({ ...c.opcoes(servidor.endereco), sinal }), /cancelad/i);
+    assert.equal(servidor.pedidos.length, 0);
+  } finally {
+    await servidor.fechar();
+  }
+});

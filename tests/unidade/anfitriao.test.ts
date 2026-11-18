@@ -14,9 +14,9 @@ after(() => {
   for (const pasta of temporarias) rmSync(pasta, { recursive: true, force: true });
 });
 
-function abrir(dados: string): { processo: ChildProcessWithoutNullStreams; linhas: Record<string, unknown>[]; esperar: (f: (l: Record<string, unknown>) => boolean) => Promise<Record<string, unknown>>; saida: Promise<number | null> } {
+function abrir(dados: string, extra: Record<string, string> = {}): { processo: ChildProcessWithoutNullStreams; linhas: Record<string, unknown>[]; esperar: (f: (l: Record<string, unknown>) => boolean) => Promise<Record<string, unknown>>; saida: Promise<number | null> } {
   const processo = spawn(process.execPath, ["--disable-warning=ExperimentalWarning", path.join(RAIZ, "src", "interface", "principal.ts")], {
-    env: { ...process.env, IAEV_ANFITRIAO: "1", IAEV_DADOS: dados, IAEV_BIBLIOTECA: path.join(path.dirname(dados), "biblioteca") },
+    env: { ...process.env, IAEV_ANFITRIAO: "1", IAEV_DADOS: dados, IAEV_BIBLIOTECA: path.join(path.dirname(dados), "biblioteca"), ...extra },
     stdio: ["pipe", "pipe", "pipe"],
   });
   const linhas: Record<string, unknown>[] = [];
@@ -88,4 +88,19 @@ test("erro ao abrir vira uma linha {erro} e código 1", { timeout: 60_000 }, asy
   const erro = await a.esperar((l) => "erro" in l);
   assert.equal(typeof erro.erro, "string");
   assert.equal(await a.saida, 1);
+});
+
+test("avisos da preparação (ex.: sem internet) chegam ao painel pela linha pronta", { timeout: 60_000 }, async () => {
+  const pasta = mkdtempSync(path.join(os.tmpdir(), "iaev-anfitriao-"));
+  temporarias.push(pasta);
+  const aviso = "O FFmpeg não foi instalado: sem conexão.";
+  const a = abrir(path.join(pasta, "dados"), { IAEV_AVISOS_DA_PREPARACAO: JSON.stringify([aviso]) });
+  try {
+    const pronta = await a.esperar((l) => l.pronta === true);
+    const avisos = pronta.avisos as string[];
+    assert.ok(avisos.some((x) => x.includes(aviso) && /abra o programa de novo/.test(x)), JSON.stringify(avisos));
+  } finally {
+    a.processo.stdin.end();
+    await a.saida;
+  }
 });

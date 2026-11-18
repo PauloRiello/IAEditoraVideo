@@ -35,7 +35,7 @@ export function iniciarAtualizacao({ aoMudar, registrar }) {
   return {
     estado: () => atual,
     pronta: () => atual.pronta,
-    /** Fecha o aplicativo, instala em silêncio e abre de novo. */
-    instalar: () => autoUpdater.quitAndInstall(true, true),
+    /** Fecha o aplicativo e instala em silêncio; reabre só se pedido ("Reiniciar e atualizar"). */
+    instalar: (reabrir = false) => autoUpdater.quitAndInstall(true, reabrir),
   };
 }

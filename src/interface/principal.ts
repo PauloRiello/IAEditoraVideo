@@ -62,11 +62,22 @@ if (aberta) {
   process.exit(0);
 }
 
+function avisosDaPreparacao(): string[] {
+  try {
+    const avisos: unknown = JSON.parse(process.env.IAEV_AVISOS_DA_PREPARACAO ?? "[]");
+    return Array.isArray(avisos) ? avisos.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
 let app: Aplicacao;
 let servidor: Awaited<ReturnType<typeof iniciarServidor>>;
 try {
   anunciar({ etapa: "Abrindo os dados", fracao: 0.2 });
   app = new Aplicacao(caminhos);
+  // O que a preparação do computador não conseguiu fazer aparece no painel, com o que fazer.
+  for (const aviso of avisosDaPreparacao()) app.avisos.push(`${aviso} Feche e abra o programa de novo, com internet, para terminar a preparação.`);
   anunciar({ etapa: "Ligando o servidor", fracao: 0.8 });
   servidor = await abrirServidor(app);
 } catch (erro) {

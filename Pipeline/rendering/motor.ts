@@ -215,7 +215,7 @@ export async function renderizarTimeline(p: PedidoDeRender): Promise<{ largura: 
       await ensureBrowser({ logLevel: "error" });
     } catch {
       navegador = chromeDoSistema();
-      if (!navegador) throw new Error("Nenhum navegador disponível para renderizar. Rode `npm run setup` com acesso à internet.");
+      if (!navegador) throw new Error("Nenhum navegador disponível para renderizar: o navegador de render não pôde ser baixado. Confira a internet e tente de novo.");
     }
 
     const { cancel, cancelSignal } = makeCancelSignal();

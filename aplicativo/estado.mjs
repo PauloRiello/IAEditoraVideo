@@ -31,7 +31,7 @@ export function lerLinha(linha) {
   }
   if (!m || typeof m !== "object" || Array.isArray(m)) return null;
   if (typeof m.etapa === "string" && typeof m.fracao === "number") return { tipo: "etapa", etapa: m.etapa, fracao: m.fracao };
-  if (m.pronta === true && typeof m.porta === "number" && typeof m.token === "string") return { tipo: "pronta", porta: m.porta, token: m.token, avisos: lista(m.avisos) };
+  if (m.pronta === true && typeof m.porta === "number" && typeof m.token === "string") return { tipo: "pronta", porta: m.porta, token: m.token, avisos: lista(m.avisos), jaAberta: m.jaAberta === true };
   if (m.pronto === true) return { tipo: "preparado", faltando: lista(m.faltando), avisos: lista(m.avisos) };
   if (typeof m.erro === "string") return { tipo: "erro", mensagem: m.erro };
   return null;
@@ -59,4 +59,26 @@ export function textoDaAtualizacao({ tipo, versao, fracao }) {
     case "sem-novidade": return "Você está usando a versão mais recente.";
     default: return "Não foi possível procurar atualizações agora. O programa tenta de novo mais tarde.";
   }
+}
+
+/**
+ * Pasta dos vídeos e exportações: a da variável, a escolhida antes, a criada pelo Instalar.cmd
+ * (Documentos\IA Editora de Video, sem acento) ou, nas instalações antigas pelo código-fonte,
+ * a com acento. Sem nenhuma, a mesma padrão do Instalar.cmd. `documentos` é a pasta Documentos
+ * real do Windows (que pode estar no OneDrive).
+ */
+export function escolherBiblioteca({ variavel, guardada, documentos, existe }) {
+  if (variavel) return variavel;
+  if (guardada) return guardada;
+  const candidatas = [path.join(documentos, "IA Editora de Video"), path.join(documentos, "IA Editora de Vídeo")];
+  return candidatas.find((p) => existe(p)) ?? candidatas[0];
+}
+
+/**
+ * Pasta de trabalho do servidor: dentro do ambiente, fora da pasta do programa. O Remotion
+ * guarda o navegador de render e o cache da composição a partir dela, e a atualização
+ * substitui a pasta do programa.
+ */
+export function pastaDeTrabalhoDoServidor(ambiente) {
+  return ambiente;
 }
