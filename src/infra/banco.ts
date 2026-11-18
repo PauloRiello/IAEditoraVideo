@@ -296,6 +296,17 @@ export const MIGRACOES: string[] = [
   );
   CREATE INDEX atividades_projeto ON atividades (projeto_id, id);
   `,
+  // v9 — marcas: identidade visual (logo, cores, fontes, materiais) aplicada nos vídeos
+  `
+  CREATE TABLE marcas (
+    id TEXT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    estado TEXT NOT NULL DEFAULT 'rascunho',
+    dados TEXT NOT NULL DEFAULT '{}',
+    criado_em TEXT NOT NULL,
+    atualizado_em TEXT NOT NULL
+  );
+  `,
 ];
 
 export const VERSAO_ESQUEMA = MIGRACOES.length;

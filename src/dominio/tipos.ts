@@ -78,6 +78,8 @@ export interface ConfiguracaoDoProjeto {
   intervencao: NivelDeIntervencao;
   /** Subpasta de Videos Brutos/ com o material do projeto. Vazio: a pasta com o nome do projeto. */
   pasta: string;
+  /** Marca (identidade visual) aplicada nos vídeos. Vazio: nenhuma. */
+  marca: string;
 }
 
 export interface Projeto {

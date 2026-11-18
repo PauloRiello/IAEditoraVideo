@@ -18,6 +18,7 @@ import { outraInstanciaAtiva } from "../infra/instancia.ts";
 import { carregarConfiguracoes, CONFIGURACOES_PADRAO, salvarConfiguracoes, type Configuracoes } from "../infra/configuracoes.ts";
 import { arquivoDeCredenciais, carregarCredenciais, salvarCredenciais } from "../infra/credenciais.ts";
 import { ServicoAtividades } from "../servicos/atividades.ts";
+import { ServicoMarcas } from "../servicos/marcas.ts";
 import { ServicoAcervo } from "../servicos/acervo.ts";
 import { ServicoAprendizado } from "../servicos/aprendizado.ts";
 import { ServicoEstilos } from "../servicos/estilos.ts";
@@ -83,6 +84,8 @@ export class Aplicacao {
   qualidade!: Qualidade;
   /** Histórico de atividades da aplicação e dos projetos. */
   atividades!: ServicoAtividades;
+  /** Identidade visual das marcas (logo, cores, fontes). */
+  marcas!: ServicoMarcas;
   /** Trabalhos demorados em segundo plano, com estado e progresso. */
   tarefas: Tarefas;
   /** Ações do fluxo de trabalho de um projeto, usadas pela interface gráfica. */
@@ -179,6 +182,7 @@ export class Aplicacao {
     this.provedores = new RegistroProvedores(this.configuracoes.ia);
     this.provedores.redefinir(this.configuracoes.ia, this.todosOsProvedores());
     this.atividades = new ServicoAtividades(this.banco);
+    this.marcas = new ServicoMarcas(this.banco, path.join(this.caminhos.dados, "marcas"));
     this.orquestrador.usarBanco(this.banco);
     // Estilos do usuário (pasta de dados) prevalecem sobre os que acompanham o programa.
     this.estilos = new ServicoEstilos([path.join(this.caminhos.programa, "IA", "Estilos"), path.join(this.caminhos.dados, "estilos")]);

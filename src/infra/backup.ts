@@ -11,7 +11,7 @@ const ARQUIVO_BANCO = "editora.db";
 const ARQUIVO_CONFIGURACOES = "configuracoes.json";
 const MOTIVOS = ["manual", "automatica", "pre-migracao", "pre-restauracao", "pre-atualizacao"] as const;
 /** Pastas de dados com personalizações do usuário (pequenos arquivos JSON), copiadas junto com o banco. */
-const PASTAS_DO_USUARIO = ["perfis", "estilos", "qualidade", "presets"];
+const PASTAS_DO_USUARIO = ["perfis", "estilos", "qualidade", "presets", "marcas"];
 
 export type MotivoCopia = (typeof MOTIVOS)[number];
 

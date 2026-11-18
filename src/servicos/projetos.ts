@@ -17,7 +17,7 @@ interface LinhaProjeto {
 }
 
 export const CONFIGURACAO_DE_PROJETO_PADRAO: ConfiguracaoDoProjeto = {
-  objetivo: "", publico: "", plataforma: "", cta: "", fatos: [], largura: null, altura: null, fps: null, duracaoSeg: null, estilos: [], intervencao: "assistido", pasta: "",
+  objetivo: "", publico: "", plataforma: "", cta: "", fatos: [], largura: null, altura: null, fps: null, duracaoSeg: null, estilos: [], intervencao: "assistido", pasta: "", marca: "",
 };
 
 const NIVEIS = ["sugestao", "assistido", "automatico"];
@@ -40,7 +40,7 @@ export function normalizarConfiguracao(parcial: Partial<ConfiguracaoDoProjeto>, 
     objetivo: texto(c.objetivo), publico: texto(c.publico), plataforma: texto(c.plataforma), cta: texto(c.cta),
     fatos: (Array.isArray(c.fatos) ? c.fatos : []).map(texto).filter(Boolean),
     largura, altura, fps: numero(c.fps, "A taxa de quadros", 1, 120), duracaoSeg: numero(c.duracaoSeg, "A duração", 1, 14400),
-    estilos: (Array.isArray(c.estilos) ? c.estilos : []).map(texto).filter(Boolean), intervencao: c.intervencao, pasta: texto(c.pasta),
+    estilos: (Array.isArray(c.estilos) ? c.estilos : []).map(texto).filter(Boolean), intervencao: c.intervencao, pasta: texto(c.pasta), marca: texto(c.marca),
   };
 }
 
