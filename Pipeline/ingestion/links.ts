@@ -24,17 +24,22 @@ export function normalizarLink(texto: string): { url: string; site: Site } | { e
   const partes = u.pathname.split("/").filter(Boolean);
 
   if (host === "youtu.be" || host === "youtube.com" || host === "music.youtube.com") {
-    const id = host === "youtu.be" ? partes[0] : partes[0] === "shorts" || partes[0] === "live" ? partes[1] : u.searchParams.get("v");
+    const id = host === "youtu.be" ? partes[0] : ["shorts", "live", "embed"].includes(partes[0] ?? "") ? partes[1] : u.searchParams.get("v");
     if (!id) return { erro: partes[0] === "playlist" || u.searchParams.has("list") || partes[0]?.startsWith("@") ? "lista" : "invalido" };
     return { url: `https://www.youtube.com/watch?v=${id}`, site: "youtube" };
   }
   if (host === "tiktok.com" || host.endsWith(".tiktok.com")) {
-    if (!partes.includes("video") && !partes.includes("photo") && host === "tiktok.com") return { erro: "lista" };
+    // Vídeo: /@perfil/video/<id>, link curto /t/<código> ou vm./vt.tiktok.com/<código>.
+    const curto = host !== "tiktok.com" || (partes[0] === "t" && partes[1]);
+    if (!curto && !partes.includes("video") && !partes.includes("photo")) return { erro: "lista" };
     return { url: `https://${host === "tiktok.com" ? "www.tiktok.com" : host}/${partes.join("/")}`, site: "tiktok" };
   }
   if (host === "instagram.com") {
-    if (!["reel", "reels", "p", "tv"].includes(partes[0] ?? "")) return { erro: "lista" };
-    return { url: `https://www.instagram.com/${partes.join("/")}`, site: "instagram" };
+    // O Instagram também compartilha como /<usuario>/reel/<id>/.
+    const indice = partes.findIndex((p) => ["reel", "reels", "p", "tv"].includes(p));
+    if (indice < 0 || !partes[indice + 1]) return { erro: "lista" };
+    const tipo = partes[indice] === "reels" ? "reel" : partes[indice];
+    return { url: `https://www.instagram.com/${tipo}/${partes[indice + 1]}`, site: "instagram" };
   }
   for (const chave of [...u.searchParams.keys()]) if (RASTREIO.test(chave)) u.searchParams.delete(chave);
   u.hash = "";
@@ -53,10 +58,14 @@ export function lerAndamento(linha: string): { baixados: number; total: number }
 export type ErroDeLink = "login" | "indisponivel" | "invalido" | "sem-conexao" | "desconhecido";
 
 export function classificarErro(saida: string): ErroDeLink {
-  if (/login required|sign in to confirm|--cookies|log in to|requires authentication/i.test(saida)) return "login";
-  if (/private video|video unavailable|has been removed|not available|no longer available|does not exist/i.test(saida)) return "indisponivel";
-  if (/unsupported url|is not a valid url/i.test(saida)) return "invalido";
-  if (/unable to download|getaddrinfo|timed out|connection reset|network is unreachable|temporary failure in name resolution|connection refused/i.test(saida)) return "sem-conexao";
+  // Só as linhas de erro decidem: avisos soltos (WARNING) não dizem o que falhou.
+  const linhasDeErro = saida.split(/\r?\n/).filter((l) => /error/i.test(l));
+  const texto = linhasDeErro.length ? linhasDeErro.join("\n") : saida;
+  if (/HTTP Error 4\d\d/i.test(texto) && !/HTTP Error 429/i.test(texto)) return "indisponivel"; // o site recusou: tentar de novo não resolve
+  if (/login required|sign in to confirm|--cookies|log in to|requires authentication/i.test(texto)) return "login";
+  if (/private video|video unavailable|has been removed|(video|content|post) (is )?not available|no longer available|does not exist/i.test(texto)) return "indisponivel";
+  if (/unsupported url|is not a valid url/i.test(texto)) return "invalido";
+  if (/getaddrinfo|timed out|connection reset|connection refused|network is unreachable|temporary failure in name resolution|urlopen error|HTTP Error 429/i.test(texto)) return "sem-conexao";
   return "desconhecido";
 }
 
@@ -100,40 +109,78 @@ export interface VideoBaixado {
 
 function rodar(o: OpcoesDoDownload, argumentos: string[], aoLinha: (linha: string) => void): Promise<{ codigo: number | null; saida: string; erros: string }> {
   return new Promise((resolver) => {
-    const processo = spawn(o.ytDlp, ["--config-locations", o.configuracao, "--js-runtimes", `node:${o.jsRuntime}`, ...argumentos], { windowsHide: true, signal: o.sinal });
+    // Saída sempre em UTF-8: no Windows, sem isso o Python escreve em cp1252 e o caminho com
+    // acento (a pasta "Referências", um nome de usuário) chega estragado.
+    const processo = spawn(o.ytDlp, ["--encoding", "utf-8", "--config-locations", o.configuracao, "--js-runtimes", `node:${o.jsRuntime}`, ...argumentos], {
+      windowsHide: true, signal: o.sinal, env: { ...process.env, PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" },
+    });
+    processo.stdout.setEncoding("utf8");
+    processo.stderr.setEncoding("utf8");
     let saida = "", erros = "", resto = "";
-    processo.stdout.on("data", (bloco: Buffer) => {
-      saida += bloco.toString();
-      const linhas = (resto + bloco.toString()).split(/\r?\n/);
+    processo.stdout.on("data", (bloco: string) => {
+      saida += bloco;
+      const linhas = (resto + bloco).split(/\r?\n/);
       resto = linhas.pop() ?? "";
       for (const linha of linhas) aoLinha(linha);
     });
-    processo.stderr.on("data", (bloco: Buffer) => {
-      erros = (erros + bloco.toString()).slice(-8000);
-      for (const linha of bloco.toString().split(/\r?\n/)) aoLinha(linha); // o andamento pode sair aqui também
+    processo.stderr.on("data", (bloco: string) => {
+      erros = (erros + bloco).slice(-8000);
+      for (const linha of bloco.split(/\r?\n/)) aoLinha(linha); // o andamento pode sair aqui também
     });
-    processo.on("error", (falha) => resolver({ codigo: null, saida, erros: falha.message }));
+    processo.on("error", (falha) => resolver({ codigo: null, saida, erros: `NAO-ABRIU ${falha.message}` }));
     processo.on("close", (codigo) => resolver({ codigo, saida: saida + resto, erros }));
   });
 }
 
-/** Baixa um vídeo. Lança ErroAplicacao com o código do erro e uma mensagem simples. */
-export async function baixarLink(link: string, o: OpcoesDoDownload): Promise<VideoBaixado> {
+export interface MetadadosDoLink {
+  /** Link normalizado como foi colado. */
+  urlOriginal: string;
+  /** Endereço do vídeo segundo o site (o mesmo para um link curto e o completo). */
+  urlCanonica: string;
+  titulo: string;
+  autor: string;
+  data: string;
+  site: string;
+  /** Quantos arquivos o download traz (vídeo e áudio separados = 2). */
+  arquivos: number;
+}
+
+function erroDe(normal: { site: Site }, o: OpcoesDoDownload, erros: string): ErroAplicacao {
+  if (o.sinal?.aborted) return new ErroAplicacao("cancelado", "Download cancelado.");
+  if (erros.startsWith("NAO-ABRIU ")) {
+    return new ErroAplicacao("baixador-ausente", "O baixador de vídeos não pôde ser aberto. Feche e abra o programa de novo; se continuar, o antivírus pode estar bloqueando o programa.");
+  }
+  const codigo = classificarErro(erros);
+  return new ErroAplicacao(codigo, mensagem(codigo, normal.site, erros));
+}
+
+/** Lê os dados do vídeo sem baixar (título, autor, endereço oficial). */
+export async function lerLink(link: string, o: OpcoesDoDownload): Promise<MetadadosDoLink> {
   const normal = normalizarLink(link);
   if ("erro" in normal) throw new ErroAplicacao(normal.erro, mensagem(normal.erro, "outro", ""));
-  const falhar = (erros: string): never => {
-    if (o.sinal?.aborted) throw new ErroAplicacao("cancelado", "Download cancelado.");
-    const codigo = classificarErro(erros);
-    throw new ErroAplicacao(codigo, mensagem(codigo, normal.site, erros));
-  };
-
   o.aoAvancar("Lendo o link", 0);
   const info = await rodar(o, ["-J", "--no-download", normal.url], () => undefined);
-  if (info.codigo !== 0) falhar(info.erros);
-  const dados = JSON.parse(info.saida) as { title?: string; uploader?: string; channel?: string; upload_date?: string; requested_formats?: unknown[] };
-  const arquivos = Math.max(1, dados.requested_formats?.length ?? 1);
-  const site = NOMES[normal.site] || new URL(normal.url).hostname.replace(/^www\./, "");
+  if (info.codigo !== 0) throw erroDe(normal, o, info.erros);
+  let dados: { title?: string; uploader?: string; channel?: string; upload_date?: string; webpage_url?: string; requested_formats?: unknown[] };
+  try {
+    dados = JSON.parse(info.saida);
+  } catch {
+    throw new ErroAplicacao("desconhecido", "O site respondeu de um jeito inesperado. Tente de novo mais tarde.");
+  }
+  const canonica = dados.webpage_url ? normalizarLink(dados.webpage_url) : normal;
+  const data = /^(\d{4})(\d{2})(\d{2})$/.exec(dados.upload_date ?? "");
+  return {
+    urlOriginal: normal.url, urlCanonica: "url" in canonica ? canonica.url : normal.url,
+    titulo: dados.title ?? normal.url, autor: dados.uploader ?? dados.channel ?? "", data: data ? `${data[1]}-${data[2]}-${data[3]}` : "",
+    site: NOMES[normal.site] || new URL(normal.url).hostname.replace(/^www\./, ""), arquivos: Math.max(1, dados.requested_formats?.length ?? 1),
+  };
+}
 
+/** Baixa um vídeo. Lança ErroAplicacao com o código do erro e uma mensagem simples. */
+export async function baixarLink(link: string, o: OpcoesDoDownload, lido?: MetadadosDoLink): Promise<VideoBaixado> {
+  const meta = lido ?? (await lerLink(link, o));
+  const normal = normalizarLink(meta.urlOriginal) as { url: string; site: Site };
+  const { arquivos, site } = meta;
   let concluidos = 0, ultimo = -1, atual = 0.05;
   const avancar = (etapa: string, fracao: number) => {
     atual = Math.max(atual, Math.min(0.99, fracao));
@@ -153,11 +200,7 @@ export async function baixarLink(link: string, o: OpcoesDoDownload): Promise<Vid
     }
     if (linha.trim() && existsSync(linha.trim())) final = linha.trim();
   });
-  if (download.codigo !== 0 || !final) falhar(download.erros || "o yt-dlp não informou o arquivo baixado");
+  if (download.codigo !== 0 || !final) throw erroDe(normal, o, download.erros || "o yt-dlp não informou o arquivo baixado");
   o.aoAvancar("Vídeo baixado", 1);
-  const data = /^(\d{4})(\d{2})(\d{2})$/.exec(dados.upload_date ?? "");
-  return {
-    arquivo: final, titulo: dados.title ?? normal.url, autor: dados.uploader ?? dados.channel ?? "",
-    data: data ? `${data[1]}-${data[2]}-${data[3]}` : "", site, urlOriginal: normal.url,
-  };
+  return { arquivo: final, titulo: meta.titulo, autor: meta.autor, data: meta.data, site, urlOriginal: meta.urlCanonica };
 }

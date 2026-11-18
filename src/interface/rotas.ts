@@ -299,8 +299,8 @@ export const ROTAS: Rota[] = [
       const perfil = texto(corpo.perfil) ? app.perfis.obter(texto(corpo.perfil)).id : undefined;
       const projeto = texto(corpo.projeto) ? app.projetos.obter(texto(corpo.projeto)) : null;
       const tarefas = links.map((link) => app.tarefas.iniciar({ tipo: "download-de-referencia", titulo: `Baixando referência: ${link}`, projetoId: projeto?.id ?? null }, async (informar) => {
-        const { referencia, jaExistia } = await app.referencias.baixarDeLink(link, { perfil, projetoId: projeto?.id }, informar);
-        app.fluxo.registrar("material", jaExistia ? `Referência "${referencia.titulo}" já existia.` : `Referência "${referencia.titulo}" baixada de ${link}.`, projeto?.id ?? null);
+        const { referencia, jaExistia, site } = await app.referencias.baixarDeLink(link, { perfil, projetoId: projeto?.id }, informar);
+        app.fluxo.registrar("material", jaExistia ? `Referência "${referencia.titulo}" já existia.` : `Referência "${referencia.titulo}" baixada de ${site}.`, projeto?.id ?? null);
         return referencia;
       }).tarefa);
       return { tarefas };

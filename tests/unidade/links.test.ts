@@ -25,6 +25,12 @@ test("normaliza links do YouTube, Instagram e TikTok", () => {
   assert.deepEqual(normalizarLink("https://www.instagram.com/reel/XyZ/?igsh=1"), { url: "https://www.instagram.com/reel/XyZ", site: "instagram" });
   assert.deepEqual(normalizarLink("https://www.tiktok.com/@a/video/123?lang=pt"), { url: "https://www.tiktok.com/@a/video/123", site: "tiktok" });
   assert.deepEqual(normalizarLink("  https://vimeo.com/42  "), { url: "https://vimeo.com/42", site: "outro" });
+  // Formas que o Instagram e o TikTok usam ao compartilhar.
+  assert.deepEqual(normalizarLink("https://www.instagram.com/fulano/reel/XyZ/?igsh=1"), { url: "https://www.instagram.com/reel/XyZ", site: "instagram" });
+  assert.deepEqual(normalizarLink("https://www.instagram.com/reels/XyZ/"), { url: "https://www.instagram.com/reel/XyZ", site: "instagram" });
+  assert.deepEqual(normalizarLink("https://www.tiktok.com/t/ZT8abc/"), { url: "https://www.tiktok.com/t/ZT8abc", site: "tiktok" });
+  assert.deepEqual(normalizarLink("https://vm.tiktok.com/ZM1abc/"), { url: "https://vm.tiktok.com/ZM1abc", site: "tiktok" });
+  assert.deepEqual(normalizarLink("https://www.youtube.com/embed/abc"), { url: "https://www.youtube.com/watch?v=abc", site: "youtube" });
 });
 
 test("recusa listas e perfis inteiros, e o que não é link", () => {
@@ -45,15 +51,21 @@ test("lê o andamento do yt-dlp e classifica os erros", () => {
   assert.equal(classificarErro("ERROR: Unsupported URL: https://exemplo.com"), "invalido");
   assert.equal(classificarErro("ERROR: Unable to download webpage: <urlopen error [Errno -3] getaddrinfo failed>"), "sem-conexao");
   assert.equal(classificarErro("ERROR: algo estranho"), "desconhecido");
+  // Erro HTTP do site não é falta de internet, e aviso solto não decide nada.
+  assert.equal(classificarErro("ERROR: Unable to download webpage: HTTP Error 404: Not Found"), "indisponivel");
+  assert.equal(classificarErro("ERROR: Unable to download video data: HTTP Error 403: Forbidden"), "indisponivel");
+  assert.equal(classificarErro("ERROR: [generic] x: Requested format is not available"), "desconhecido");
+  assert.equal(classificarErro("WARNING: login required for some formats\nERROR: Unable to download webpage: <urlopen error timed out>"), "sem-conexao");
 });
 
 // yt-dlp falso: com -J responde metadados; sem ele, "baixa" dois arquivos (vídeo e áudio)
 // imprimindo o andamento e o caminho final. O link escolhe o comportamento.
 const YTDLP_FALSO = `#!/bin/sh
-pasta=""; url=""; metadados=0
+pasta=""; url=""; metadados=0; codificacao=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -J) metadados=1 ;;
+    --encoding) shift; codificacao="$1" ;;
     --paths) shift; pasta="$1" ;;
     http*) url="$1" ;;
   esac
@@ -61,7 +73,9 @@ while [ $# -gt 0 ]; do
 done
 case "$url" in *login*) echo "ERROR: [Instagram] x: Requested content is not available, rate-limit reached or login required" >&2; exit 1 ;; esac
 if [ $metadados = 1 ]; then
-  echo '{"title":"Vídeo de teste","uploader":"Canal X","upload_date":"20260102","extractor_key":"Youtube","webpage_url":"'"$url"'","requested_formats":[{"format_id":"137"},{"format_id":"140"}]}'
+  canonica="$url"; case "$url" in *vm.tiktok.com*) canonica="https://www.tiktok.com/@a/video/999" ;; esac
+  case "$url" in *naojson*) echo "aviso qualquer"; exit 0 ;; esac
+  echo '{"title":"Vídeo de teste","uploader":"Canal X","upload_date":"20260102","extractor_key":"Youtube","webpage_url":"'"$canonica"'","requested_formats":[{"format_id":"137"},{"format_id":"140"}]}'
   exit 0
 fi
 echo baixou >> "$(dirname "$0")/chamadas"
@@ -69,7 +83,8 @@ echo "IAEV 0 1000"; echo "IAEV 500 1000"
 case "$url" in *queda*) echo "ERROR: Unable to download video data: timed out" >&2; exit 1 ;; esac
 echo "IAEV 1000 1000"; echo "IAEV 0 200"; echo "IAEV 200 200"
 mkdir -p "$pasta"; printf video > "$pasta/Video_de_teste [abc].mp4"
-echo "$pasta/Video_de_teste [abc].mp4"
+# Como o Python no Windows: sem --encoding utf-8, a saída para outro programa sai em cp1252.
+if [ "$codificacao" = "utf-8" ]; then echo "$pasta/Video_de_teste [abc].mp4"; else echo "$pasta/Video_de_teste [abc].mp4" | iconv -f utf-8 -t latin1; fi
 `;
 
 function cenario() {
@@ -77,7 +92,7 @@ function cenario() {
   temporarias.push(pasta);
   const ytDlp = path.join(pasta, "yt-dlp");
   writeFileSync(ytDlp, YTDLP_FALSO, { mode: 0o755 });
-  const destino = path.join(pasta, "Referencias");
+  const destino = path.join(pasta, "Referências"); // com acento, como a pasta real
   mkdirSync(destino);
   const eventos: [string, number][] = [];
   const opcoes = { pasta: destino, ytDlp, jsRuntime: process.execPath, configuracao: path.join(RAIZ, "config", "yt-dlp.conf"), aoAvancar: (etapa: string, fracao: number) => eventos.push([etapa, fracao]) };
@@ -195,7 +210,49 @@ test("vários links, um inválido: os outros baixam e o inválido vira tarefa co
     assert.equal(login?.estado, "falhou");
     assert.match(login?.erro ?? "", /com login/);
     assert.equal(app.acervo.referencias().length, 1);
+    assert.ok(app.atividades.listar().some((a) => a.descricao === 'Referência "Vídeo de teste" baixada de YouTube.'), "a atividade diz o site, não o link");
   } finally {
     await servidor.encerrar();
+  }
+});
+
+test("caminho com acento (pasta Referências) chega inteiro, como no Windows", { skip: !naoWindows }, async () => {
+  const c = cenario();
+  const r = await baixarLink("https://www.youtube.com/watch?v=abc", c.opcoes);
+  assert.equal(r.arquivo, path.join(c.destino, "Video_de_teste [abc].mp4"));
+  assert.ok(existsSync(r.arquivo));
+});
+
+test("yt-dlp que não abre ou que responde algo estranho vira mensagem simples", { skip: !naoWindows }, async () => {
+  const c = cenario();
+  const semPermissao = path.join(path.dirname(c.destino), "sem-permissao");
+  writeFileSync(semPermissao, "não executável", { mode: 0o644 });
+  await assert.rejects(baixarLink("https://youtu.be/abc", { ...c.opcoes, ytDlp: semPermissao }), (erro: Error & { codigo?: string }) =>
+    erro.codigo === "baixador-ausente" && /não pôde ser aberto/.test(erro.message));
+  await assert.rejects(baixarLink("https://youtu.be/naojson", c.opcoes), (erro: Error & { codigo?: string }) => erro.codigo === "desconhecido" && !/JSON|Unexpected/.test(erro.message));
+});
+
+test("o mesmo vídeo por um link curto não é registrado de novo", { skip: !naoWindows }, async () => {
+  const { app, chamadas } = aplicacaoDeTeste();
+  try {
+    const primeira = await app.referencias.baixarDeLink("https://www.tiktok.com/@a/video/999", {}, () => undefined);
+    const segunda = await app.referencias.baixarDeLink("https://vm.tiktok.com/ZM1abc/", {}, () => undefined);
+    assert.equal(segunda.jaExistia, true);
+    assert.equal(segunda.referencia.id, primeira.referencia.id);
+    assert.equal(chamadas(), 1);
+    assert.equal(app.acervo.referencias().length, 1);
+  } finally {
+    app.encerrar();
+  }
+});
+
+test("procurar novos arquivos ignora trilhas soltas e partes de download", () => {
+  const { app } = aplicacaoDeTeste(false);
+  try {
+    mkdirSync(app.caminhos.referencias, { recursive: true });
+    for (const nome of ["meio [abc].f137.mp4", "meio [abc].f251.webm", "meio [abc].mp4.part", "meio [abc].mp4.ytdl", "inteiro.mp4"]) writeFileSync(path.join(app.caminhos.referencias, nome), "x");
+    assert.deepEqual(app.referencias.importarPasta().map((r) => r.titulo), ["inteiro"]);
+  } finally {
+    app.encerrar();
   }
 });
