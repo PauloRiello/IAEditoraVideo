@@ -11,6 +11,7 @@
 *.m4v
 *.mxf
 *.mts
+!aplicativo/*.d.mts
 *.m2ts
 *.wmv
 *.flv
