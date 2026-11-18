@@ -1,11 +1,14 @@
 // Referências por link: normalização, andamento, erros e download com um yt-dlp falso.
 
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { after, test } from "node:test";
 import { baixarLink, classificarErro, lerAndamento, normalizarLink } from "../../Pipeline/ingestion/links.ts";
+import { montarCaminhos } from "../../src/infra/caminhos.ts";
+import { iniciarServidor } from "../../src/interface/servidor.ts";
+import { Aplicacao } from "../../src/nucleo/aplicacao.ts";
 
 const RAIZ = path.resolve(import.meta.dirname, "..", "..");
 const temporarias: string[] = [];
@@ -61,6 +64,7 @@ if [ $metadados = 1 ]; then
   echo '{"title":"Vídeo de teste","uploader":"Canal X","upload_date":"20260102","extractor_key":"Youtube","webpage_url":"'"$url"'","requested_formats":[{"format_id":"137"},{"format_id":"140"}]}'
   exit 0
 fi
+echo baixou >> "$(dirname "$0")/chamadas"
 echo "IAEV 0 1000"; echo "IAEV 500 1000"
 case "$url" in *queda*) echo "ERROR: Unable to download video data: timed out" >&2; exit 1 ;; esac
 echo "IAEV 1000 1000"; echo "IAEV 0 200"; echo "IAEV 200 200"
@@ -107,4 +111,91 @@ test("internet caiu no meio: erro sem-conexao e nenhum arquivo final", { skip: !
   const c = cenario();
   await assert.rejects(baixarLink("https://www.youtube.com/watch?v=queda", c.opcoes), (erro: Error & { codigo?: string }) => erro.codigo === "sem-conexao" && /internet/i.test(erro.message));
   assert.deepEqual(readdirSync(c.destino).filter((a) => existsSync(path.join(c.destino, a)) && a.endsWith(".mp4")), []);
+});
+
+// ---------------------------------------------------------------------------
+// Núcleo, rota e linha de comando (com o mesmo yt-dlp falso).
+
+function aplicacaoDeTeste(comBaixador = true) {
+  const c = cenario();
+  const raiz = path.dirname(c.destino);
+  // Pasta do programa própria, sem .venv: só o yt-dlp falso (quando pedido) baixa.
+  const programa = path.join(raiz, "programa");
+  mkdirSync(path.join(programa, "config"), { recursive: true });
+  writeFileSync(path.join(programa, "config", "yt-dlp.conf"), "");
+  for (const pasta of ["IA"]) mkdirSync(path.join(programa, pasta), { recursive: true });
+  const caminhos = { ...montarCaminhos(path.join(raiz, "dados"), path.join(raiz, "bib"), RAIZ), ambiente: path.join(raiz, "ambiente") };
+  const app = new Aplicacao(caminhos);
+  if (comBaixador) app.referencias.ytDlp = c.opcoes.ytDlp;
+  const chamadas = () => (existsSync(path.join(raiz, "chamadas")) ? readFileSync(path.join(raiz, "chamadas"), "utf8").trim().split("\n").length : 0);
+  return { app, chamadas };
+}
+
+test("link já baixado em outra forma não baixa de novo", { skip: !naoWindows }, async () => {
+  const { app, chamadas } = aplicacaoDeTeste();
+  try {
+    const primeira = await app.referencias.baixarDeLink("https://youtu.be/abc?si=1", {}, () => undefined);
+    assert.equal(primeira.jaExistia, false);
+    const segunda = await app.referencias.baixarDeLink("https://www.youtube.com/watch?v=abc&t=3", {}, () => undefined);
+    assert.equal(segunda.jaExistia, true);
+    assert.equal(segunda.referencia.id, primeira.referencia.id);
+    assert.equal(chamadas(), 1);
+  } finally {
+    app.encerrar();
+  }
+});
+
+test("a referência baixada guarda origem, autor, autorização e o vínculo com o projeto", { skip: !naoWindows }, async () => {
+  const { app } = aplicacaoDeTeste();
+  try {
+    const projeto = app.criarProjeto("Com links", "geral");
+    const { referencia } = await app.referencias.baixarDeLink("https://youtu.be/abc", { projetoId: projeto.id }, () => undefined);
+    assert.equal(referencia.origemUrl, "https://www.youtube.com/watch?v=abc");
+    assert.equal(referencia.titulo, "Vídeo de teste");
+    assert.equal(referencia.notas, "Canal X · 2026-01-02 · YouTube");
+    assert.match(referencia.autorizacao, /^Baixado de YouTube em \d{2}\/\d{2}\/\d{4} para análise como referência \(ensina princípio, não cópia\)\.$/);
+    assert.ok(referencia.caminho?.startsWith(app.caminhos.referencias));
+    assert.ok(app.acervo.referencias(projeto.id).some((r) => r.id === referencia.id));
+  } finally {
+    app.encerrar();
+  }
+});
+
+test("sem yt-dlp no ambiente: mensagem para terminar a preparação", async () => {
+  const { app } = aplicacaoDeTeste(false);
+  try {
+    app.referencias.ytDlp = path.join(app.caminhos.ambiente, "nao-existe", "yt-dlp");
+    await assert.rejects(app.referencias.baixarDeLink("https://youtu.be/abc", {}, () => undefined), (erro: Error & { codigo?: string }) =>
+      erro.codigo === "baixador-ausente" && erro.message === "O baixador de vídeos ainda não está instalado. Feche e abra o programa com internet para terminar a preparação.");
+  } finally {
+    app.encerrar();
+  }
+});
+
+test("vários links, um inválido: os outros baixam e o inválido vira tarefa com erro", { skip: !naoWindows }, async () => {
+  const { app } = aplicacaoDeTeste();
+  const servidor = await iniciarServidor(app, {});
+  try {
+    const pedido = (rota: string, corpo?: unknown) => fetch(`http://127.0.0.1:${servidor.porta}${rota}`, {
+      method: corpo ? "POST" : "GET", headers: { "x-iaev-sessao": servidor.token, "content-type": "application/json" }, body: corpo ? JSON.stringify(corpo) : undefined,
+    }).then((r) => r.json());
+    const r = await pedido("/api/referencias/links", { links: "https://youtu.be/abc\nnão é link\n\nhttps://www.instagram.com/reel/login\n" });
+    assert.equal(r.tarefas.length, 3);
+    let tarefas: { id: string; estado: string; erro: string | null; tipo: string }[] = [];
+    for (let i = 0; i < 100; i++) {
+      tarefas = (await pedido("/api/tarefas")).filter((t: { tipo: string }) => t.tipo === "download-de-referencia");
+      if (tarefas.length === 3 && tarefas.every((t) => t.estado === "concluida" || t.estado === "falhou")) break;
+      await new Promise((resolver) => setTimeout(resolver, 100));
+    }
+    const porId = new Map(tarefas.map((t) => [t.id, t]));
+    const [ok, invalido, login] = r.tarefas.map((t: { id: string }) => porId.get(t.id));
+    assert.equal(ok?.estado, "concluida");
+    assert.equal(invalido?.estado, "falhou");
+    assert.match(invalido?.erro ?? "", /não é de um vídeo/);
+    assert.equal(login?.estado, "falhou");
+    assert.match(login?.erro ?? "", /com login/);
+    assert.equal(app.acervo.referencias().length, 1);
+  } finally {
+    await servidor.encerrar();
+  }
 });

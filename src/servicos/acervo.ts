@@ -52,6 +52,12 @@ export class ServicoAcervo {
     return this.referencia(id);
   }
 
+  /** Referência já registrada a partir deste endereço (normalizado), ou null. */
+  referenciaPorOrigem(url: string): Referencia | null {
+    const linha = this.banco.prepare("SELECT id FROM referencias WHERE origem_url = ?").get(url) as { id: string } | undefined;
+    return linha ? this.referencia(linha.id) : null;
+  }
+
   referencia(id: string): Referencia {
     const linha = this.banco.prepare("SELECT * FROM referencias WHERE id = ?").get(id) as unknown as LinhaReferencia | undefined;
     if (!linha) throw new NaoEncontrado("Referência", id);

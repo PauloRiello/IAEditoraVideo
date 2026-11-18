@@ -291,6 +291,22 @@ export const ROTAS: Rota[] = [
     },
   },
   {
+    // Um link por linha; cada um vira uma tarefa com porcentagem. Um link ruim não impede os outros.
+    metodo: "POST", caminho: "/api/referencias/links",
+    atender: ({ app, corpo }) => {
+      const links = texto(corpo.links).split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      if (links.length === 0) throw new ErroDePedido(400, "Cole pelo menos um link.");
+      const perfil = texto(corpo.perfil) ? app.perfis.obter(texto(corpo.perfil)).id : undefined;
+      const projeto = texto(corpo.projeto) ? app.projetos.obter(texto(corpo.projeto)) : null;
+      const tarefas = links.map((link) => app.tarefas.iniciar({ tipo: "download-de-referencia", titulo: `Baixando referência: ${link}`, projetoId: projeto?.id ?? null }, async (informar) => {
+        const { referencia, jaExistia } = await app.referencias.baixarDeLink(link, { perfil, projetoId: projeto?.id }, informar);
+        app.fluxo.registrar("material", jaExistia ? `Referência "${referencia.titulo}" já existia.` : `Referência "${referencia.titulo}" baixada de ${link}.`, projeto?.id ?? null);
+        return referencia;
+      }).tarefa);
+      return { tarefas };
+    },
+  },
+  {
     metodo: "POST", caminho: "/api/referencias/analisar",
     atender: ({ app, corpo }) => {
       const ids = Array.isArray(corpo.ids) ? corpo.ids.map(texto).filter(Boolean) : [];

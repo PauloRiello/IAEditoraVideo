@@ -419,6 +419,16 @@ async function executar(app: Aplicacao, argumentos: string[]): Promise<number> {
     return 0;
   }
 
+  if (comando === "referencias" && acao === "baixar" && resto[0]) {
+    const indice = resto.indexOf("--perfil");
+    const perfil = indice >= 0 ? resto[indice + 1] : undefined;
+    const andamento = progresso();
+    const { referencia, jaExistia } = await app.referencias.baixarDeLink(resto[0], { perfil }, (etapa, fracao) => andamento.mostrar(etapa, fracao));
+    andamento.fim();
+    console.log(jaExistia ? `Já estava nas referências: ${referencia.id}  ${referencia.titulo}` : `Referência baixada: ${referencia.id}  ${referencia.titulo}  (${referencia.caminho})`);
+    return 0;
+  }
+
   if (comando === "referencias" && acao === "listar") {
     const todas = app.acervo.referencias();
     if (todas.length === 0) console.log("Nenhuma referência registrada.");

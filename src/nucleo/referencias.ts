@@ -4,11 +4,13 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { analisarReferencia } from "../../Pipeline/analysis/analisador.ts";
+import { baixarLink, normalizarLink } from "../../Pipeline/ingestion/links.ts";
+import { ErroAplicacao } from "../dominio/erros.ts";
 import { paraMarkdown } from "../../Pipeline/analysis/regras.ts";
 import type { RelatorioReferencia } from "../dominio/analise.ts";
 import type { Aprendizado, Referencia } from "../dominio/memoria.ts";
 import type { Capacidade } from "../dominio/provedores.ts";
-import type { Caminhos } from "../infra/caminhos.ts";
+import { pythonDoAmbiente, type Caminhos } from "../infra/caminhos.ts";
 import type { Configuracoes } from "../infra/configuracoes.ts";
 import type { ServicoAcervo } from "../servicos/acervo.ts";
 import type { ServicoAprendizado } from "../servicos/aprendizado.ts";
@@ -39,6 +41,8 @@ export interface ResultadoDaAnalise {
 
 export class AnaliseDeReferencias {
   private d: Dependencias;
+  /** Executável do yt-dlp. Sem valor, o do ambiente do Python (testes trocam por um falso). */
+  ytDlp?: string;
 
   constructor(dependencias: Dependencias) {
     this.d = dependencias;
@@ -54,6 +58,38 @@ export class AnaliseDeReferencias {
     return this.d.acervo.adicionarReferencia({
       titulo: dados.titulo ?? path.basename(caminho, path.extname(caminho)), caminho, perfil: dados.perfil, autorizacao: dados.autorizacao,
     });
+  }
+
+  /**
+   * Baixa um vídeo de referência a partir de um link (YouTube, TikTok, Instagram...). O mesmo
+   * vídeo em outra forma de link não é baixado de novo. Sem login: o site que exigir dá erro
+   * explicando o que fazer. A análise não começa sozinha.
+   */
+  async baixarDeLink(link: string, dados: { perfil?: string; projetoId?: string }, aoAvancar: (etapa: string, fracao: number) => void, sinal?: AbortSignal): Promise<{ referencia: Referencia; jaExistia: boolean }> {
+    const normal = normalizarLink(link);
+    const existente = "url" in normal ? this.d.acervo.referenciaPorOrigem(normal.url) : null;
+    if (existente) {
+      if (dados.projetoId) this.d.acervo.vincularReferencia(dados.projetoId, existente.id);
+      aoAvancar("Esse vídeo já estava nas referências", 1);
+      return { referencia: existente, jaExistia: true };
+    }
+    if (dados.perfil) this.d.perfis.obter(dados.perfil);
+    const python = pythonDoAmbiente(this.d.caminhos);
+    const ytDlp = this.ytDlp ?? (python ? path.join(path.dirname(python), process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp") : "");
+    if (!ytDlp || !existsSync(ytDlp)) throw new ErroAplicacao("baixador-ausente", "O baixador de vídeos ainda não está instalado. Feche e abra o programa com internet para terminar a preparação.");
+    const pasta = dados.perfil ? path.join(this.d.caminhos.referencias, dados.perfil) : this.d.caminhos.referencias;
+    mkdirSync(pasta, { recursive: true });
+    const video = await baixarLink(link, {
+      pasta, ytDlp, jsRuntime: process.execPath, configuracao: path.join(this.d.caminhos.programa, "config", "yt-dlp.conf"), aoAvancar, sinal,
+    });
+    const hoje = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+    const referencia = this.d.acervo.adicionarReferencia({
+      titulo: video.titulo, caminho: path.resolve(video.arquivo), origemUrl: video.urlOriginal, perfil: dados.perfil,
+      autorizacao: `Baixado de ${video.site} em ${hoje} para análise como referência (ensina princípio, não cópia).`,
+      notas: [video.autor, video.data, video.site].filter(Boolean).join(" · "),
+    });
+    if (dados.projetoId) this.d.acervo.vincularReferencia(dados.projetoId, referencia.id);
+    return { referencia, jaExistia: false };
   }
 
   /**
