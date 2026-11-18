@@ -1,6 +1,7 @@
 // Caso de uso da identidade visual: ler o manual da marca em segundo plano (tarefa com
 // porcentagem) e guardar as sugestões para o usuário confirmar. Nada é aplicado aqui.
 
+import { readdirSync, rmSync } from "node:fs";
 import path from "node:path";
 import { coresMedidas, lerManual } from "../../Pipeline/brand/manual.ts";
 import type { CorDaMarca, Marca } from "../dominio/marca.ts";
@@ -20,7 +21,20 @@ export interface DependenciasDasMarcas {
   registrar: (descricao: string) => void;
 }
 
-/** Pede à IA local (ou outro modelo visual) a ordem das candidatas a logo. */
+/**
+ * Modelo visual para ajudar a escolher o logo: só um que roda neste computador. As imagens do
+ * manual da marca não vão para serviço externo.
+ */
+export async function escolherModeloVisual(provedores: Pick<RegistroProvedores, "selecionar">): Promise<ProvedorIA | null> {
+  try {
+    const provedor = await provedores.selecionar("visao");
+    return provedor.origem === "local" && provedor.descreverImagens ? provedor : null;
+  } catch {
+    return null; // sem modelo visual: só as regras simples escolhem as candidatas
+  }
+}
+
+/** Pede ao modelo visual local a ordem das candidatas a logo. */
 function perguntarAoModelo(provedor: ProvedorIA): (imagens: string[]) => Promise<number[]> {
   return async (imagens) => {
     const resposta = await provedor.descreverImagens!({
@@ -30,7 +44,7 @@ function perguntarAoModelo(provedor: ProvedorIA): (imagens: string[]) => Promise
     });
     const ordem = (JSON.parse(/\{[\s\S]*\}/.exec(resposta)?.[0] ?? "{}") as { ordem?: unknown }).ordem;
     if (!Array.isArray(ordem)) throw new Error("resposta sem ordem");
-    return ordem.map(Number).filter((n) => Number.isInteger(n));
+    return [...new Set(ordem.map(Number).filter((n) => Number.isInteger(n)))];
   };
 }
 
@@ -48,16 +62,16 @@ export class FluxoDeMarcas {
       const python = pythonDoAmbiente(this.d.caminhos);
       if (!python) throw new ErroAplicacao("leitor-de-pdf-ausente", "O leitor de PDF ainda não está instalado. Feche e abra o programa com internet para terminar a preparação, ou cadastre a marca à mão.");
       const copia = this.d.marcas.guardarArquivo(marcaId, arquivo, "material");
-      let ia: ((imagens: string[]) => Promise<number[]>) | undefined;
-      try {
-        const provedor = await this.d.provedores.selecionar("visao");
-        if (provedor.descreverImagens) ia = perguntarAoModelo(provedor);
-      } catch {
-        ia = undefined; // sem modelo visual: só as regras simples escolhem as candidatas
-      }
-      const pasta = path.join(this.d.marcas.pastaDaMarca(marcaId), `leitura-${path.basename(copia, path.extname(copia))}`);
+      const modelo = await escolherModeloVisual(this.d.provedores);
+      const ia = modelo ? perguntarAoModelo(modelo) : undefined;
+      const nomeDaLeitura = `leitura-${path.basename(copia, path.extname(copia))}`;
+      const pasta = path.join(this.d.marcas.pastaDaMarca(marcaId), nomeDaLeitura);
       const sugestoes = await lerManual(copia, { pasta, python, aoAvancar: informar, ia });
       this.d.marcas.atualizar(marcaId, { sugestoes });
+      // As sugestões novas substituem as antigas: as imagens das leituras anteriores saem.
+      for (const nome of readdirSync(this.d.marcas.pastaDaMarca(marcaId))) {
+        if (nome.startsWith("leitura-") && nome !== nomeDaLeitura) rmSync(path.join(this.d.marcas.pastaDaMarca(marcaId), nome), { recursive: true, force: true });
+      }
       this.d.registrar(`Manual da marca "${marca.nome}" lido: ${sugestoes.cores.length} cor(es), ${sugestoes.fontes.length} fonte(s) e ${sugestoes.logos.length} candidata(s) a logo para confirmar.`);
       return sugestoes;
     });

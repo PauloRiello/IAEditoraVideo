@@ -77,6 +77,28 @@ export function normalizarTimeline(timeline: Timeline): Timeline {
   return validar(refluir(structuredClone(timeline)));
 }
 
+/** O usuário mexeu nestes campos: a marca não volta a mudá-los ao ser reaplicada. */
+function editadoAMao(item: ItemDaTimeline, campos: string[]): void {
+  for (const campo of campos) {
+    const daMarca = item.daMarca;
+    if ((daMarca && campo in daMarca) || item.origem === "marca") {
+      if (daMarca) delete daMarca[campo];
+      item.editadoAMao = [...new Set([...(item.editadoAMao ?? []), campo])];
+    }
+  }
+}
+
+/** Sem caixa, a cor da marca (pensada para a caixa) sai: volta a de antes. */
+function soltarCorDaMarca(alvo: { daMarca?: Record<string, unknown> } & Record<string, unknown>, padrao: string | undefined): void {
+  if (!alvo.daMarca || !("cor" in alvo.daMarca)) return;
+  const antes = alvo.daMarca.cor;
+  if (antes === null || antes === undefined) {
+    if (padrao === undefined) delete alvo.cor;
+    else alvo.cor = padrao;
+  } else alvo.cor = antes;
+  delete alvo.daMarca.cor;
+}
+
 /** Aplica uma operação e devolve a timeline resultante. A timeline recebida não é modificada. */
 export function aplicarOperacao(original: Timeline, op: Operacao): Timeline {
   const t = structuredClone(original);
@@ -95,12 +117,15 @@ export function aplicarOperacao(original: Timeline, op: Operacao): Timeline {
       break;
     }
     case "remover": {
-      obter(op.id);
+      const removido = obter(op.id);
       t.itens = t.itens.filter((i) => i.id !== op.id);
+      // Tirado à mão, um item da marca não volta quando a marca é reaplicada.
+      if (removido.origem === "marca" && t.marca) t.marca.removidos = [...new Set([...(t.marca.removidos ?? []), op.id])];
       break;
     }
     case "cortar": {
       const item = obter(op.id);
+      editadoAMao(item, ["duracaoSeg", "inicioSeg"]);
       const inicio = op.inicioSeg ?? 0, fim = op.fimSeg ?? item.duracaoSeg;
       if (inicio < 0 || fim > item.duracaoSeg + 1e-6 || fim - inicio < 0.1) throw invalida(`Corte inválido no item "${op.id}".`);
       if (item.tipo === "video") item.inicioOrigemSeg = arredondar(item.inicioOrigemSeg + inicio * item.velocidade);
@@ -134,6 +159,7 @@ export function aplicarOperacao(original: Timeline, op: Operacao): Timeline {
     }
     case "ajustar-duracao": {
       if (!(op.duracaoSeg >= 0.1)) throw invalida("A duração mínima de um item é 0,1 s.");
+      editadoAMao(obter(op.id), ["duracaoSeg"]);
       obter(op.id).duracaoSeg = arredondar(op.duracaoSeg);
       break;
     }
@@ -149,6 +175,7 @@ export function aplicarOperacao(original: Timeline, op: Operacao): Timeline {
     }
     case "mover": {
       const item = obter(op.id);
+      editadoAMao(item, ["inicioSeg"]);
       if (ePrincipal(item)) throw invalida("Clipes da faixa principal mudam de lugar com a operação \"reposicionar\".");
       if (op.inicioSeg < 0) throw invalida("O início não pode ser negativo.");
       delete item.ancora;
@@ -165,14 +192,11 @@ export function aplicarOperacao(original: Timeline, op: Operacao): Timeline {
         if (["id", "tipo", "inicioSeg", "duracaoSeg", "camada"].includes(campo)) throw invalida(`O campo "${campo}" não é alterado por esta operação.`);
         if (!(campo in item)) throw invalida(`O item "${op.id}" não tem o campo "${campo}".`);
         // Editado à mão: o valor deixa de ser "da marca" e fica mesmo se a marca for reaplicada.
-        const daMarca = item.daMarca as Record<string, unknown> | undefined;
-        if (daMarca && campo in daMarca) {
-          delete daMarca[campo];
-          item.editadoAMao = [...new Set([...((item.editadoAMao as string[] | undefined) ?? []), campo])];
-        }
+        editadoAMao(item as unknown as ItemDaTimeline, [campo]);
         const atual = item[campo];
         item[campo] = atual && typeof atual === "object" && !Array.isArray(atual) && valor && typeof valor === "object" && !Array.isArray(valor) ? { ...atual, ...valor } : valor;
       }
+      if ("fundo" in op.campos && !op.campos.fundo) soltarCorDaMarca(item as { daMarca?: Record<string, unknown> } & Record<string, unknown>, "#ffffff");
       break;
     }
     case "efeito-global": {
@@ -196,6 +220,16 @@ export function aplicarOperacao(original: Timeline, op: Operacao): Timeline {
           t.legendas.editadoAMao = [...new Set([...(t.legendas.editadoAMao ?? []), campo])];
         }
         t.legendas = { ...t.legendas, ...op.legendas };
+        if (op.legendas.caixa === false) {
+          // Sem caixa, a cor e o fundo da marca saem (o texto volta ao branco com sombra).
+          soltarCorDaMarca(t.legendas as unknown as { daMarca?: Record<string, unknown> } & Record<string, unknown>, undefined);
+          if (t.legendas.daMarca && "fundo" in t.legendas.daMarca) {
+            const antes = t.legendas.daMarca.fundo;
+            if (antes === null || antes === undefined) delete t.legendas.fundo;
+            else t.legendas.fundo = antes as string;
+            delete t.legendas.daMarca.fundo;
+          }
+        }
       }
       break;
     }

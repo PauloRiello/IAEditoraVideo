@@ -40,7 +40,7 @@ export function removerMarca(original: Timeline): Timeline {
     if (!item.daMarca) continue;
     const registro = item as unknown as Record<string, unknown>;
     for (const [campo, valor] of Object.entries(item.daMarca)) {
-      if (valor === undefined) delete registro[campo];
+      if (valor === undefined || valor === null) delete registro[campo];
       else registro[campo] = valor;
     }
     delete item.daMarca;
@@ -48,7 +48,7 @@ export function removerMarca(original: Timeline): Timeline {
   if (t.legendas.daMarca) {
     const legendas = t.legendas as Record<string, unknown>;
     for (const [campo, valor] of Object.entries(t.legendas.daMarca)) {
-      if (valor === undefined) delete legendas[campo];
+      if (valor === undefined || valor === null) delete legendas[campo];
       else legendas[campo] = valor;
     }
     delete t.legendas.daMarca;
@@ -63,12 +63,23 @@ function definir(alvo: { daMarca?: Record<string, unknown>; editadoAMao?: string
   if (alvo.editadoAMao?.includes(campo)) return; // a escolha do usuário vale mais que a marca
   const registro = alvo as Record<string, unknown>;
   alvo.daMarca ??= {};
-  if (!(campo in alvo.daMarca)) alvo.daMarca[campo] = registro[campo];
+  // null = "o campo não existia": sobrevive ao JSON do banco (undefined some).
+  if (!(campo in alvo.daMarca)) alvo.daMarca[campo] = registro[campo] ?? null;
   registro[campo] = valor;
 }
 
 export function aplicarMarca(original: Timeline, marca: RetratoDaMarca): { timeline: Timeline; decisoes: Decisao[] } {
+  // O que o usuário fez nos itens da marca vale mais que ela: edições e remoções continuam.
+  const anteriores = new Map(original.itens.filter((i) => i.origem === "marca").map((i) => [i.id, i]));
+  const removidos = new Set(original.marca?.removidos ?? []);
   const t = removerMarca(original);
+  const manter = <T extends ItemDaTimeline>(novo: T): T | null => {
+    if (removidos.has(novo.id)) return null;
+    const antes = anteriores.get(novo.id) as unknown as Record<string, unknown> | undefined;
+    for (const campo of (antes?.editadoAMao as string[] | undefined) ?? []) (novo as unknown as Record<string, unknown>)[campo] = antes?.[campo];
+    if (antes?.editadoAMao) novo.editadoAMao = antes.editadoAMao as string[];
+    return novo;
+  };
   const decisoes: Decisao[] = [];
   const decidir = (aspecto: string, decisao: string) => decisoes.push({ aspecto: `marca/${aspecto}`, decisao, origem: "marca" });
   const primaria = (marca.cores.find((c) => c.papel === "primaria") ?? marca.cores[0])?.hex;
@@ -99,7 +110,10 @@ export function aplicarMarca(original: Timeline, marca: RetratoDaMarca): { timel
     const f = marca.fontes[papel];
     return f && f.origem !== "pendente" ? f.arquivos.map((arquivo) => ({ familia: f.nome, arquivo })) : [];
   });
-  t.marca = { id: marca.id, atualizadaEm: marca.atualizadaEm, fontes: arquivosDeFonte.filter((f, i, todos) => todos.findIndex((o) => o.arquivo === f.arquivo) === i) };
+  t.marca = {
+    id: marca.id, atualizadaEm: marca.atualizadaEm, fontes: arquivosDeFonte.filter((f, i, todos) => todos.findIndex((o) => o.arquivo === f.arquivo) === i),
+    ...(removidos.size ? { removidos: [...removidos] } : {}),
+  };
 
   // --- Legendas: cor só com caixa; fonte sempre ------------------------------------------------
   if (t.legendas.caixa && primaria && caixa) {
@@ -137,9 +151,10 @@ export function aplicarMarca(original: Timeline, marca: RetratoDaMarca): { timel
       corDeFundo: primaria, corDoTexto: textoSobre(primaria, "encerramento"), logo: logoNoCartao ?? marca.logo, ...(fonteDosTitulos ? { fonte: fonteDosTitulos } : {}),
       enquadramento: { modo: "conter", x: 0.5, y: 0.5, zoom: 1 }, entrada: { tipo: "gradual", duracaoSeg: 0.3 }, saida: { tipo: "fade", duracaoSeg: 0.5 }, efeitos: [], origem: "marca",
     };
-    t.itens.push(encerramento);
-    for (const item of t.itens) if (item.tipo === "audio" && item.papel === "trilha") definir(item, "duracaoSeg", arredondar(item.duracaoSeg + ENCERRAMENTO_SEG));
-    decidir("encerramento", `encerramento de ${ENCERRAMENTO_SEG} s com o logo (o vídeo não tinha cartão final)`);
+    const mantido = manter(encerramento);
+    if (mantido) t.itens.push(mantido);
+    if (mantido) for (const item of t.itens) if (item.tipo === "audio" && item.papel === "trilha") definir(item, "duracaoSeg", arredondar(item.duracaoSeg + ENCERRAMENTO_SEG));
+    if (mantido) decidir("encerramento", `encerramento de ${ENCERRAMENTO_SEG} s com o logo (o vídeo não tinha cartão final)`);
   }
 
   // --- Logo de canto durante o vídeo -------------------------------------------------------------
@@ -160,8 +175,9 @@ export function aplicarMarca(original: Timeline, marca: RetratoDaMarca): { timel
       id: "logo-da-marca", tipo: "imagem", camada: 30, inicioSeg: 0, duracaoSeg: arredondar(Math.max(0.1, fimDoLogo)), arquivo: marca.logo, sobreposicao,
       enquadramento: { modo: "conter", x: 0.5, y: 0.5, zoom: 1 }, entrada: { tipo: "corte", duracaoSeg: 0 }, saida: { tipo: "corte", duracaoSeg: 0 }, efeitos: [], origem: "marca",
     };
-    t.itens.push(logo);
-    decidir("logo", vertical && canto !== pedido
+    const logoMantido = manter(logo);
+    if (logoMantido) t.itens.push(logoMantido);
+    if (logoMantido) decidir("logo", vertical && canto !== pedido
       ? "no vídeo vertical, o logo fica no topo, dentro da área segura, longe das legendas e da interface das redes"
       : `logo no canto ${canto.replace("-", " ")}, ${Math.round(altura * 100)}% da altura, opacidade ${Math.round(marca.logoPosicao.opacidade * 100)}%`);
   }

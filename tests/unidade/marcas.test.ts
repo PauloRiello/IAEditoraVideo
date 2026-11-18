@@ -1,7 +1,7 @@
 // Marcas: cadastro, arquivos copiados, uso pelos projetos e cópia de segurança.
 
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import os from "node:os";
 import path from "node:path";
@@ -175,5 +175,54 @@ test("rotas: criar, enviar logo, confirmar cores, marcar pronta; projeto só ace
     assert.equal((await pedir(`/api/marcas/${id}`, { metodo: "DELETE" })).estado, 422, "marca em uso não é removida");
   } finally {
     await servidor.encerrar();
+  }
+});
+
+test("leitura do manual: a cópia de segurança não leva as páginas extraídas, e ler de novo não acumula", { skip: !temLeitorDePdf() }, async () => {
+  const pasta = novaPasta();
+  const app = new Aplicacao(caminhosEm(pasta));
+  try {
+    const marca = app.marcas.criar("Sem acúmulo");
+    const pdf = path.join(pasta, "originais", "manual.pdf");
+    mkdirSync(path.dirname(pdf), { recursive: true });
+    writeFileSync(pdf, manualDeMarca());
+    await app.fluxoDeMarcas.lerManual(marca.id, pdf).conclusao;
+    await app.fluxoDeMarcas.lerManual(marca.id, pdf).conclusao;
+    const leituras = readdirSync(app.marcas.pastaDaMarca(marca.id)).filter((n) => n.startsWith("leitura-"));
+    assert.equal(leituras.length, 1, leituras.join(", "));
+    const copia = app.copiaDeSeguranca("manual");
+    assert.deepEqual(readdirSync(path.join(copia.pasta, "marcas", marca.id)).filter((n) => n.startsWith("leitura-")), []);
+  } finally {
+    app.encerrar();
+  }
+});
+
+test("projeto apontando para marca que não existe: a edição abre sem marca", () =>
+  comApp((app) => {
+    const projeto = app.criarProjeto("Marca sumida", "geral", undefined, { marca: "nao-existe" });
+    assert.equal(app.edicao.marcaDesatualizada(projeto.id), false);
+  }));
+
+test("a ajuda da IA para escolher o logo só usa IA local (nada do manual vai para serviço externo)", async () => {
+  const { FluxoDeMarcas, escolherModeloVisual } = await import("../../src/nucleo/marcas.ts");
+  const local = { id: "ia-local", nome: "IA local", origem: "local" as const, capacidades: ["visao" as const], disponivel: async () => true, descreverImagens: async () => '{"ordem":[0]}' };
+  assert.equal((await escolherModeloVisual({ selecionar: async () => local }))?.id, "ia-local");
+  assert.equal(await escolherModeloVisual({ selecionar: async () => ({ ...local, id: "externo", origem: "externo" as const }) }), null, "provedor externo não recebe imagens do manual");
+  assert.equal(await escolherModeloVisual({ selecionar: async () => { throw new Error("sem provedor"); } }), null);
+  const pasta = novaPasta();
+  const app = new Aplicacao(caminhosEm(pasta));
+  try {
+    let chamadas = 0;
+    const externo = { id: "externo", nome: "Externo", origem: "externo" as const, capacidades: ["visao" as const], disponivel: async () => true, descreverImagens: async () => { chamadas++; return '{"ordem":[0]}'; } };
+    const fluxo = new FluxoDeMarcas({ caminhos: app.caminhos, marcas: app.marcas, tarefas: app.tarefas, provedores: { selecionar: async () => externo }, registrar: () => undefined });
+    const marca = app.marcas.criar("Privada");
+    const pdf = path.join(pasta, "originais", "manual.pdf");
+    mkdirSync(path.dirname(pdf), { recursive: true });
+    writeFileSync(pdf, manualDeMarca());
+    const fim = await fluxo.lerManual(marca.id, pdf).conclusao;
+    if (temLeitorDePdf()) assert.equal(fim.estado, "concluida", fim.erro ?? "");
+    assert.equal(chamadas, 0);
+  } finally {
+    app.encerrar();
   }
 });

@@ -49,7 +49,8 @@ export function criarCopia(banco: Banco, caminhos: Caminhos, motivo: MotivoCopia
   // Perfis, estilos, destinos e presets criados pelo usuário. As chaves de API não entram na cópia.
   for (const nomeDaPasta of PASTAS_DO_USUARIO) {
     const origem = path.join(caminhos.dados, nomeDaPasta);
-    if (existsSync(origem)) cpSync(origem, path.join(pasta, nomeDaPasta), { recursive: true });
+    // Das marcas, as páginas e imagens extraídas do manual (leitura-*) não entram: dá para ler de novo.
+    if (existsSync(origem)) cpSync(origem, path.join(pasta, nomeDaPasta), { recursive: true, filter: (fonte) => !path.basename(fonte).startsWith("leitura-") });
   }
   return interpretar(caminhos.backups, nome) as Copia;
 }

@@ -9,7 +9,9 @@ import { faixaPrincipal } from "./timeline.ts";
 const arredondar = (n: number) => Math.round(n * 100) / 100;
 
 /** Resume uma timeline em números comparáveis. */
-export function indicadores(t: Timeline): Indicadores {
+export function indicadores(completa: Timeline): Indicadores {
+  // O que veio da marca (logo, encerramento) não é escolha de edição: não conta como correção.
+  const t: Timeline = { ...completa, itens: completa.itens.filter((i) => i.origem !== "marca") };
   const principal = faixaPrincipal(t);
   const clipes = principal.filter((i): i is ItemVideo => i.tipo === "video");
   const duracoes = clipes.map((c) => c.duracaoSeg).sort((a, b) => a - b);

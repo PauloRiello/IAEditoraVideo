@@ -130,7 +130,7 @@ export interface Timeline {
   /** Estilo visual das legendas. Cor, fundo e fonte vêm da marca, quando houver. */
   legendas: { tamanho: number; caixa: boolean; cor?: string; fundo?: string; fonte?: string; daMarca?: Record<string, unknown>; editadoAMao?: string[] };
   /** Retrato da marca aplicada: o render usa só isto, nunca a marca atual. */
-  marca?: { id: string; atualizadaEm: string; fontes: { familia: string; arquivo: string }[] };
+  marca?: { id: string; atualizadaEm: string; fontes: { familia: string; arquivo: string }[]; removidos?: string[] };
   /** Margens que textos e legendas respeitam, como fração do quadro. Ausente = margens padrão. */
   areaSegura?: AreaSegura;
 }

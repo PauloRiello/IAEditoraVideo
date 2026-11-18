@@ -3,7 +3,7 @@
 
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { after, test } from "node:test";
@@ -109,4 +109,24 @@ test("PDF com senha ou que não é PDF: erro claro, sem exceção crua", { skip:
   const opcoes = { pasta: path.join(pasta, "saida"), python: PYTHON as string, aoAvancar: () => undefined };
   await assert.rejects(lerManual(cifrado, opcoes), (e: Error & { codigo?: string }) => e.codigo === "manual-senha" && /senha/.test(e.message) && /à mão/.test(e.message));
   await assert.rejects(lerManual(falso, opcoes), (e: Error & { codigo?: string }) => e.codigo === "manual-invalido" && /não é um PDF/.test(e.message));
+});
+
+test("o pypdf falhar (ex.: AES-256 sem a biblioteca de criptografia) não vira 'não é PDF'", { skip: !temPdf }, async () => {
+  const pasta = novaPasta();
+  const pdf = path.join(pasta, "manual.pdf");
+  writeFileSync(pdf, manualDeMarca());
+  // Um pypdf falso no caminho do Python, que falha como o verdadeiro falha com AES-256.
+  const falso = path.join(pasta, "falsos", "pypdf");
+  mkdirSync(path.join(falso, "errors"), { recursive: true });
+  writeFileSync(path.join(falso, "__init__.py"), "class PdfReader:\n    def __init__(self, *a, **k):\n        raise Exception('cryptography>=3.1 is required for AES algorithm')\n");
+  writeFileSync(path.join(falso, "errors", "__init__.py"), "class PdfReadError(Exception):\n    pass\n");
+  const antes = process.env.PYTHONPATH;
+  process.env.PYTHONPATH = path.join(pasta, "falsos");
+  try {
+    const s = await lerManual(pdf, { pasta: path.join(pasta, "saida"), python: PYTHON as string, aoAvancar: () => undefined });
+    assert.equal(s.cores[0].hex, "#1A2B3C");
+  } finally {
+    if (antes === undefined) delete process.env.PYTHONPATH;
+    else process.env.PYTHONPATH = antes;
+  }
 });

@@ -168,7 +168,7 @@ export async function aba(raiz, estado) {
       h("p.suave", {}, "Clique em um item da timeline para ajustá-lo. Cada alteração vira uma versão; nada é perdido."),
       h("div.linha", {}, h("button", { aoClicar: adicionarTexto }, "Adicionar texto"), h("button", { aoClicar: () => entradaDaTrilha.click() }, t.itens.some((i) => i.tipo === "audio" && i.papel === "trilha") ? "Trocar trilha sonora" : "Adicionar trilha sonora"), entradaDaTrilha),
       h("h3", { style: "margin-top:16px" }, "Legendas e efeitos"),
-      h("div", { style: "display:grid;gap:10px" }, campo("Tamanho das legendas (% da altura)", tamanhoDaLegenda), h("label.marca-campo", {}, caixa, "Caixa escura atrás das legendas"),
+      h("div", { style: "display:grid;gap:10px" }, campo("Tamanho das legendas (% da altura)", tamanhoDaLegenda), h("label.marca-campo", {}, caixa, "Caixa atrás das legendas"),
         h("label.marca-campo", {}, h("input", { type: "checkbox", checked: barras, aoMudar: (e) => aplicar({ tipo: "efeito-global", efeito: { tipo: "barras-de-cinema", proporcao: 2.39 }, remover: !e.target.checked }, e.target.checked ? "Barras de cinema ligadas" : "Barras de cinema desligadas") }), "Barras de cinema")),
       h("button", { style: "margin-top:10px", aoClicar: (e) => aplicar({ tipo: "apresentacao", legendas: { tamanho: Number(tamanhoDaLegenda.value) / 100, caixa: caixa.checked } }, "Estilo das legendas alterado", e) }, "Aplicar às legendas"),
       h("h3", { style: "margin-top:16px" }, "Versões da timeline"),

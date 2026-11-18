@@ -93,33 +93,32 @@ def nomes_das_fontes(leitor):
 def main(arquivo, saida):
     os.makedirs(saida, exist_ok=True)
     try:
-        from pypdf import PdfReader
-        from pypdf.errors import PdfReadError
         import pypdfium2 as pdfium
         import pypdfium2.raw as raw
     except ImportError as erro:
         falar({"erro": "outro", "mensagem": f"leitor de PDF não instalado ({erro})"})
         return 1
 
-    try:
-        leitor = PdfReader(arquivo)
-        if leitor.is_encrypted and not leitor.decrypt(""):
-            falar({"erro": "senha", "mensagem": "protegido por senha"})
-            return 1
-        _ = len(leitor.pages)
-    except (PdfReadError, ValueError, OSError, KeyError) as erro:
-        falar({"erro": "invalido", "mensagem": str(erro)})
-        return 1
-    except Exception as erro:  # pypdf pede senha com erros diferentes conforme a versão
-        texto = str(erro).lower()
-        falar({"erro": "senha" if "password" in texto or "decrypt" in texto else "invalido", "mensagem": str(erro)})
-        return 1
-
+    # O pdfium (leitor do Chrome) decide se o arquivo abre: lê PDFs cifrados com AES-256 sem
+    # biblioteca extra e distingue senha de arquivo inválido.
     try:
         documento = pdfium.PdfDocument(arquivo)
     except pdfium.PdfiumError as erro:
         falar({"erro": "senha" if "password" in str(erro).lower() else "invalido", "mensagem": str(erro)})
         return 1
+
+    # O pypdf só serve para os nomes das fontes: se falhar (por exemplo, AES sem a biblioteca de
+    # criptografia), a leitura segue sem eles.
+    leitor = None
+    try:
+        from pypdf import PdfReader
+        leitor = PdfReader(arquivo)
+        if leitor.is_encrypted and not leitor.decrypt(""):
+            leitor = None
+        else:
+            _ = len(leitor.pages)
+    except Exception:
+        leitor = None
 
     total = len(documento)
     paginas, imagens, renderizadas = [], [], []
@@ -149,7 +148,7 @@ def main(arquivo, saida):
             imagens.append({"arquivo": destino, "pagina": numero, "largura": largura, "altura": altura, "transparencia": alfa, "fracaoDaPagina": round(fracao, 4)})
         falar({"pagina": numero, "total": total})
 
-    falar({"paginas": paginas, "fontes": nomes_das_fontes(leitor), "imagens": imagens, "renderizadas": renderizadas})
+    falar({"paginas": paginas, "fontes": nomes_das_fontes(leitor) if leitor else [], "imagens": imagens, "renderizadas": renderizadas})
     return 0
 
 

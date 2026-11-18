@@ -121,8 +121,8 @@ export class Edicao {
   private retratoDaMarca(projetoId: string): RetratoDaMarca | null {
     const id = this.d.projetos.obter(projetoId).configuracao.marca;
     if (!id) return null;
-    const marca = this.d.marcas.obter(id);
-    if (marca.estado !== "pronta") return null;
+    const marca = this.marcaOuNada(id);
+    if (!marca || marca.estado !== "pronta") return null;
     const pasta = path.join(this.d.caminhos.projetos, projetoId, "marca", marca.atualizadaEm.replace(/\D/g, ""));
     criarPasta(pasta, { recursive: true });
     const copiar = (arquivo: string | null): string | null => {
@@ -138,6 +138,15 @@ export class Edicao {
     };
   }
 
+  /** A marca, ou null se ela não existe mais (o projeto aponta para uma marca apagada). */
+  private marcaOuNada(id: string) {
+    try {
+      return this.d.marcas.obter(id);
+    } catch {
+      return null;
+    }
+  }
+
   /** A marca do projeto mudou (ou foi trocada/tirada) depois da montagem da timeline atual. */
   marcaDesatualizada(projetoId: string): boolean {
     let atual: Timeline;
@@ -148,7 +157,8 @@ export class Edicao {
     }
     const id = this.d.projetos.obter(projetoId).configuracao.marca;
     if (!id) return Boolean(atual.marca);
-    const marca = this.d.marcas.obter(id);
+    const marca = this.marcaOuNada(id);
+    if (!marca) return Boolean(atual.marca); // marca apagada: o vídeo pode ficar sem ela
     if (marca.estado !== "pronta") return false;
     return atual.marca?.id !== marca.id || atual.marca.atualizadaEm !== marca.atualizadaEm;
   }

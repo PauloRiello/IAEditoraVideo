@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { aplicarMarca, contraste, removerMarca, type RetratoDaMarca } from "../../src/dominio/marca-na-timeline.ts";
 import type { ItemDaTimeline, Timeline } from "../../src/dominio/timeline.ts";
+import { deduzirCorrecoes } from "../../src/servicos/comparacao.ts";
 import { aplicarOperacao, normalizarTimeline } from "../../src/servicos/timeline.ts";
 
 const CENTRO = { modo: "preencher" as const, x: 0.5, y: 0.5, zoom: 1 };
@@ -122,4 +123,53 @@ test("fonte pendente: o vídeo usa a padrão e a decisão registra", () => {
 test("retirar a marca devolve a timeline de antes", () => {
   const original = base();
   assert.deepEqual(removerMarca(aplicarMarca(original, AZUL).timeline), original);
+});
+
+/** Como a timeline volta do banco: JSON, onde valores undefined somem. */
+const pelaBase = (t: Timeline): Timeline => JSON.parse(JSON.stringify(t));
+
+test("ida e volta pelo banco: tirar ou trocar a marca não deixa restos da antiga", () => {
+  const original = base({ comCartao: true });
+  const salva = pelaBase(aplicarMarca(original, AZUL).timeline);
+  const sem = aplicarOperacao(salva, { tipo: "aplicar-marca", marca: null });
+  assert.equal(sem.legendas.fundo, undefined);
+  assert.equal(sem.legendas.cor, undefined);
+  assert.equal(item(sem, "cartao-final").logo, undefined);
+  assert.equal(item(sem, "cartao-final").fonte, undefined);
+  assert.equal(item(sem, "cartao-final").corDeFundo, "#0e1116");
+  assert.deepEqual(pelaBase(sem), pelaBase(original));
+
+  const comFonteDeTexto = marca([{ hex: "#1A2B3C", papel: "primaria" }], { fontes: { titulos: null, texto: { nome: "Inter", arquivos: ["/m/inter.woff2"], origem: "enviada", licenca: "x" } } });
+  const semFontes = marca([{ hex: "#00AA00", papel: "primaria" }], { fontes: { titulos: null, texto: null } });
+  const trocada = aplicarOperacao(pelaBase(aplicarMarca(original, comFonteDeTexto).timeline), { tipo: "aplicar-marca", marca: semFontes });
+  assert.equal(trocada.legendas.fonte, undefined, "a fonte da marca anterior não fica");
+});
+
+test("desligar a caixa da legenda ou do texto volta a uma cor legível", () => {
+  const amarela = marca([{ hex: "#FFD400", papel: "primaria" }, { hex: "#FFFFFF", papel: "texto" }]);
+  const t = pelaBase(aplicarMarca(base(), amarela).timeline);
+  assert.equal(t.legendas.cor, "#000000");
+  const semCaixa = aplicarOperacao(t, { tipo: "apresentacao", legendas: { caixa: false } });
+  assert.equal(semCaixa.legendas.cor, undefined, "sem caixa, a legenda volta ao branco padrão");
+  assert.equal(semCaixa.legendas.fundo, undefined);
+  const textoSemCaixa = aplicarOperacao(t, { tipo: "alterar", id: "texto-cta", campos: { fundo: "" } });
+  assert.equal(item(textoSemCaixa, "texto-cta").cor, "#ffffff");
+});
+
+test("reaplicar a marca mantém trilha ajustada, logo editado e logo removido à mão", () => {
+  let t = pelaBase(aplicarMarca(base(), AZUL).timeline);
+  t = aplicarOperacao(t, { tipo: "ajustar-duracao", id: "trilha", duracaoSeg: 6 });
+  t = aplicarOperacao(t, { tipo: "alterar", id: "logo-da-marca", campos: { sobreposicao: { opacidade: 0.4 } } });
+  let reaplicada = aplicarOperacao(pelaBase(t), { tipo: "aplicar-marca", marca: AZUL });
+  assert.equal(item(reaplicada, "trilha").duracaoSeg, 6);
+  assert.equal((item(reaplicada, "logo-da-marca") as Extract<ItemDaTimeline, { tipo: "imagem" }>).sobreposicao?.opacidade, 0.4);
+  reaplicada = aplicarOperacao(reaplicada, { tipo: "remover", id: "logo-da-marca" });
+  const outraVez = aplicarOperacao(pelaBase(reaplicada), { tipo: "aplicar-marca", marca: AZUL });
+  assert.equal(outraVez.itens.some((i) => i.id === "logo-da-marca"), false, "logo tirado à mão não volta");
+});
+
+test("aplicar a marca não vira correção do usuário no aprendizado", () => {
+  const daIA = base();
+  const doUsuario = aplicarOperacao(daIA, { tipo: "aplicar-marca", marca: AZUL });
+  assert.deepEqual(deduzirCorrecoes(daIA, doUsuario), []);
 });
