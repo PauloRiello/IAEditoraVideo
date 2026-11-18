@@ -10,6 +10,7 @@ import { MIGRACOES } from "../../src/infra/banco.ts";
 import { montarCaminhos } from "../../src/infra/caminhos.ts";
 import { execFileSync } from "node:child_process";
 import { pythonDoAmbiente } from "../../src/infra/caminhos.ts";
+import { iniciarServidor } from "../../src/interface/servidor.ts";
 import { Aplicacao } from "../../src/nucleo/aplicacao.ts";
 import { manualDeMarca } from "./apoio/pdf.ts";
 
@@ -134,5 +135,45 @@ test("ler o manual pela tarefa guarda o PDF e as sugestões na marca", { skip: !
     assert.deepEqual(lida.cores, []);
   } finally {
     app.encerrar();
+  }
+});
+
+test("rotas: criar, enviar logo, confirmar cores, marcar pronta; projeto só aceita marca pronta", async () => {
+  const pasta = novaPasta();
+  const app = new Aplicacao(caminhosEm(pasta));
+  const servidor = await iniciarServidor(app, {});
+  const pedir = async (rota: string, o: { metodo?: string; corpo?: unknown; arquivo?: Buffer } = {}) => {
+    const r = await fetch(`http://127.0.0.1:${servidor.porta}${rota}`, {
+      method: o.metodo ?? (o.corpo !== undefined || o.arquivo ? "POST" : "GET"),
+      headers: { "x-iaev-sessao": servidor.token, "content-type": o.arquivo ? "application/octet-stream" : "application/json" },
+      body: o.arquivo ? new Uint8Array(o.arquivo) : o.corpo !== undefined ? JSON.stringify(o.corpo) : undefined,
+    });
+    return { estado: r.status, dados: await r.json().catch(() => null) };
+  };
+  try {
+    const criada = await pedir("/api/marcas", { corpo: { nome: "Pela janela" } });
+    const id = criada.dados.id as string;
+    assert.equal(criada.dados.estado, "rascunho");
+    const logo = await pedir(`/api/marcas/${id}/arquivo?papel=logo&nome=logo.png`, { arquivo: Buffer.from("png falso") });
+    assert.equal(logo.estado, 200);
+    assert.ok(logo.dados.logo.endsWith("logo.png"));
+    assert.equal((await pedir(`/api/marcas/${id}/arquivo?papel=logo&nome=virus.exe`, { arquivo: Buffer.from("x") })).estado, 415);
+    assert.equal((await pedir(`/api/marcas/${id}`, { metodo: "PUT", corpo: { cores: [{ hex: "azul", papel: "primaria" }] } })).estado, 400);
+    const cores = await pedir(`/api/marcas/${id}`, { metodo: "PUT", corpo: { cores: [{ hex: "#1a2b3c", papel: "primaria" }] } });
+    assert.deepEqual(cores.dados.cores, [{ hex: "#1A2B3C", papel: "primaria", base: "observado", fonte: "escolhida pelo usuário" }]);
+    const pendente = await pedir(`/api/marcas/${id}/fontes/pendente`, { corpo: { papel: "titulos", nome: "Fonte Proprietária" } });
+    assert.deepEqual(pendente.dados.fontes.titulos, { nome: "Fonte Proprietária", arquivos: [], origem: "pendente", licenca: "" });
+
+    const recusado = await pedir("/api/projetos", { corpo: { nome: "Com rascunho", configuracao: { marca: id } } });
+    assert.equal(recusado.estado, 422);
+    assert.match(recusado.dados.erro.mensagem, /ainda não está pronta/);
+    assert.equal((await pedir(`/api/marcas/${id}/pronta`, { corpo: {} })).dados.estado, "pronta");
+    const projeto = await pedir("/api/projetos", { corpo: { nome: "Com marca pronta", configuracao: { marca: id } } });
+    assert.equal(projeto.estado, 200);
+    const imagem = await fetch(`http://127.0.0.1:${servidor.porta}/api/marcas/${id}/imagem/logo`, { headers: { "x-iaev-sessao": servidor.token } });
+    assert.equal(await imagem.text(), "png falso");
+    assert.equal((await pedir(`/api/marcas/${id}`, { metodo: "DELETE" })).estado, 422, "marca em uso não é removida");
+  } finally {
+    await servidor.encerrar();
   }
 });

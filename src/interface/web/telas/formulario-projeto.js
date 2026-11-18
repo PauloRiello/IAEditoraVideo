@@ -48,6 +48,7 @@ export function formularioDoProjeto(catalogo, projeto) {
   const intervencao = escolha(NIVEIS, c.intervencao ?? "assistido");
   const cta = h("input", { value: c.cta ?? "", placeholder: "Por exemplo: Entre no nosso Discord" });
   const fatos = h("textarea", { value: (c.fatos ?? []).join("\n"), placeholder: "Um por linha. Por exemplo: O servidor abre no dia 20." });
+  const marca = escolha([["", "Nenhuma"], ...(catalogo.marcas ?? []).map((m) => [m.id, m.nome])], c.marca ?? "");
   const estilos = catalogo.estilos.map((e) => h("label.marca-campo", { title: e.descricao }, h("input", { type: "checkbox", value: e.id, checked: (c.estilos ?? []).includes(e.id) }), e.nome));
 
   const campoResolucao = campo("Resolução", resolucao);
@@ -81,6 +82,7 @@ export function formularioDoProjeto(catalogo, projeto) {
     campo("Quadros por segundo (FPS)", fps), campo("Duração desejada", duracao, "Vazio: a aplicação decide pelo material e pelo formato."),
     h("div.larga", {}, h("div.campo", { style: "font-size:12.5px;color:var(--suave)" }, "Estilos de edição"), h("div.linha", { style: "gap:6px 16px;margin-top:6px" }, estilos),
       h("div.ajuda", {}, "Nenhum marcado: estilo padrão. Mais de um: combinados.")),
+    campo("Marca (identidade visual)", marca, "Logo, cores e fontes aplicados no vídeo. Só aparecem as marcas prontas (menu Marcas)."),
     h("div.larga", {}, campo("Chamada para ação (CTA)", cta, "Vazio: o vídeo não terá chamada para ação. Nada é inventado.")),
     h("div.larga", {}, campo("Fatos que podem aparecer no vídeo", fatos, "Só o que estiver aqui ou no próprio material entra em textos e no roteiro.")),
     h("datalist", { id: "plataformas" }, PLATAFORMAS.map((p) => h("option", { value: p }))),
@@ -93,7 +95,7 @@ export function formularioDoProjeto(catalogo, projeto) {
       configuracao: {
         objetivo: objetivo.value, publico: publico.value, plataforma: plataforma.value, cta: cta.value, fatos: fatos.value.split("\n").map((f) => f.trim()).filter(Boolean),
         largura: Number(largura.value) || null, altura: Number(altura.value) || null, fps: Number(fps.value) || null, duracaoSeg: duracao.value === "" ? null : Number(duracao.value),
-        estilos: estilos.map((e) => e.firstChild).filter((caixa) => caixa.checked).map((caixa) => caixa.value), intervencao: intervencao.value,
+        estilos: estilos.map((e) => e.firstChild).filter((caixa) => caixa.checked).map((caixa) => caixa.value), intervencao: intervencao.value, marca: marca.value,
       },
     }),
   };

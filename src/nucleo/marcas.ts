@@ -2,7 +2,9 @@
 // porcentagem) e guardar as sugestões para o usuário confirmar. Nada é aplicado aqui.
 
 import path from "node:path";
-import { lerManual } from "../../Pipeline/brand/manual.ts";
+import { coresMedidas, lerManual } from "../../Pipeline/brand/manual.ts";
+import type { CorDaMarca, Marca } from "../dominio/marca.ts";
+import { baixarDoGoogleFonts, procurarNoGoogleFonts } from "../servicos/fontes.ts";
 import { ErroAplicacao } from "../dominio/erros.ts";
 import type { ProvedorIA } from "../dominio/provedores.ts";
 import { pythonDoAmbiente, type Caminhos } from "../infra/caminhos.ts";
@@ -58,6 +60,34 @@ export class FluxoDeMarcas {
       this.d.marcas.atualizar(marcaId, { sugestoes });
       this.d.registrar(`Manual da marca "${marca.nome}" lido: ${sugestoes.cores.length} cor(es), ${sugestoes.fontes.length} fonte(s) e ${sugestoes.logos.length} candidata(s) a logo para confirmar.`);
       return sugestoes;
+    });
+  }
+
+  /** Usa como logo uma das candidatas encontradas no manual (pelo número na lista). */
+  usarLogoSugerido(marcaId: string, indice: number): Marca {
+    const candidata = this.d.marcas.obter(marcaId).sugestoes?.logos[indice];
+    if (!candidata) throw new ErroAplicacao("sugestao-inexistente", "Essa sugestão de logo não existe mais. Leia o manual de novo ou envie o logo.");
+    this.d.marcas.guardarArquivo(marcaId, candidata.arquivo, "logo");
+    return this.d.marcas.obter(marcaId);
+  }
+
+  /** Cores medidas no logo da marca, para sugerir (estimado). */
+  async coresDoLogo(marcaId: string): Promise<CorDaMarca[]> {
+    const { logo } = this.d.marcas.obter(marcaId);
+    if (!logo) throw new ErroAplicacao("sem-logo", "Envie o logo primeiro.");
+    return (await coresMedidas([logo])).map((c) => ({ ...c, fonte: "medida no logo" }));
+  }
+
+  /** Procura a fonte no Google Fonts e, achando, baixa para a marca (o usuário já confirmou na janela). */
+  baixarFonteDoGoogle(marcaId: string, papel: "titulos" | "texto", nome: string, origem?: string): TarefaIniciada {
+    const marca = this.d.marcas.obter(marcaId);
+    return this.d.tarefas.iniciar({ tipo: "fonte-da-marca", titulo: `Baixando a fonte ${nome} para ${marca.nome}`, projetoId: null }, async (informar) => {
+      const achada = await procurarNoGoogleFonts(nome, { origem });
+      if (!achada) throw new ErroAplicacao("fonte-nao-encontrada", `${nome} não está no Google Fonts. Envie o arquivo da fonte.`);
+      const arquivos = await baixarDoGoogleFonts(achada.familia, path.join(this.d.marcas.pastaDaMarca(marcaId), "fontes"), { origem, aoAvancar: informar });
+      this.d.marcas.definirFonte(marcaId, papel, { nome: achada.familia, arquivos, origem: "google-fonts", licenca: achada.licenca });
+      this.d.registrar(`Fonte ${achada.familia} baixada do Google Fonts para a marca "${marca.nome}".`);
+      return arquivos;
     });
   }
 }

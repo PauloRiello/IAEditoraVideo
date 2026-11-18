@@ -211,7 +211,7 @@ export class Aplicacao {
     });
     this.fluxo = new Fluxo({
       caminhos: this.caminhos, eventos: this.eventos, projetos: this.projetos, perfis: this.perfis, acervo: this.acervo, atividades: this.atividades,
-      tarefas: this.tarefas, producao: this.producao, edicao: this.edicao, referencias: this.referencias, feedback: this.feedback,
+      tarefas: this.tarefas, producao: this.producao, edicao: this.edicao, referencias: this.referencias, feedback: this.feedback, marcas: this.marcas,
     });
     this.fluxoDeMarcas = new FluxoDeMarcas({
       caminhos: this.caminhos, marcas: this.marcas, tarefas: this.tarefas, provedores: this.provedores,

@@ -4,7 +4,7 @@ import { agir, api, aviso, barra, confirmar, h, limpar, por } from "/nucleo.js";
 
 const TELAS = {
   painel: () => import("/telas/painel.js"), projetos: () => import("/telas/projetos.js"), projeto: () => import("/telas/projeto.js"),
-  referencias: () => import("/telas/referencias.js"), aprendizado: () => import("/telas/aprendizado.js"), configuracoes: () => import("/telas/configuracoes.js"),
+  referencias: () => import("/telas/referencias.js"), marcas: () => import("/telas/marcas.js"), aprendizado: () => import("/telas/aprendizado.js"), configuracoes: () => import("/telas/configuracoes.js"),
 };
 const conteudo = document.getElementById("conteudo");
 const contexto = { catalogo: null, ir: (destino) => { location.hash = destino; }, recarregar: () => navegar() };

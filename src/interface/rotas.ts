@@ -1,11 +1,12 @@
 // Operações que a interface gráfica pode pedir. Cada rota só traduz o pedido em uma
 // chamada à Aplicacao e devolve o resultado em JSON: nenhuma regra de negócio mora aqui.
 
-import { existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
 import { ErroAplicacao, NaoEncontrado } from "../dominio/erros.ts";
 import { ASPECTOS } from "../dominio/feedback.ts";
 import { CATEGORIAS_EDICAO, type CategoriaEdicao, type EscopoAprendizado } from "../dominio/memoria.ts";
+import type { CorDaMarca, Marca, PapelDaCor } from "../dominio/marca.ts";
 import type { Capacidade, ConfiguracaoProvedor } from "../dominio/provedores.ts";
 import type { Operacao } from "../dominio/timeline.ts";
 import type { ConfiguracaoDoProjeto, Projeto } from "../dominio/tipos.ts";
@@ -44,6 +45,38 @@ const RECURSOS = [
 ];
 
 const texto = (valor: unknown): string => (typeof valor === "string" ? valor : "");
+
+// --- Marcas: tipos de arquivo aceitos e conferência do que a janela manda ---------------------
+const IMAGENS_DE_LOGO = new Set([".png", ".svg", ".gif", ".jpg", ".jpeg", ".webp"]);
+const ARQUIVOS_DE_FONTE = new Set([".ttf", ".otf", ".woff", ".woff2"]);
+const MATERIAIS_DA_MARCA = new Set([".pdf", ...IMAGENS_DE_LOGO, ...ARQUIVOS_DE_FONTE, ".txt", ".md"]);
+const PAPEIS_DE_ARQUIVO: Record<string, Set<string>> = { logo: IMAGENS_DE_LOGO, logoClaro: IMAGENS_DE_LOGO, material: MATERIAIS_DA_MARCA, "fonte-titulos": ARQUIVOS_DE_FONTE, "fonte-texto": ARQUIVOS_DE_FONTE };
+const PAPEIS_DE_COR = new Set(["primaria", "secundaria", "destaque", "texto", "fundo"]);
+const CANTOS = new Set(["superior-direito", "superior-esquerdo", "inferior-direito", "inferior-esquerdo"]);
+
+function coresDoPedido(valor: unknown): CorDaMarca[] {
+  if (!Array.isArray(valor)) throw new ErroDePedido(400, "As cores precisam vir em lista.");
+  return valor.map((c: Record<string, unknown>) => {
+    const hex = texto(c?.hex).trim();
+    if (!/^#[0-9a-f]{6}$/i.test(hex)) throw new ErroDePedido(400, `Cor inválida: "${hex}". Use o formato #RRGGBB.`);
+    const papel = texto(c.papel);
+    return {
+      hex: hex.toUpperCase(), papel: PAPEIS_DE_COR.has(papel) ? (papel as PapelDaCor) : null,
+      base: c.base === "estimado" ? "estimado" : "observado", fonte: texto(c.fonte) || "escolhida pelo usuário",
+    };
+  });
+}
+
+function posicaoDoLogo(valor: Record<string, unknown>): Marca["logoPosicao"] {
+  const canto = texto(valor?.canto), altura = Number(valor?.alturaRelativa), opacidade = Number(valor?.opacidade);
+  if (!CANTOS.has(canto) || !(altura >= 0.03 && altura <= 0.3) || !(opacidade >= 0.2 && opacidade <= 1)) throw new ErroDePedido(400, "Posição do logo inválida (altura de 3% a 30% e opacidade de 20% a 100%).");
+  return { canto: canto as Marca["logoPosicao"]["canto"], alturaRelativa: altura, opacidade };
+}
+
+/** Recebe um arquivo enviado pela janela numa pasta temporária; a marca guarda uma cópia. */
+async function receberParaAMarca(app: Aplicacao, req: Parameters<typeof receberArquivo>[0], nome: string, aceitos: Set<string>): Promise<string> {
+  return receberArquivo(req, path.join(app.caminhos.temporarios, "envios-de-marca"), nome, aceitos);
+}
 const numero = (valor: unknown): number | undefined => (valor === undefined || valor === null || valor === "" || !Number.isFinite(Number(valor)) ? undefined : Number(valor));
 const inteiro = (valor: string): number => {
   const n = Number(valor);
@@ -177,6 +210,7 @@ export const ROTAS: Rota[] = [
     atender: ({ app }) => ({
       perfis: app.perfis.listar().map((p) => ({ id: p.id, nome: p.nome, descricao: p.descricao, formatoPadrao: p.formatoPadrao, formatos: p.formatos, diretrizes: p.diretrizes })),
       estilos: app.estilos.listar().map((e) => ({ id: e.id, nome: e.nome, descricao: e.descricao })),
+      marcas: app.marcas.listar().filter((m) => m.estado === "pronta").map((m) => ({ id: m.id, nome: m.nome })),
       presets: app.catalogoDeQualidade.listarPresets(), destinos: app.catalogoDeQualidade.listarPerfis().map((d) => ({ id: d.id, nome: d.nome })),
       categorias: CATEGORIAS_EDICAO, aspectos: Object.keys(ASPECTOS), perfilPadrao: app.configuracoes.perfilPadrao,
       extensoesDeVideo: [...EXTENSOES_DE_VIDEO], extensoesDeAudio: [...EXTENSOES_DE_AUDIO],
@@ -266,6 +300,78 @@ export const ROTAS: Rota[] = [
   {
     metodo: "GET", caminho: "/api/projetos/:id/pesquisa",
     atender: ({ app, p, consulta }) => (consulta.get("q")?.trim() ? app.producao.pesquisar(consulta.get("q") as string, { projetoId: app.projetos.obter(p.id).id, limite: 40 }) : []),
+  },
+
+  // --- Marcas (identidade visual) -------------------------------------------------------------------
+  { metodo: "GET", caminho: "/api/marcas", atender: ({ app }) => app.marcas.listar() },
+  { metodo: "POST", caminho: "/api/marcas", atender: ({ app, corpo }) => { const marca = app.marcas.criar(texto(corpo.nome)); app.fluxo.registrar("marca", `Marca "${marca.nome}" criada.`); return marca; } },
+  { metodo: "GET", caminho: "/api/marcas/:id", atender: ({ app, p }) => app.marcas.obter(p.id) },
+  {
+    metodo: "PUT", caminho: "/api/marcas/:id",
+    atender: ({ app, p, corpo }) => app.marcas.atualizar(p.id, {
+      nome: corpo.nome !== undefined ? texto(corpo.nome) : undefined,
+      cores: corpo.cores !== undefined ? coresDoPedido(corpo.cores) : undefined,
+      logoPosicao: corpo.logoPosicao !== undefined ? posicaoDoLogo(corpo.logoPosicao as Record<string, unknown>) : undefined,
+    }),
+  },
+  { metodo: "DELETE", caminho: "/api/marcas/:id", atender: ({ app, p }) => { const { nome } = app.marcas.obter(p.id); app.marcas.remover(p.id); app.fluxo.registrar("marca", `Marca "${nome}" removida.`); return { removida: true }; } },
+  {
+    metodo: "POST", caminho: "/api/marcas/:id/arquivo", envio: true,
+    atender: async ({ app, p, consulta, req }) => {
+      const papel = consulta.get("papel") ?? "";
+      const aceitos = PAPEIS_DE_ARQUIVO[papel];
+      if (!aceitos) throw new ErroDePedido(400, "Papel do arquivo desconhecido.");
+      app.marcas.obter(p.id);
+      const temporario = await receberParaAMarca(app, req, consulta.get("nome") ?? "", aceitos);
+      try {
+        app.marcas.guardarArquivo(p.id, temporario, papel as Parameters<typeof app.marcas.guardarArquivo>[2]);
+      } finally {
+        rmSync(temporario, { force: true });
+      }
+      return app.marcas.obter(p.id);
+    },
+  },
+  {
+    // O manual em PDF: a marca guarda uma cópia e a leitura roda como tarefa com porcentagem.
+    metodo: "POST", caminho: "/api/marcas/:id/manual", envio: true,
+    atender: async ({ app, p, consulta, req }) => {
+      app.marcas.obter(p.id);
+      const temporario = await receberParaAMarca(app, req, consulta.get("nome") ?? "manual.pdf", new Set([".pdf"]));
+      const { tarefa, conclusao } = app.fluxoDeMarcas.lerManual(p.id, temporario);
+      void conclusao.finally(() => rmSync(temporario, { force: true }));
+      return tarefa;
+    },
+  },
+  { metodo: "POST", caminho: "/api/marcas/:id/logo-sugerido", atender: ({ app, p, corpo }) => app.fluxoDeMarcas.usarLogoSugerido(p.id, Number(corpo.indice)) },
+  { metodo: "POST", caminho: "/api/marcas/:id/cores-do-logo", atender: ({ app, p }) => app.fluxoDeMarcas.coresDoLogo(p.id) },
+  {
+    // Só roda quando a janela pede: a confirmação ("Baixar do Google Fonts?") é feita lá.
+    metodo: "POST", caminho: "/api/marcas/:id/fontes/google",
+    atender: ({ app, p, corpo }) => {
+      const papel = texto(corpo.papel) === "texto" ? "texto" : "titulos";
+      if (!texto(corpo.nome).trim()) throw new ErroDePedido(400, "Informe o nome da fonte.");
+      return app.fluxoDeMarcas.baixarFonteDoGoogle(p.id, papel, texto(corpo.nome)).tarefa;
+    },
+  },
+  {
+    metodo: "POST", caminho: "/api/marcas/:id/fontes/pendente",
+    atender: ({ app, p, corpo }) => {
+      const papel = texto(corpo.papel) === "texto" ? "texto" : "titulos";
+      if (!texto(corpo.nome).trim()) throw new ErroDePedido(400, "Informe o nome da fonte.");
+      return app.marcas.definirFonte(p.id, papel, { nome: texto(corpo.nome).trim(), arquivos: [], origem: "pendente", licenca: "" });
+    },
+  },
+  { metodo: "POST", caminho: "/api/marcas/:id/pronta", atender: ({ app, p }) => { const marca = app.marcas.marcarPronta(p.id); app.fluxo.registrar("marca", `Marca "${marca.nome}" pronta para os projetos.`); return marca; } },
+  {
+    // Imagens da marca por identificador, nunca por caminho: logo, logo-claro, sugestao-<n>.
+    metodo: "GET", caminho: "/api/marcas/:id/imagem/:qual",
+    atender: ({ app, p, req, res }) => {
+      const marca = app.marcas.obter(p.id);
+      const sugestao = /^sugestao-(\d+)$/.exec(p.qual);
+      const arquivo = p.qual === "logo" ? marca.logo : p.qual === "logo-claro" ? marca.logoClaro : sugestao ? marca.sugestoes?.logos[Number(sugestao[1])]?.arquivo : null;
+      if (!arquivo || !existsSync(arquivo)) throw new ErroDePedido(404, "Imagem não encontrada.");
+      enviarArquivo(req, res, arquivo);
+    },
   },
 
   // --- Referências ------------------------------------------------------------------------------

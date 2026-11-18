@@ -3,6 +3,7 @@
 // automática, as tarefas em segundo plano e o histórico de atividades. A edição continua
 // esperando a aprovação do plano, e a exportação final é sempre pedida pelo usuário.
 
+import type { ServicoMarcas } from "../servicos/marcas.ts";
 import type { EventEmitter } from "node:events";
 import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
@@ -34,6 +35,7 @@ export interface DependenciasDoFluxo {
   edicao: Edicao;
   referencias: AnaliseDeReferencias;
   feedback: Feedback;
+  marcas: ServicoMarcas;
 }
 
 /** Tipos de arquivo aceitos como vídeo (bruto ou referência) e como trilha sonora. */
@@ -63,6 +65,7 @@ export class Fluxo {
   /** Cria o projeto com a configuração informada e a pasta dele em Videos Brutos/. */
   criarProjeto(dados: { nome: string; perfil: string; configuracao?: Partial<ConfiguracaoDoProjeto> }): Projeto {
     const perfil = this.d.perfis.obter(dados.perfil);
+    this.conferirMarca(dados.configuracao?.marca);
     const pasta = nomeDePasta(dados.nome);
     const emUso = new Set(this.d.projetos.listar().map((p) => p.configuracao.pasta.toLowerCase()));
     let livre = pasta;
@@ -79,9 +82,17 @@ export class Fluxo {
     const perfil = this.d.perfis.obter(dados.perfil ?? atual.perfil);
     const formato = perfil.formatos.some((f) => f.id === atual.formato) ? atual.formato : perfil.formatoPadrao;
     const { pasta: _pasta, ...configuracao } = dados.configuracao ?? {};
+    if (configuracao.marca !== undefined && configuracao.marca !== atual.configuracao.marca) this.conferirMarca(configuracao.marca);
     const projeto = this.d.projetos.atualizar(projetoId, { nome: dados.nome, perfil: perfil.id, formato, configuracao });
     this.registrar("projeto", "Configuração do projeto alterada.", projetoId);
     return projeto;
+  }
+
+  /** Um projeto só escolhe marca pronta (logo e cores confirmados). */
+  private conferirMarca(id: string | undefined): void {
+    if (!id) return;
+    const marca = this.d.marcas.obter(id);
+    if (marca.estado !== "pronta") throw new ErroAplicacao("marca-nao-pronta", `A marca "${marca.nome}" ainda não está pronta: confirme o logo e as cores na tela de marcas.`);
   }
 
   /** Pasta de Videos Brutos/ com o material do projeto. */

@@ -167,3 +167,18 @@ dialog footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12p
 .download { background: var(--painel-2); border: 1px solid var(--borda); border-radius: var(--raio); padding: 8px 10px; display: grid; gap: 4px; font-size: 12.5px; }
 .download-link { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--texto); }
 .erro-do-download { color: var(--ruim); }
+
+/* Marcas */
+.logo-da-marca { max-width: 160px; max-height: 80px; object-fit: contain; background: repeating-conic-gradient(#2a2e38 0 25%, #20232b 0 50%) 0 0 / 16px 16px; border-radius: 6px; padding: 4px; }
+td .logo-da-marca { max-width: 64px; max-height: 36px; }
+.grade-de-logos { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-top: 6px; }
+.candidata { display: grid; gap: 6px; justify-items: start; background: var(--painel-2); border: 1px solid var(--borda); border-radius: var(--raio); padding: 8px; }
+.amostra-de-cor { display: inline-block; width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--borda); vertical-align: middle; margin-right: 4px; }
+.linha-de-cor { gap: 8px; margin-bottom: 6px; }
+.linha-de-cor input[type="color"] { width: 44px; padding: 2px; height: 34px; }
+.origem { color: var(--suave); font-size: 12px; }
+.fonte-da-marca { border-top: 1px solid var(--borda); padding-top: 12px; margin-top: 12px; }
+.fonte-da-marca:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+.linha-de-cor { flex-wrap: nowrap; align-items: center; }
+.linha-de-cor select { width: auto; min-width: 140px; }
+.linha-de-cor input:not([type="color"]) { width: 110px; }
